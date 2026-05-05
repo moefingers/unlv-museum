@@ -73,10 +73,10 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
 
   return (
     <div
-      className="relative mx-auto select-none"
+      className="relative mx-auto select-none overflow-hidden"
       style={{
-        width: radius * 2 + 200,
-        height: radius * 2 + 200,
+        width: radius * 2,
+        height: radius * 2,
         perspective: "1200px",
       }}
       onPointerDown={handlePointerDown}
