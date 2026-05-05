@@ -86,7 +86,7 @@ function ListView() {
   const categories = Object.keys(CATEGORY_LABELS) as Category[];
 
   return (
-    <div className="w-full max-w-5xl space-y-12">
+    <div className="mx-auto w-full max-w-5xl space-y-12">
       {categories.map((category) => {
         const projects = PROJECTS.filter((p) => p.category === category);
         if (projects.length === 0) return null;
