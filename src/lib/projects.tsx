@@ -7,6 +7,10 @@ import {
   JacksPaintReimagined,
   SqlInjectionReimagined,
   TimerStopwatchReimagined,
+  WebGameReimagined,
+  ArtGalleryReimagined,
+  PetFaxReimagined,
+  PlaceholderReimagined,
 } from "@/components/reimagined";
 import {
   GwhacAMole,
@@ -127,7 +131,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Canvas", "State Machine", "Animations"],
     original: <OriginalFrame src="/originals/web-game/part-7/index.html" />,
     remastered: <WebGame />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <WebGameReimagined />,
   },
 
   // FULL-STACK
@@ -185,7 +189,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Server Actions", "Real-time", "Auth"],
     original: <OriginalFrame src="/originals/divvy/index.html" />,
     remastered: <Divvy />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "nextjs-dashboard",
@@ -198,7 +202,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Charts", "RBAC", "Real-time"],
     original: <Placeholder label="Original — server-side Next.js app" />,
     remastered: <NextjsDashboard />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
 
   // FRONTEND & UI
@@ -213,7 +217,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Masonry", "Lightbox", "API Integration"],
     original: <OriginalFrame src="/originals/art-gallery/index.html" />,
     remastered: <ArtGallery />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <ArtGalleryReimagined />,
   },
   {
     slug: "quirk-truck",
@@ -226,7 +230,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Server Components", "Image Optimization"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
     remastered: <QuirkTruck />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "timer-stopwatch",
@@ -252,7 +256,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "SVG", "GSAP", "Interactive"],
     original: <OriginalFrame src="/originals/hxh-logo/index.html" />,
     remastered: <HxhLogo />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "food-truck",
@@ -265,7 +269,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Server Components", "CMS", "Ordering"],
     original: <OriginalFrame src="/originals/food-truck/index.html" />,
     remastered: <FoodTruck />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "admin-portal",
@@ -278,7 +282,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "CRUD", "Validation", "Toast Notifications"],
     original: <OriginalFrame src="/originals/admin-portal/index.html" />,
     remastered: <AdminPortal />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "interactive-map",
@@ -291,7 +295,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Mapbox", "Search", "Directions"],
     original: <OriginalFrame src="/originals/interactive-map/index.html" />,
     remastered: <InteractiveMap />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "stock-charts",
@@ -304,7 +308,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Real-time", "WebSocket", "Candlestick"],
     original: <OriginalFrame src="/originals/stock-charts/index.html" />,
     remastered: <StockCharts />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "jacks-paint",
@@ -330,7 +334,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Responsive", "Animations", "Dark Mode"],
     original: <OriginalFrame src="/originals/copycat/index.html" />,
     remastered: <CopycatActivity />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "my-values",
@@ -343,7 +347,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Animations", "Interactive", "Shareable"],
     original: <OriginalFrame src="/originals/my-values/index.html" />,
     remastered: <MyValues />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
 
   // APIs & BACKEND
@@ -360,7 +364,7 @@ export const PROJECTS: Project[] = [
       <Placeholder label="Original — Express/Sequelize API (source view)" />
     ),
     remastered: <MusicTourApi />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "sql-injection-demo",
@@ -386,7 +390,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["Next.js API Routes", "Drizzle", "CRUD UI"],
     original: <Placeholder label="Original — MongoDB/Express API" />,
     remastered: <Jaskis />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "github-commits",
@@ -399,7 +403,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "GitHub OAuth", "Charts"],
     original: <Placeholder label="Original — Express/GitHub API" />,
     remastered: <GithubCommits />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
 
   // PYTHON
@@ -414,7 +418,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["Next.js", "Server Actions", "Image Upload"],
     original: <Placeholder label="Original — Flask app (source view)" />,
     remastered: <PetFax />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PetFaxReimagined />,
   },
   {
     slug: "python-fundamentals",
@@ -427,7 +431,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["Next.js", "Interactive REPL"],
     original: <Placeholder label="Original — Python source files" />,
     remastered: <PythonFundamentals />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
 
   // EXERCISES
@@ -444,7 +448,7 @@ export const PROJECTS: Project[] = [
       <OriginalFrame src="/originals/html-css-fundamentals/hacker-times/index.html" />
     ),
     remastered: <HtmlCssFundamentals />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "js-dom-events",
@@ -459,7 +463,7 @@ export const PROJECTS: Project[] = [
       <OriginalFrame src="/originals/js-dom-events/events-demo/1. The Target Element.html" />
     ),
     remastered: <JsDomEvents />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "react-exercises",
@@ -474,7 +478,7 @@ export const PROJECTS: Project[] = [
       <OriginalFrame src="/originals/react-exercises/music-search/index.html" />
     ),
     remastered: <ReactExercises />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "css-responsive-nav",
@@ -487,7 +491,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Animated Menu", "Mobile-First"],
     original: <OriginalFrame src="/originals/css-responsive-nav/index.html" />,
     remastered: <ResponsiveNav />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "restaurant-menu",
@@ -500,6 +504,6 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "CMS", "Online Ordering"],
     original: <OriginalFrame src="/originals/restaurant-menu/index.html" />,
     remastered: <RestaurantMenu />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <PlaceholderReimagined title="" />,
   },
 ];

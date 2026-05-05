@@ -4,3 +4,7 @@ export { CommerceArrayReimagined } from "./CommerceArrayReimagined";
 export { JacksPaintReimagined } from "./JacksPaintReimagined";
 export { SqlInjectionReimagined } from "./SqlInjectionReimagined";
 export { TimerStopwatchReimagined } from "./TimerStopwatchReimagined";
+export { WebGameReimagined } from "./WebGameReimagined";
+export { ArtGalleryReimagined } from "./ArtGalleryReimagined";
+export { PetFaxReimagined } from "./PetFaxReimagined";
+export { PlaceholderReimagined } from "./PlaceholderReimagined";
