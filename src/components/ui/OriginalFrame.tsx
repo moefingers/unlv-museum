@@ -4,7 +4,7 @@ export function OriginalFrame({ src }: { src: string }) {
   return (
     <iframe
       src={src}
-      className="h-[80vh] w-full border-0"
+      className="h-[80vh] w-full border-0 bg-white"
       sandbox="allow-scripts allow-same-origin allow-popups"
       title="Original project"
     />
