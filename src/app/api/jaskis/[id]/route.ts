@@ -1,11 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  pgSchema,
-  serial,
-  text,
-  integer,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { pgSchema, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 

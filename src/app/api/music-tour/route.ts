@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { bands, events } from "@/lib/schema/music-tour";
+import { bands } from "@/lib/schema/music-tour";
 import { desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
