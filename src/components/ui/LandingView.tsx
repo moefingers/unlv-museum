@@ -11,6 +11,15 @@ import {
 } from "@/lib/projects";
 import { Globe as GlobeIcon, List } from "lucide-react";
 
+const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
+  games: { light: "#22c55e", dark: "#15803d" },
+  "full-stack": { light: "#3b82f6", dark: "#1d4ed8" },
+  frontend: { light: "#a855f7", dark: "#7e22ce" },
+  api: { light: "#f59e0b", dark: "#b45309" },
+  python: { light: "#06b6d4", dark: "#0e7490" },
+  exercises: { light: "#ec4899", dark: "#be185d" },
+};
+
 const CATEGORY_BG: Record<Category, string> = {
   games: "bg-green-500",
   "full-stack": "bg-blue-500",
@@ -20,21 +29,11 @@ const CATEGORY_BG: Record<Category, string> = {
   exercises: "bg-pink-500",
 };
 
-const CATEGORY_BACK: Record<Category, string> = {
-  games: "bg-green-700",
-  "full-stack": "bg-blue-700",
-  frontend: "bg-purple-700",
-  api: "bg-amber-700",
-  python: "bg-cyan-700",
-  exercises: "bg-pink-700",
-};
-
-const DEPTH_LAYERS = 8;
-const LAYER_STEP = 2;
+const DEPTH_LAYERS = 5;
+const LAYER_STEP = 1.5;
 
 function ProjectCard({ project }: { project: Project }) {
-  const bg = CATEGORY_BG[project.category];
-  const back = CATEGORY_BACK[project.category];
+  const hex = CATEGORY_HEX[project.category];
 
   return (
     <Link
@@ -45,28 +44,35 @@ function ProjectCard({ project }: { project: Project }) {
       style={{ transformStyle: "preserve-3d" }}
     >
       <div className="relative" style={{ transformStyle: "preserve-3d" }}>
-        {/* Front face */}
-        <div className="relative rounded-lg bg-white dark:bg-zinc-900">
-          <div className={`h-1.5 rounded-t-lg ${bg}`} />
+        {/* Front face with subtle category gradient */}
+        <div
+          className="relative rounded-lg"
+          style={{
+            background: `linear-gradient(315deg, rgba(255,255,255,0.97), rgba(255,255,255,0.78)), linear-gradient(315deg, ${hex.light}22, ${hex.dark}66)`,
+          }}
+        >
           <div className="p-3">
-            <h3 className="truncate text-sm font-semibold group-hover:underline">
+            <h3 className="truncate text-sm font-semibold text-zinc-900 group-hover:underline">
               {project.title}
             </h3>
-            <p className="mt-0.5 text-xs text-zinc-400">{project.year}</p>
+            <p className="mt-0.5 text-xs text-zinc-600">{project.year}</p>
           </div>
         </div>
 
-        {/* Stacked depth layers */}
+        {/* Backing layers with gradient */}
         {Array.from({ length: DEPTH_LAYERS }, (_, i) => {
-          const z = -(i + 1) * LAYER_STEP;
           const t = (i + 1) / DEPTH_LAYERS;
+          const z = -(i + 1) * LAYER_STEP;
+          const grow = t * 2;
           return (
             <div
               key={i}
-              className={`absolute inset-0 rounded-lg ${i < DEPTH_LAYERS / 2 ? back : bg}`}
+              className="absolute rounded-lg"
               style={{
+                inset: `${-grow}px`,
                 transform: `translateZ(${z}px)`,
-                opacity: 0.6 + t * 0.4,
+                background: `linear-gradient(135deg, ${hex.light}, ${hex.dark})`,
+                opacity: 0.7 + t * 0.3,
               }}
             />
           );

@@ -215,7 +215,10 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
             >
               <div
                 className="-translate-x-1/2 -translate-y-1/2"
-                style={{ backfaceVisibility: "hidden" }}
+                style={{
+                  transformStyle: "preserve-3d",
+                  backfaceVisibility: "hidden",
+                }}
               >
                 {item.node}
               </div>
