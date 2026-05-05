@@ -11,25 +11,60 @@ import {
 } from "@/lib/projects";
 import { Globe as GlobeIcon, List } from "lucide-react";
 
-const CATEGORY_COLORS: Record<Category, string> = {
-  games: "border-l-green-500",
-  "full-stack": "border-l-blue-500",
-  frontend: "border-l-purple-500",
-  api: "border-l-amber-500",
-  python: "border-l-cyan-500",
-  exercises: "border-l-pink-500",
+const CATEGORY_BG: Record<Category, string> = {
+  games: "bg-green-500",
+  "full-stack": "bg-blue-500",
+  frontend: "bg-purple-500",
+  api: "bg-amber-500",
+  python: "bg-cyan-500",
+  exercises: "bg-pink-500",
+};
+
+const CATEGORY_BACK: Record<Category, string> = {
+  games: "bg-green-700",
+  "full-stack": "bg-blue-700",
+  frontend: "bg-purple-700",
+  api: "bg-amber-700",
+  python: "bg-cyan-700",
+  exercises: "bg-pink-700",
 };
 
 function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/${project.slug}`}
-      className={`group block w-44 rounded-lg border border-zinc-200 border-l-4 ${CATEGORY_COLORS[project.category]} bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900`}
+      className="group block w-44"
+      style={{ transformStyle: "preserve-3d" }}
     >
-      <h3 className="truncate text-sm font-semibold group-hover:underline">
-        {project.title}
-      </h3>
-      <p className="mt-0.5 text-xs text-zinc-400">{project.year}</p>
+      <div
+        className="relative rounded-lg bg-white shadow-sm dark:bg-zinc-900"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        {/* Colored top stripe */}
+        <div
+          className={`h-1.5 rounded-t-lg ${CATEGORY_BG[project.category]}`}
+        />
+
+        {/* Content */}
+        <div className="p-3">
+          <h3 className="truncate text-sm font-semibold group-hover:underline">
+            {project.title}
+          </h3>
+          <p className="mt-0.5 text-xs text-zinc-400">{project.year}</p>
+        </div>
+
+        {/* Back face for depth */}
+        <div
+          className={`absolute inset-0 rounded-lg ${CATEGORY_BACK[project.category]} opacity-80`}
+          style={{ transform: "translateZ(-6px)" }}
+        />
+
+        {/* Side edges */}
+        <div
+          className={`absolute top-0 bottom-0 left-0 w-full rounded-lg ${CATEGORY_BACK[project.category]} opacity-40`}
+          style={{ transform: "translateZ(-3px)" }}
+        />
+      </div>
     </Link>
   );
 }
@@ -129,7 +164,7 @@ export function LandingView() {
                 className="flex items-center gap-1.5 text-xs text-zinc-500"
               >
                 <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full ${CATEGORY_COLORS[cat].replace("border-l-", "bg-")}`}
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${CATEGORY_BG[cat]}`}
                 />
                 {CATEGORY_LABELS[cat]}
               </span>
