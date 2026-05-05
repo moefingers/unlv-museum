@@ -1,0 +1,13 @@
+button {
+  transition-property: background-color, color;
+  transition-duration: 2s;
+  background-color: ghostwhite;
+  color: black;
+}
+
+button:hover {
+  transition-property: background-color, color;
+  transition-duration: 2s;
+  background-color: cornflowerblue;
+  color: white;
+}

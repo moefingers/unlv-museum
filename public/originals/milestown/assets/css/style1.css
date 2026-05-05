@@ -1,0 +1,229 @@
+@font-face {
+  font-family: "Digital Dream Fat Narrow";
+  src: url("../fonts/DigitalDreamFatNarrow.eot");
+  src:
+    url("../fonts/DigitalDreamFatNarrow.eot?#iefix") format("embedded-opentype"),
+    url("../fonts/DigitalDreamFatNarrow.woff2") format("woff2"),
+    url("../fonts/DigitalDreamFatNarrow.woff") format("woff"),
+    url("../fonts/DigitalDreamFatNarrow.svg#DigitalDreamFatNarrow")
+      format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: "Digital Dream Narrow";
+  src: url("../fonts/DigitalDreamNarrow.eot");
+  src:
+    url("../fonts/DigitalDreamNarrow.eot?#iefix") format("embedded-opentype"),
+    url("../fonts/DigitalDreamNarrow.woff2") format("woff2"),
+    url("../fonts/DigitalDreamNarrow.woff") format("woff"),
+    url("../fonts/DigitalDreamNarrow.svg#DigitalDreamNarrow") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: "Digital Dream Regular";
+  src: url("../fonts/DigitalDreamRegular.eot");
+  src:
+    url("../fonts/DigitalDreamRegular.eot?#iefix") format("embedded-opentype"),
+    url("../fonts/DigitalDreamRegular.woff2") format("woff2"),
+    url("../fonts/DigitalDreamRegular.woff") format("woff"),
+    url("../fonts/DigitalDreamRegular.svg#DigitalDreamRegular") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: fallback;
+}
+* {
+  /* outline: black solid 1px; */
+  user-select: none;
+  font-family: "Digital Dream Regular", Courier, monospace;
+  font-style: normal;
+  font-weight: normal;
+}
+
+/* #gameContainer {
+    outline: black solid 1px
+} */
+
+body {
+  text-align: center;
+  padding: 0;
+  margin: 0;
+}
+
+#splashArea {
+  position: absolute;
+}
+
+#instructionsDiv {
+  font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+}
+
+#preCred {
+  font-size: 3em;
+}
+
+.centerFitContent {
+  padding: 0;
+  margin: auto;
+  width: fit-content;
+  position: absolute;
+
+  translate: -50% -50%;
+  left: 50%;
+  /* outline: black solid 1px; */
+}
+
+.button {
+  color: black;
+  font-size: 3.5em;
+}
+.button:hover {
+  color: darkred;
+}
+.button:active {
+  color: red;
+  font-weight: bold;
+}
+
+.graphicButton {
+  cursor: pointer;
+  background: black;
+}
+.graphicButton:hover {
+  background: darkred;
+}
+.graphicButton:active {
+  background-color: red;
+  font-weight: bold;
+}
+
+#title {
+  font-size: 7rem;
+}
+#headerPart {
+  color: red;
+}
+
+#windowSizeWarning {
+  font-family: cursive;
+  font-weight: bolder;
+  font-size: 1.3em;
+  color: gray;
+}
+
+.leftArrow {
+  clip-path: polygon(
+    35% 100%,
+    0 50%,
+    35% 0,
+    50% 0,
+    35% 25%,
+    100% 25%,
+    100% 75%,
+    35% 75%,
+    50% 100%
+  );
+}
+
+.rightArrow {
+  clip-path: polygon(
+    65% 100%,
+    100% 50%,
+    65% 0,
+    50% 0,
+    65% 25%,
+    0 25%,
+    0 75%,
+    65% 75%,
+    50% 100%
+  );
+}
+
+.downChevron {
+  clip-path: polygon(100% 80%, 50% 100%, 0 80%, 0 0, 50% 20%, 100% 0);
+}
+
+.upChevron {
+  clip-path: polygon(100% 100%, 50% 80%, 0 100%, 0 20%, 50% 0, 100% 20%);
+}
+
+.plusSymbol {
+  clip-path: polygon(
+    0 35%,
+    35% 35%,
+    35% 0%,
+    65% 0%,
+    65% 35%,
+    100% 35%,
+    100% 65%,
+    65% 65%,
+    65% 100%,
+    35% 100%,
+    35% 65%,
+    0 65%
+  );
+}
+
+.minusSymbol {
+  clip-path: polygon(0 35%, 100% 35%, 100% 65%, 0 65%);
+}
+
+.controlBlock {
+  clip-path: polygon(
+    0 0,
+    1% 0,
+    8% 7%,
+
+    92% 7%,
+    99% 0%,
+    100% 0%,
+    100% 1%,
+    93% 8%,
+
+    93% 92%,
+    100% 99%,
+    100% 100%,
+    99% 100%,
+    92% 93%,
+
+    8% 93%,
+    1% 100%,
+    0% 100%,
+    0% 99%,
+    7% 92%,
+
+    7% 8%,
+    0% 1%
+  );
+}
+
+.halfEdgeContainer {
+  display: flex;
+  /* outline: solid black 1px */
+}
+
+.halfEdgeStart {
+  clip-path: polygon(0 50%, 10% 0, 100% 0, 100% 100%, 10% 100%);
+}
+
+.halfEdgeEnd {
+  clip-path: polygon(0% 0%, 90% 0, 100% 50%, 90% 100%, 0% 100%);
+}
+
+.polygonDeformedOctagon {
+  clip-path: polygon(
+    50% 0%,
+    95% 20%,
+    100% 50%,
+    95% 80%,
+    50% 100%,
+    5% 80%,
+    0% 50%,
+    5% 20%
+  );
+}

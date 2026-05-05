@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Event Bubbling Demo</title>
+    <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+    <h1>Interactive Web Pages - Events Demonstration</h1>
+    <h2>Event Bubbling Demo</h2>
+    <p>Click each element below to view the concept of the event bubbling concept.</p>
+    <div class="wrap" onclick="alert('Bubbling: ' + this.tagName)">DIV
+        <p onclick="alert('Bubbling: ' + this.tagName)">P
+            <a href="#" onclick="alert('Bubbling: ' + this.tagName)">A</a>
+        </p>
+    </div>
+</body>
+</html>

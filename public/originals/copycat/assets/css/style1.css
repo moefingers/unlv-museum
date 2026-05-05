@@ -1,0 +1,70 @@
+* {
+  outline: black solid 1px;
+}
+
+nav img {
+  width: 100px;
+}
+
+header {
+  display: flex;
+  justify-content: center;
+}
+nav {
+  width: 60%;
+  display: flex;
+}
+ul {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  width: 100%;
+}
+li {
+  display: flex;
+}
+
+.banner {
+  display: flex;
+}
+
+.getadblocksection {
+  text-align: center;
+}
+
+.systemlist {
+  width: 300px;
+  margin: auto;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.systemlist img {
+  width: 30px;
+}
+
+.cards {
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  text-align: center;
+  width: 20%;
+  margin: 10px;
+}
+
+.card p,
+.card a {
+  text-align: left;
+  display: block;
+}
+
+#uhoh {
+  color: red;
+  background-color: black;
+  text-align: center;
+}

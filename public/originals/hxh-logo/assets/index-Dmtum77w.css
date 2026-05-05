@@ -1,0 +1,192 @@
+html {
+  background-color: #000;
+}
+* {
+  margin: 0;
+  padding: 0;
+}
+body {
+  opacity: 1;
+  animation: opacity0to1 1s;
+}
+@keyframes opacity0to1 {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.primary-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background-color: #0a0a0a;
+  width: 820px;
+  height: 500px;
+  cursor: pointer;
+}
+.example-one {
+  transform: translate(-50%, -101%);
+}
+.example-two {
+  transform: translate(-50%, 1%);
+}
+.primary-wrapper.example-two > .drop-shadow-wrapper > .shmedium-x {
+  transition-delay: 1s;
+}
+.primary-wrapper.example-two > .drop-shadow-wrapper > .left-x,
+.primary-wrapper.example-two > .drop-shadow-wrapper > .right-x {
+  transition-delay: 0s;
+}
+.drop-shadow-wrapper {
+  filter: drop-shadow(0px -5px 1px rgba(255, 255, 255, 0.5));
+}
+.x {
+  transition: 1s ease-in;
+  background-color: #fff;
+  position: absolute;
+  width: 480px;
+  height: 500px;
+}
+.shmedium-x {
+  left: 50%;
+  transform: translate(-50%);
+  clip-path: polygon(
+    0 0,
+    41% 0,
+    41% 3%,
+    27% 3%,
+    50% 43%,
+    73% 3%,
+    59% 3%,
+    59% 0,
+    100% 0,
+    97% 3%,
+    83% 3%,
+    56% 50%,
+    83% 97%,
+    97% 97%,
+    100% 100%,
+    59% 100%,
+    59% 97%,
+    73% 97%,
+    50% 57%,
+    27% 97%,
+    41% 97%,
+    41% 100%,
+    0 100%,
+    3% 97%,
+    17% 97%,
+    44% 50%,
+    17% 3%,
+    3% 3%
+  );
+}
+.left-x {
+  left: 0%;
+  transform: translate(0);
+  clip-path: polygon(
+    0 0,
+    41% 0,
+    41% 3%,
+    23.3% 3%,
+    45% 42.5%,
+    70% 3%,
+    59% 3%,
+    59% 0,
+    97% 0,
+    97% 3%,
+    86% 3%,
+    54% 54%,
+    80% 97%,
+    97% 97%,
+    97% 100%,
+    59% 100%,
+    59% 97%,
+    76% 97%,
+    52% 58%,
+    30% 97%,
+    41% 97%,
+    41% 100%,
+    0 100%,
+    3% 97%,
+    14% 97%,
+    43.5% 46%,
+    20% 3%,
+    3% 3%
+  );
+}
+.right-x-transform {
+  left: 100%;
+  transform: translate(-100%);
+  clip-path: polygon(
+    0 0,
+    41% 0,
+    41% 3%,
+    30% 3%,
+    53% 42.5%,
+    76% 3%,
+    59% 3%,
+    59% 0,
+    100% 0,
+    97% 3%,
+    80% 3%,
+    55% 46%,
+    86% 97%,
+    97% 97%,
+    100% 100%,
+    59% 100%,
+    59% 97%,
+    70% 97%,
+    48% 58%,
+    24% 97%,
+    41% 97%,
+    41% 100%,
+    0 100%,
+    0 97%,
+    20% 97%,
+    46% 54%,
+    14% 3%,
+    0 3%
+  );
+}
+.flip-to-right {
+  left: 100%;
+  transform: translate(-100%) scaleX(-1);
+}
+.diamond {
+  z-index: -1;
+  left: 50%;
+  transform: translate(-50%);
+  position: absolute;
+  width: 320px;
+  height: 500px;
+  background-color: #d13036;
+  clip-path: polygon(50% 0, 100% 54%, 58% 100%, 42% 100%, 0 54%);
+}
+.primary-wrapper.example-two > .diamond {
+  transition:
+    all 1s 1s ease-in-out,
+    opacity 1s ease-in-out;
+  opacity: 0;
+}
+.primary-wrapper.example-two > .visible-fade-after {
+  opacity: 1;
+  transition: opacity 1s 1s ease-in-out;
+}
+.primary-wrapper.example-one > .diamond {
+  opacity: 1;
+  width: 40px;
+  height: 50px;
+  clip-path: polygon(50% 0, 100% 54%, 50% 100%, 50% 100%, 0 54%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 1s ease-in;
+}
+.primary-wrapper.example-one > .visible-by-expansion {
+  width: 320px;
+  height: 500px;
+  clip-path: polygon(50% 0, 100% 54%, 58% 100%, 42% 100%, 0 54%);
+  transition: 1s ease-in;
+}

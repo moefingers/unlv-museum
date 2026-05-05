@@ -1,0 +1,17 @@
+body {
+  text-align: center;
+}
+
+.inlineBlock {
+  display: inline-block;
+}
+#icons {
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  width: 800px;
+}
+
+span {
+  box-shadow: black 3px 4px 4px;
+}

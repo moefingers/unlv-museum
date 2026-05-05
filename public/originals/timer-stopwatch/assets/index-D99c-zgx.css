@@ -1,0 +1,780 @@
+:root {
+  --background-color-primary: rgba(0, 0, 0, 1);
+  --background-color-secondary: rgba(0, 0, 0, 0.5);
+  --complementary-color-primary: rgba(00, 100, 255, 1);
+  --complementary-color-secondary: rgba(00, 255, 255, 1);
+  --active-button-background: rgba(255, 255, 255, 0.5);
+  --text-color-primary: rgba(0, 255, 255, 1);
+  --text-color-secondary: rgba(210, 210, 210, 1);
+  --general-size-factor-px: 1px;
+  --box-shadow-setting-primary: 0 0 calc(var(--general-size-factor-px) * 10)
+    calc(var(--general-size-factor-px) * 10) var(--complementary-color-primary);
+  --box-shadow-setting-secondary: 0 0 calc(var(--general-size-factor-px) * 10)
+    calc(var(--general-size-factor-px) * 1) var(--complementary-color-primary);
+  --box-shadow-setting-secondary-hover: 0 0
+    calc(var(--general-size-factor-px) * 10)
+    calc(var(--general-size-factor-px) * 2) var(--complementary-color-secondary);
+  --box-shadow-setting-secondary-active: 0 0
+    calc(var(--general-size-factor-px) * 10)
+    calc(var(--general-size-factor-px) * 3) var(--text-color-primary);
+  --font-size-title: calc(var(--general-size-factor-px) * 40);
+  --font-size-inputs: calc(var(--general-size-factor-px) * 20);
+  --font-size-button-large-shrunk: calc(var(--general-size-factor-px) * 20);
+  --font-size-button-large: calc(var(--general-size-factor-px) * 40);
+  --font-size-button-large-hover: calc(var(--general-size-factor-px) * 48);
+  --font-size-button-medium: calc(var(--general-size-factor-px) * 30);
+  --font-size-button-medium-hover: calc(var(--general-size-factor-px) * 36);
+  --slow-transition: 1s ease-in-out;
+  --moderate-transition: 0.5s ease-in-out;
+  --fast-transition: 0.3s ease-in-out;
+}
+.test {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: calc(var(--general-size-factor-px) * 30);
+}
+.test.height {
+  left: 75%;
+  outline: solid 1px red;
+}
+html {
+  background-color: var(--background-color-primary);
+  color: var(--text-color-primary);
+  font-weight: 400;
+  font-family:
+    Gill Sans,
+    Gill Sans MT,
+    Calibri,
+    Trebuchet MS,
+    sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  animation: opacity0to1 var(--slow-transition);
+  height: 100%;
+}
+* {
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+input {
+  border: 0;
+  outline: 0;
+  text-align: center;
+  background-color: var(--background-color-primary);
+  color: var(--text-color-secondary);
+  box-shadow: var(--box-shadow-setting-secondary);
+  font-size: calc(var(--general-size-factor-px) * 30);
+  transition: var(--moderate-transition);
+  border-radius: calc(var(--general-size-factor-px) * 20);
+  padding: calc(var(--general-size-factor-px) * 0)
+    calc(var(--general-size-factor-px) * 4);
+  transition: var(--slow-transition);
+}
+input:hover {
+  color: var(--text-color-primary);
+  box-shadow: var(--box-shadow-setting-secondary-hover);
+  transition: var(--fast-transition);
+}
+input:focus {
+  color: var(--text-color-primary);
+  box-shadow: var(--box-shadow-setting-secondary-active);
+  transition: var(--fast-transition);
+}
+.app,
+#root {
+  height: 100%;
+}
+.stopwatch-section,
+.timer-section {
+  margin: auto;
+  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: var(--slow-transition);
+}
+.title {
+  z-index: 30;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  offset-path: circle(45% at 50% 50%);
+  offset-distance: 75%;
+  text-wrap: nowrap;
+  transition: var(--slow-transition);
+  font-size: var(--font-size-title);
+}
+.title.contracted {
+  offset-path: circle(44% at 50% 50%);
+  offset-distance: 62.5%;
+}
+@media screen and (width < 50vh) and (orientation: portrait) {
+  .app {
+    width: 100vw;
+    height: 200vw;
+  }
+  .stopwatch-section,
+  .timer-section {
+    width: 100vw;
+    height: 100vw;
+  }
+  .stopwatch-section {
+    transform: translate(0) rotate(0);
+    offset-path: circle(50vw at 50vw 50vh);
+    offset-distance: 75%;
+  }
+  .timer-section {
+    transform: translate(0) rotate(180deg);
+    offset-path: circle(50vw at 50vw 50vh);
+    offset-distance: 25%;
+  }
+  :root {
+    --font-size-title: calc(6.5vw - 1.57px);
+    --general-size-factor-px: (0.00188323 * 100vw);
+  }
+  .title {
+    offset-path: circle(45% at 50% 50%);
+    offset-distance: 75%;
+  }
+}
+@media screen and (width >= 50vh) and (orientation: portrait) {
+  .app {
+    width: 50vh;
+    height: 100%;
+  }
+  .stopwatch-section,
+  .timer-section {
+    width: 50vh;
+    height: 50vh;
+  }
+  .stopwatch-section {
+    transform: translate(0) rotate(0);
+    offset-path: circle(25vh at 50vw 50vh);
+    offset-distance: 75%;
+  }
+  .timer-section {
+    transform: translate(0) rotate(180deg);
+    offset-path: circle(25vh at 50vw 50vh);
+    offset-distance: 25%;
+  }
+  :root {
+    --font-size-title: calc(3.25vh - 1.57px);
+    --general-size-factor-px: (0.00188323 * 50vh);
+  }
+  .title {
+    offset-path: circle(45% at 50% 50%);
+    offset-distance: 50%;
+  }
+}
+@media screen and (height > 50vw) and (orientation: landscape) {
+  .stopwatch-section,
+  .timer-section {
+    width: 50vw;
+    height: 50vw;
+  }
+  .stopwatch-section {
+    transform: translate(0) rotate(90deg);
+    offset-path: circle(25vw at 50vw 50vh);
+    offset-distance: 50%;
+  }
+  .timer-section {
+    transform: translate(0) rotate(270deg);
+    offset-path: circle(25vw at 50vw 50vh);
+    offset-distance: 0%;
+  }
+  :root {
+    --font-size-title: calc(3.25vw - 1.57px);
+    --general-size-factor-px: (0.00188323 * 50vw);
+  }
+  .title {
+    offset-path: circle(45% at 50% 50%);
+    offset-distance: 75%;
+  }
+}
+@media screen and (height <= 50vw) and (orientation: landscape) {
+  .stopwatch-section,
+  .timer-section {
+    width: 100vh;
+    height: 100%;
+  }
+  .stopwatch-section {
+    transform: translate(0) rotate(90deg);
+    offset-path: circle(50vh at 50vw 50vh);
+    offset-distance: 50%;
+  }
+  .timer-section {
+    transform: translate(0) rotate(270deg);
+    offset-path: circle(50vh at 50vw 50vh);
+    offset-distance: 0%;
+  }
+  :root {
+    --font-size-title: calc(6.5vh - 1.57px);
+    --general-size-factor-px: (0.00188323 * 100vh);
+  }
+  .title {
+    offset-path: circle(45% at 50% 50%);
+    offset-distance: 50%;
+  }
+}
+.stopwatch-wrapper {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  box-shadow: var(--box-shadow-setting-primary);
+  transition: var(--slow-transition);
+  margin: auto;
+  width: 80%;
+  height: 80%;
+}
+.stopwatch-wrapper-contracted {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+}
+.stopwatch-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: var(--moderate-transition);
+  color: var(--text-color-secondary);
+  font-size: var(--font-size-button-medium);
+}
+.stopwatch-button:hover,
+.stopwatch-button:active {
+  font-size: var(--font-size-button-medium-hover);
+  transition: var(--fast-transition);
+  color: var(--text-color-primary);
+}
+.stopwatch-button:active {
+  background-color: var(--active-button-background);
+  transition: background-color 0s !important;
+}
+.stopwatch-button.expand-contract-stopwatch {
+  background-color: var(--background-color-primary);
+  border-radius: 33%;
+  box-shadow: var(--box-shadow-setting-secondary);
+  width: var(--font-size-button-medium);
+  height: var(--font-size-button-medium);
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 7%;
+  left: 7%;
+  transition: all var(--slow-transition);
+}
+.stopwatch-button.expand-contract-stopwatch:active {
+  background-color: var(--active-button-background);
+  transition: background-color 0s !important;
+}
+.stopwatch-button.expand-contract-stopwatch:hover {
+  border-radius: 50%;
+  width: calc(var(--font-size-button-medium) * 0.8);
+  height: calc(var(--font-size-button-medium) * 0.8);
+  transition:
+    all var(--slow-transition),
+    width var(--fast-transition),
+    height var(--fast-transition),
+    border-radius var(--fast-transition),
+    box-shadow var(--fast-transition);
+  box-shadow: var(--box-shadow-setting-secondary-hover);
+}
+.stopwatch-button.expand-contract-stopwatch .tooltip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: -50%;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--fast-transition);
+  font-size: calc(var(--general-size-factor-px) * 20);
+}
+.stopwatch-button.expand-contract-stopwatch .tooltip.contracted {
+  right: unset;
+  left: 100%;
+}
+.stopwatch-button.expand-contract-stopwatch:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+.stopwatch-button.expand-contract-stopwatch-contracted {
+  border-radius: 33%;
+  transform: translate(-50%, -50%);
+  top: 18%;
+  left: 20%;
+}
+.stopwatch-button.expand-contract-stopwatch-contracted:hover {
+  border-radius: 0%;
+  width: var(--font-size-button-medium-hover);
+  height: var(--font-size-button-medium-hover);
+}
+.stopwatch-startstop-lap-container {
+  position: absolute;
+  top: 90%;
+  left: 50%;
+  transform: translate(-50%);
+  width: 80%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: var(--slow-transition);
+}
+.stopwatch-startstop-lap-container-contracted {
+  top: 65%;
+}
+.already-lapped {
+  text-align: center;
+  transform: translateY(-25%);
+  animation: opacity0to1 var(--fast-transition);
+  font-size: calc(var(--font-size-button-medium) / 1.3);
+}
+.stopwatch-button.add-stopwatch-entry {
+  position: absolute;
+  top: 7%;
+  left: 93%;
+  transform: translate(-50%, -50%);
+  transition: var(--slow-transition);
+}
+.stopwatch-button.stopwatch-button.add-stopwatch-entry:hover {
+  transition: var(--fast-transition);
+}
+.stopwatch-button.add-stopwatch-entry-contracted {
+  top: 18%;
+  left: 80%;
+}
+.stopwatch-button.stopwatch-navigation-left {
+  position: absolute;
+  transform: translate(50%, -50%);
+  top: 50%;
+  left: 0%;
+}
+.stopwatch-button.stopwatch-navigation-right {
+  position: absolute;
+  transform: translate(-150%, -50%);
+  top: 50%;
+  left: 100%;
+}
+.stopwatch-navigation-inner-left,
+.stopwatch-navigation-inner-right {
+  font-size: var(--font-size-button-large);
+  transition: var(--moderate-transition);
+}
+.stopwatch-button:hover .stopwatch-navigation-inner-left,
+.stopwatch-button:hover .stopwatch-navigation-inner-right {
+  font-size: var(--font-size-button-large-hover);
+  transition: var(--fast-transition);
+}
+.stopwatch-button:hover .stopwatch-navigation-inner-left {
+  animation: slideLeft 0.5s linear infinite;
+}
+.stopwatch-button:hover .stopwatch-navigation-inner-right {
+  animation: slideLeft 0.5s linear infinite reverse;
+}
+.stopwatch-button.stopwatch-settings-button {
+  position: absolute;
+  offset-path: circle(45% at 50% 50%);
+  offset-distance: 32%;
+  width: 6%;
+  height: 6%;
+  line-height: var(--font-size-button-medium);
+  text-align: center;
+  vertical-align: middle;
+  transform: translate(-50%, -50%);
+  transition: var(--slow-transition);
+  clip-path: url("data:image/svg+xml,%3c?xml%20version='1.0'%20encoding='iso-8859-1'?%3e%3c!--%20Uploaded%20to:%20SVG%20Repo,%20www.svgrepo.com,%20Generator:%20SVG%20Repo%20Mixer%20Tools%20--%3e%3c!DOCTYPE%20svg%20PUBLIC%20'-//W3C//DTD%20SVG%201.1//EN'%20'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'%3e%3csvg%20fill='%23000000'%20version='1.1'%20id='Capa_1'%20xmlns='http://www.w3.org/2000/svg'%20xmlns:xlink='http://www.w3.org/1999/xlink'%20width='800px'%20height='800px'%20viewBox='0%200%2045.973%2045.973'%20xml:space='preserve'%3e%3cg%3e%3cg%3e%3cpath%20d='M43.454,18.443h-2.437c-0.453-1.766-1.16-3.42-2.082-4.933l1.752-1.756c0.473-0.473,0.733-1.104,0.733-1.774%20c0-0.669-0.262-1.301-0.733-1.773l-2.92-2.917c-0.947-0.948-2.602-0.947-3.545-0.001l-1.826,1.815%20C30.9,6.232,29.296,5.56,27.529,5.128V2.52c0-1.383-1.105-2.52-2.488-2.52h-4.128c-1.383,0-2.471,1.137-2.471,2.52v2.607%20c-1.766,0.431-3.38,1.104-4.878,1.977l-1.825-1.815c-0.946-0.948-2.602-0.947-3.551-0.001L5.27,8.205%20C4.802,8.672,4.535,9.318,4.535,9.978c0,0.669,0.259,1.299,0.733,1.772l1.752,1.76c-0.921,1.513-1.629,3.167-2.081,4.933H2.501%20C1.117,18.443,0,19.555,0,20.935v4.125c0,1.384,1.117,2.471,2.501,2.471h2.438c0.452,1.766,1.159,3.43,2.079,4.943l-1.752,1.763%20c-0.474,0.473-0.734,1.106-0.734,1.776s0.261,1.303,0.734,1.776l2.92,2.919c0.474,0.473,1.103,0.733,1.772,0.733%20s1.299-0.261,1.773-0.733l1.833-1.816c1.498,0.873,3.112,1.545,4.878,1.978v2.604c0,1.383,1.088,2.498,2.471,2.498h4.128%20c1.383,0,2.488-1.115,2.488-2.498v-2.605c1.767-0.432,3.371-1.104,4.869-1.977l1.817,1.812c0.474,0.475,1.104,0.735,1.775,0.735%20c0.67,0,1.301-0.261,1.774-0.733l2.92-2.917c0.473-0.472,0.732-1.103,0.734-1.772c0-0.67-0.262-1.299-0.734-1.773l-1.75-1.77%20c0.92-1.514,1.627-3.179,2.08-4.943h2.438c1.383,0,2.52-1.087,2.52-2.471v-4.125C45.973,19.555,44.837,18.443,43.454,18.443z%20M22.976,30.85c-4.378,0-7.928-3.517-7.928-7.852c0-4.338,3.55-7.85,7.928-7.85c4.379,0,7.931,3.512,7.931,7.85%20C30.906,27.334,27.355,30.85,22.976,30.85z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e");
+  fill: var(--text-color-secondary);
+  animation: spinClockwiseForCenteredObject 2s linear infinite paused;
+}
+.stopwatch-button.stopwatch-settings-button svg {
+  transition: var(--fast-transition);
+}
+.stopwatch-button.stopwatch-settings-button:hover svg {
+  fill: var(--text-color-primary);
+}
+.stopwatch-button.stopwatch-settings-button:hover {
+  animation-play-state: running;
+  fill: var(--text-color-primary);
+  width: 7%;
+  height: 7%;
+  transition: var(--fast-transition);
+}
+.stopwatch-button.stopwatch-settings-button.settings-open svg {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  animation: spinClockwiseForCenteredObject 1s ease-in-out infinite paused;
+  fill: var(--text-color-primary);
+}
+.stopwatch-button.stopwatch-settings-button.settings-open:hover svg {
+  animation-play-state: running;
+}
+.stopwatch-button.stopwatch-settings-button.settings-open svg {
+  animation-play-state: running;
+}
+.stopwatch-button.stopwatch-settings-button.contracted {
+  top: 80%;
+  left: 20%;
+  offset-path: circle(41% at 50% 50%);
+  offset-distance: 41%;
+}
+.settings-container.stopwatch {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transition: 1.2s cubic-bezier(0.82, 0.19, 0.74, 0.67);
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+}
+.settings-container.stopwatch > * {
+  z-index: -10;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.settings-container.stopwatch.settings-open > * {
+  pointer-events: all;
+}
+.settings-container.stopwatch.settings-open {
+  opacity: 1;
+  visibility: visible;
+}
+.stopwatch-button.open-colors-button {
+  fill: var(--text-color-secondary);
+  font-size: 0;
+  width: 8%;
+  height: 8%;
+}
+.stopwatch-button.open-colors-button:hover {
+  fill: var(--text-color-primary);
+  width: 10%;
+  height: 10%;
+}
+.ant-color-picker-trigger {
+  min-width: unset;
+  width: calc(var(--general-size-factor-px) * 40);
+  height: calc(var(--general-size-factor-px) * 40);
+  padding: calc(var(--general-size-factor-px) * 3);
+  border-radius: calc(var(--general-size-factor-px) * 6);
+}
+div.ant-color-picker-trigger div.ant-color-picker-color-block {
+  width: calc(var(--general-size-factor-px) * 24);
+  height: calc(var(--general-size-factor-px) * 24);
+}
+.stopwatch-button.setting-active {
+  color: var(--complementary-color-primary);
+}
+.decimal-settings-input-container.stopwatch {
+  width: 10%;
+}
+.decimal-settings-input-container.stopwatch > .tooltip {
+  z-index: 1;
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(50%, -50%);
+  pointer-events: none;
+  transition: var(--slow-transition);
+  font-size: calc(var(--general-size-factor-px) * 20);
+}
+.decimal-settings-input-container.stopwatch:hover > .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transition: var(--fast-transition);
+}
+.decimal-settings-input.stopwatch {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  width: 100%;
+}
+.main-stopwatch-time {
+  transform: translate(0);
+  transition: var(--slow-transition);
+  text-align: center;
+  position: absolute;
+  transform: translateY(-50%);
+  top: 86%;
+  left: 3%;
+  font-family: monospace, monospace;
+  font-size: calc(var(--general-size-factor-px) * 24);
+}
+.main-stopwatch-time-contracted {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: calc(var(--general-size-factor-px) * 80);
+}
+.lap-notification {
+  opacity: 0;
+  font-family: monospace, monospace;
+  text-align: center;
+  text-wrap: nowrap;
+  position: absolute;
+  transform: translateY(-50%);
+  top: 80%;
+  left: 0%;
+  font-size: calc(var(--general-size-factor-px) * 24);
+  transition: var(--slow-transition);
+}
+.lap-notification-contracted {
+  opacity: 0.3;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 35%;
+  left: 50%;
+  font-size: calc(var(--general-size-factor-px) * 30);
+}
+div.average-lap-container {
+  position: absolute;
+  transform: translateY(-50%);
+  top: 81%;
+  left: 50%;
+  width: 50%;
+  height: 17%;
+  font-size: calc(var(--general-size-factor-px) * 22);
+  transition: var(--slow-transition);
+  cursor: pointer;
+}
+div.average-lap-container:hover div.average-lap-secondary,
+div.average-lap-container:hover div.average-lap-info-secondary {
+  opacity: 0.4;
+  visibility: visible;
+}
+div.average-lap-container.contracted {
+  transform: translate(-50%, -50%);
+  top: 80%;
+  width: 40%;
+  height: 32%;
+}
+div.average-lap-container * {
+  transition: var(--slow-transition);
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-wrap: nowrap;
+}
+div.average-lap-container.contracted div.average-lap-info {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%);
+  left: 50%;
+}
+div.average-lap-info-secondary {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%);
+  left: 0%;
+}
+div.average-lap-secondary {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 100%);
+  left: 0%;
+}
+div.average-lap-info-primary {
+  transform: translate(-100%);
+  left: 95%;
+}
+div.average-lap-primary {
+  opacity: 1;
+  transform: translate(-100%, 100%);
+  left: 95%;
+}
+div.average-lap-container.contracted div.average-lap-info-primary {
+  transform: translate(-50%);
+  left: 50%;
+}
+div.average-lap-container.contracted div.average-lap-primary {
+  transform: translate(-50%, 100%);
+  left: 50%;
+}
+div.average-lap-container.contracted div.average-lap-info-secondary {
+  transform: translate(-50%, 200%);
+  left: 50%;
+}
+div.average-lap-container.contracted div.average-lap-secondary {
+  transform: translate(-50%, 300%);
+  left: 50%;
+}
+.input-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 7%;
+  left: 50%;
+  width: 73%;
+  height: 8%;
+  transition: var(--slow-transition);
+}
+.input-container.contracted {
+  top: 27%;
+}
+.input-container:hover .stopwatch-list-dropdown {
+  opacity: 1;
+  visibility: visible;
+  height: 400%;
+  transition: 0.8s;
+}
+input.stopwatch-label-input {
+  position: absolute;
+  transform: translate(-50%);
+  top: 0%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+}
+.stopwatch-list-dropdown {
+  position: absolute;
+  width: 50%;
+  transform: translate(-50%);
+  top: 100%;
+  left: 50%;
+  overflow: hidden;
+  box-shadow: var(--box-shadow-setting-secondary);
+  opacity: 0;
+  visibility: hidden;
+  height: 0%;
+  transition: 0.2s;
+  background: var(--background-color-secondary);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+.stopwatch-list-dropdown-scroll {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-flow: column nowrap;
+}
+.stopwatch-list-dropdown-item {
+  text-align: center;
+  position: static;
+  width: 100%;
+  margin: 0;
+  height: fit-content;
+  transition: 0.5s;
+  color: #c8c8c8;
+  text-shadow: 0 0 1rem rgba(255, 255, 255, 0.6);
+  font-size: calc(var(--general-size-factor-px) * 20);
+  line-height: calc(var(--general-size-factor-px) * 25);
+  cursor: pointer;
+}
+.stopwatch-list-dropdown-item:hover {
+  color: #fff;
+  text-shadow: 0 0 1rem rgba(255, 255, 255, 1);
+  font-size: calc(var(--general-size-factor-px) * 24);
+  transition: 0.3s;
+}
+.stopwatch-list-container {
+  z-index: -3;
+  position: absolute;
+  transform: translateY(-50%);
+  top: 46%;
+  left: 4%;
+  width: 96%;
+  height: 80%;
+  transition: 0.5s 0.5s ease-in-out;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 5%,
+    black 77%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 5%,
+    black 77%,
+    transparent 100%
+  );
+}
+.stopwatch-list-container-contracted {
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.5s ease-in-out;
+}
+.stopwatch-scroll-container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+  box-sizing: content-box;
+}
+.stopwatch-unordered-list {
+  list-style-type: none;
+  width: 100%;
+  margin-top: 4%;
+  margin-bottom: 15%;
+}
+.stopwatch-time-item,
+.stopwatch-time-item .delete-stopwatch-time.stopwatch-button {
+  font-size: calc(var(--general-size-factor-px) * 24);
+}
+.stopwatch-time-item .delete-stopwatch-time {
+  opacity: 0;
+  transition: var(--moderate-transition);
+  cursor: pointer;
+}
+.stopwatch-time-item:hover .delete-stopwatch-time {
+  opacity: 1;
+}
+@keyframes opacity0to1 {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideLeft {
+  0% {
+    transform: translate(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+    transform: translate(-50%);
+  }
+  51% {
+    opacity: 0;
+    transform: translate(50%);
+  }
+  75% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(0);
+  }
+}
+@keyframes spinClockwiseForCenteredObject {
+  0% {
+    transform: translate(-50%, -50%) rotate(0);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@keyframes backToZeroDegreesRotationForCenteredObject {
+  to {
+    transform: translate(-50%, -50%) rotate(0);
+  }
+}

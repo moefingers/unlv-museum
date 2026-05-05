@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Stop Event Propagation Demo</title>
+        <link rel="stylesheet" href="./assets/style.css">
+    </head>
+    <body>
+		<h1>Interactive Web Pages - Events Demonstration</h1>
+        <h2>stopPropagation()</h2>
+        <p> Click 'Click Me' element below to view the concept of the stopPropagation() method.</p>
+        <p>The stopPropagation() method prevents an event from bubbling up to parent elements of the one clicked.</p>
+        <div class="wrap">DIV
+            <p class="hint">P
+                <a href="#">A</a>
+            </p>
+        </div>
+        <h2>Captured events for elements highlighted in <span>chartreuse</span>.</h2>
+
+        <script>
+            let elems = document.querySelectorAll('div.wrap, .wrap p, .wrap a')
+
+            function showAlert(event) {
+                clear()
+                this.style.backgroundColor = 'chartreuse'
+                event.stopPropagation()
+            }
+
+            function clear() {
+                document.querySelector('DIV.wrap').style.backgroundColor = 'gray'
+                document.querySelector('.wrap p').style.backgroundColor = 'gray'
+                document.querySelector('.wrap a').style.backgroundColor = 'gray'
+            }
+        
+            for(let elem of elems) {
+                elem.addEventListener('click', showAlert)
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Event Target Demo</title>
+        <link rel="stylesheet" href="./assets/style.css">
+    </head>
+    <body>
+        <h1>Interactive Web Pages - Events Demonstration</h1>
+        <h2>Target Element Demo</h2>
+        <p> Click each element below to view the concept of the target element.</p>
+        <div class="wrap">DIV
+            <p class="hint">P
+                <a href="#">A</a>
+            </p>
+        </div>
+
+        <script>
+            // Selecting the div element
+            var div = document.querySelector('div.wrap')
+
+            // Attaching an onclick event handler
+            div.onclick = function(e) {
+                e.target.style.backgroundColor = 'lightblue'
+
+                // Let the browser finish rendering of background color before showing alert
+                setTimeout(() => {
+                    alert('target = ' + e.target.tagName)
+                    e.target.style.backgroundColor = ''
+                }, 0)
+            }
+        </script>
+    </body> 
+</html> 

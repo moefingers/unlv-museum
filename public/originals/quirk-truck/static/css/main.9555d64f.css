@@ -1,0 +1,191 @@
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    Fira Sans,
+    Droid Sans,
+    Helvetica Neue,
+    sans-serif;
+  margin: 0;
+}
+code {
+  font-family:
+    source-code-pro,
+    Menlo,
+    Monaco,
+    Consolas,
+    Courier New,
+    monospace;
+}
+@property --deg1 {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@property --deg2 {
+  syntax: "<angle>";
+  initial-value: 120deg;
+  inherits: false;
+}
+@property --deg3 {
+  syntax: "<angle>";
+  initial-value: 240deg;
+  inherits: false;
+}
+* {
+  margin: 0;
+  padding: 0;
+}
+body {
+  animation: background-anim 5s linear infinite;
+  background:
+    linear-gradient(var(--deg1), #ff9696cc, #f000 70.71%),
+    linear-gradient(var(--deg2), #96ff96cc, #0f00 70.71%),
+    linear-gradient(var(--deg3), #9696ffcc, #00f0 70.71%);
+  background-attachment: fixed;
+}
+header {
+  padding: 10px 0 0;
+}
+.main-title {
+  font-size: x-large;
+  text-align: center;
+}
+.truckCard h1,
+.truckTitle {
+  background-color: #55a155;
+  border-radius: 20px;
+  padding: 3px 8px;
+  text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.selected-title {
+  background-color: #378337 !important;
+  box-shadow: 0 0 10px #ffff8c;
+  color: #ffff8c;
+  cursor: zoom-out;
+}
+.selected-title,
+.truckCard input {
+  position: -webkit-sticky;
+  position: sticky;
+}
+.selected-title {
+  margin-bottom: 20px;
+  top: 0;
+}
+.truckCard input {
+  top: 40px;
+}
+.unselected-title {
+  color: #fff;
+}
+.truckCard .unselected-title {
+  cursor: zoom-in;
+}
+#truck-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  margin: auto;
+  max-width: 400px;
+  width: 100%;
+}
+.truckCard {
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  background-color: #fff3;
+  border: 1px solid #ffffff40;
+  border-radius: 20px;
+  box-shadow: 0 0 10px 1px #000000b3;
+  display: inline-block;
+  flex-basis: 300px;
+  flex-grow: 1;
+  margin: 1%;
+  overflow: hidden;
+  padding: 10px;
+}
+.in-card-image {
+  border-radius: 30px;
+  width: 100%;
+}
+.expanded {
+  animation: selectCard 1s;
+  background-color: #fff9;
+  flex-basis: 80%;
+}
+.badge {
+  background-color: #d3d3d3;
+  background-color: #007bff;
+  border-radius: 10px;
+  color: #fff;
+  display: inline;
+  font-weight: 500;
+  line-height: 2;
+  list-style-type: none;
+  margin-right: 5px;
+  padding: 0.2rem 0.3rem;
+  text-align: center;
+  vertical-align: initial;
+  white-space: nowrap;
+}
+.badge:last-child {
+  margin-right: 0;
+}
+.quirkTag {
+  color: darkred;
+  font-style: italic;
+  list-style: disc;
+  margin-left: 20px;
+}
+.hidden {
+  display: none;
+}
+.search {
+  margin: 20px 0;
+  text-align: center;
+}
+input {
+  border: 1px solid #00000080;
+  border-radius: 10px;
+  box-shadow: 0 0 10px 1px #000000b3;
+  font-size: larger;
+  font-weight: bolder;
+  padding: 2px 5px;
+}
+input:active,
+input:focus {
+  box-shadow: 0 0 10px 1px #00ff00b3;
+  outline: none;
+}
+p {
+  font-weight: 600;
+}
+@keyframes background-anim {
+  0% {
+    --deg1: 0deg;
+    --deg2: 120deg;
+    --deg3: 240deg;
+  }
+  to {
+    --deg1: 360deg;
+    --deg2: 480deg;
+    --deg3: 600deg;
+  }
+}
+@keyframes selectCard {
+  0% {
+    background-color: #fff3;
+  }
+  to {
+    background-color: #fff9;
+  }
+}
+/*# sourceMappingURL=main.9555d64f.css.map*/

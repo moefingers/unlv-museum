@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Event Capturing Demo</title>
+        <link rel="stylesheet" href="./assets/style.css">
+    </head>
+    <body>
+        <h1>Interactive Web Pages - Events Demonstration</h1>
+        <h2>Event Capturing</h2>
+        <p>Click 'Click Me' below view the concept of event capturing.</p>
+        <hr>
+        <div class="wrap">DIV
+            <p class="hint">P
+                <a href="#">A</a>
+            </p>
+        </div>
+        <h2>Captured elements show in <span>chartreuse</span>.</h2>
+
+        <script>
+            let elems = document.querySelectorAll('div.wrap, .wrap p, .wrap a')
+
+            function showTagName() {
+                clear(this.tagName)
+                this.style.backgroundColor = 'chartreuse'
+            }
+
+            function clear(tagName) {
+                if (tagName == 'DIV') {
+                    document.querySelector('.wrap p').style.backgroundColor = 'gray'
+                    document.querySelector('.wrap a').style.backgroundColor = 'gray'
+                }
+                else if (tagName == 'P') {
+                    document.querySelector('.wrap a').style.backgroundColor = 'gray'
+                }
+            }
+            
+            for(let elem of elems) {
+                elem.addEventListener('click', showTagName, true)
+            }
+        </script>
+    </body>
+</html>

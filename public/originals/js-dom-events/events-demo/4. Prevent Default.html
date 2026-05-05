@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Prevent Default Demo</title>
+        <link rel="stylesheet" href="./assets/style.css">
+    </head>
+    <body>
+        <h1>Interactive Web Pages - Events Demonstration</h1>
+        <h2>preventDefault()</h2>
+        <p> Please enter your name and click Submit to view the concept the preventDefault() method.</p>
+        <form action="/examples/html/action.js" method="post" id="users">
+            <label>First Name:</label>
+            <input type="text" name="first-name" id="firstName">
+            <input type="submit" value="Submit" id="submitBtn">
+        </form>
+        <div id="explanation">
+            <p>
+                The preventDefault method stops a typical action from happening. In the case of a form, a submission is prevented. In another case, such as with a link, the default action of navigating to the link's location is what would be prevented.
+            </p>
+        </div>
+
+        <script>
+            var btn = document.getElementById('submitBtn')
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault()
+                alert(`Sorry, ${document.getElementById('firstName').value}, the preventDefault() method won't let you submit this form!`)
+                document.getElementById('explanation').style.visibility = 'visible'
+            })
+        </script>
+    </body>
+</html>

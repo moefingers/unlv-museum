@@ -1,0 +1,54 @@
+/* all */
+* {
+  outline: red 2px dotted;
+}
+
+body {
+  background: blanchedalmond;
+  padding: 0;
+  margin: 0;
+}
+.container div {
+  text-align: center;
+  margin: 2%;
+}
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* mobile */
+.a {
+  flex-grow: 1;
+  width: 96%;
+}
+.b {
+  flex-grow: 4;
+  width: 96%;
+}
+.c {
+  flex-grow: 1;
+  width: 96%;
+}
+
+/* desktop */
+@media (min-width: 600px) {
+  .container {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .a {
+    width: 100%;
+    height: 30%;
+  }
+  .b {
+    width: 70%;
+    height: 60%;
+  }
+  .c {
+    width: 20%;
+    height: 60%;
+  }
+}

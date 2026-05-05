@@ -1,0 +1,43 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  width: 100%;
+  background: linear-gradient(to bottom right, beige, skyblue);
+  text-align: center;
+}
+
+nav ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 10px;
+}
+
+nav li {
+  display: inline;
+  margin-right: 15px;
+}
+
+nav a {
+  font-size: 30px;
+  text-decoration: none;
+}
+
+nav a:visited {
+  color: blue;
+}
+
+nav a:hover {
+  color: hotpink;
+}
+
+.current-page {
+  background-color: white;
+}
+
+main {
+  margin: 0 10%;
+}
