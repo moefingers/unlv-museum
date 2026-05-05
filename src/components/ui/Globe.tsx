@@ -14,19 +14,14 @@ interface GlobeProps {
 }
 
 function fibonacci(count: number) {
-  const points: { theta: number; phi: number }[] = [];
+  const points: { lon: number; lat: number }[] = [];
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
   for (let i = 0; i < count; i++) {
     const y = 1 - (i / (count - 1)) * 2;
-    const radiusAtY = Math.sqrt(1 - y * y);
-    const theta = goldenAngle * i;
-    const phi = Math.asin(y);
-
-    points.push({
-      theta: theta % (2 * Math.PI),
-      phi,
-    });
+    const lat = (Math.asin(y) * 180) / Math.PI;
+    const lon = ((goldenAngle * i * 180) / Math.PI) % 360;
+    points.push({ lon, lat });
   }
 
   return points;
@@ -37,7 +32,6 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
   const [dragging, setDragging] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
   const lastMouse = useRef({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const points = fibonacci(items.length);
 
@@ -76,7 +70,6 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
 
   return (
     <div
-      ref={containerRef}
       className="relative mx-auto select-none"
       style={{
         width: radius * 2 + 200,
@@ -89,7 +82,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
       onPointerLeave={handlePointerUp}
     >
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 flex items-center justify-center"
         style={{
           transformStyle: "preserve-3d",
           transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
@@ -100,20 +93,13 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
           const point = points[i];
           if (!point) return null;
 
-          const x = radius * Math.cos(point.phi) * Math.cos(point.theta);
-          const y = radius * Math.sin(point.phi);
-          const z = radius * Math.cos(point.phi) * Math.sin(point.theta);
-
-          const thetaDeg = (point.theta * 180) / Math.PI;
-          const phiDeg = (point.phi * 180) / Math.PI;
-
           return (
             <div
               key={item.id}
-              className="absolute left-1/2 top-1/2"
+              className="absolute"
               style={{
                 transformStyle: "preserve-3d",
-                transform: `translate3d(${x}px, ${-y}px, ${z}px) rotateY(${thetaDeg}deg) rotateX(${-phiDeg}deg)`,
+                transform: `rotateY(${point.lon}deg) rotateX(${-point.lat}deg) translateZ(${radius}px)`,
               }}
             >
               <div
