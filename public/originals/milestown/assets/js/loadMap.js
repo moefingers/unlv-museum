@@ -1,4 +1,4 @@
-import settings from '../data/settings.json' assert { type: 'json' };
+import settings from '../data/settings.json' with { type: 'json' };
 
 import {checkWidthOrHeightSituation} from "./checkWidthOrHeightSituation.js"
 import { generateCharacter } from "./generateCharacter.js";

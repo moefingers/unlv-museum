@@ -1,4 +1,4 @@
-import settings from '../data/settings.json' assert { type: 'json' };
+import settings from '../data/settings.json' with { type: 'json' };
 let heightValue = settings.windowSize.heightValue
 let widthValue = settings.windowSize.widthValue
 

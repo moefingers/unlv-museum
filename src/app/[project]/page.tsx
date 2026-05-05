@@ -1,19 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { SlidingView, ModeToggle } from "@/components/ui/SlidingView";
 import { PROJECTS, type ViewMode } from "@/lib/projects";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
+const VALID_MODES: ViewMode[] = ["original", "remastered", "reimagined"];
+
 export default function ProjectPage() {
   const params = useParams<{ project: string }>();
-  const [mode, setMode] = useState<ViewMode>("remastered");
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get("mode") as ViewMode | null;
+  const initialMode =
+    modeParam && VALID_MODES.includes(modeParam) ? modeParam : "original";
+  const [mode, setMode] = useState<ViewMode>(initialMode);
 
   const project = PROJECTS.find((p) => p.slug === params.project);
   if (!project) notFound();
+
+  const handleModeChange = (newMode: ViewMode) => {
+    setMode(newMode);
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", newMode);
+    window.history.replaceState({}, "", url.toString());
+  };
 
   const reimaginedContent = project.externalLink ? (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -52,7 +65,7 @@ export default function ProjectPage() {
             </p>
           </div>
         </div>
-        <ModeToggle mode={mode} onChange={setMode} />
+        <ModeToggle mode={mode} onChange={handleModeChange} />
       </header>
 
       <SlidingView mode={mode}>

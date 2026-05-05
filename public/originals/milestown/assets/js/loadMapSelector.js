@@ -2,7 +2,7 @@ import { loadMap } from "./loadMap.js";
 import { generateCharacter } from "./generateCharacter.js";
 import { generateScoreBoards } from "./generateScoreBoards.js";
 import { generateTimer } from "./generateTimer.js";
-import maps from '../data/maps.json' assert { type: 'json' };
+import maps from '../data/maps.json' with { type: 'json' };
 
 let swipeIn = [
 
