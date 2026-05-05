@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { SlidingView, ModeToggle } from "@/components/ui/SlidingView";
 import { PROJECTS, type ViewMode } from "@/lib/projects";
 import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 export default function ProjectPage() {
   const params = useParams<{ project: string }>();
@@ -36,11 +37,20 @@ export default function ProjectPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white/80 px-6 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div>
-          <h1 className="text-lg font-semibold">{project.title}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {project.year} &middot; {project.techOriginal.join(", ")}
-          </p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            aria-label="Back to museum"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-lg font-semibold">{project.title}</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {project.year} &middot; {project.techOriginal.join(", ")}
+            </p>
+          </div>
         </div>
         <ModeToggle mode={mode} onChange={setMode} />
       </header>
