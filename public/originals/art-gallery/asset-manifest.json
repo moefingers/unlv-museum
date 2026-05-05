@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.css": "/UNLV-react-art-gallery/static/css/main.ccfc9375.css",
-    "main.js": "/UNLV-react-art-gallery/static/js/main.3f12dad9.js",
-    "static/js/453.a425dab5.chunk.js": "/UNLV-react-art-gallery/static/js/453.a425dab5.chunk.js",
-    "index.html": "/UNLV-react-art-gallery/index.html",
-    "main.ccfc9375.css.map": "/UNLV-react-art-gallery/static/css/main.ccfc9375.css.map",
-    "main.3f12dad9.js.map": "/UNLV-react-art-gallery/static/js/main.3f12dad9.js.map",
-    "453.a425dab5.chunk.js.map": "/UNLV-react-art-gallery/static/js/453.a425dab5.chunk.js.map"
+    "main.css": "./static/css/main.ccfc9375.css",
+    "main.js": "./static/js/main.fb56e2a3.js",
+    "static/js/453.a425dab5.chunk.js": "./static/js/453.a425dab5.chunk.js",
+    "index.html": "./index.html",
+    "main.ccfc9375.css.map": "./static/css/main.ccfc9375.css.map",
+    "main.fb56e2a3.js.map": "./static/js/main.fb56e2a3.js.map",
+    "453.a425dab5.chunk.js.map": "./static/js/453.a425dab5.chunk.js.map"
   },
-  "entrypoints": ["static/css/main.ccfc9375.css", "static/js/main.3f12dad9.js"]
+  "entrypoints": ["static/css/main.ccfc9375.css", "static/js/main.fb56e2a3.js"]
 }

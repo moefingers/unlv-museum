@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/gwhac-a-mole/static/css/main.579f2c04.css",
-    "main.js": "/gwhac-a-mole/static/js/main.abaea98d.js",
-    "static/js/453.f3c3bebb.chunk.js": "/gwhac-a-mole/static/js/453.f3c3bebb.chunk.js",
-    "static/media/hillwmole.png": "/gwhac-a-mole/static/media/hillwmole.9c4f8039f9983d7cf00d.png",
-    "index.html": "/gwhac-a-mole/index.html",
-    "main.579f2c04.css.map": "/gwhac-a-mole/static/css/main.579f2c04.css.map",
-    "main.abaea98d.js.map": "/gwhac-a-mole/static/js/main.abaea98d.js.map",
-    "453.f3c3bebb.chunk.js.map": "/gwhac-a-mole/static/js/453.f3c3bebb.chunk.js.map"
+    "main.css": "./static/css/main.579f2c04.css",
+    "main.js": "./static/js/main.b936543e.js",
+    "static/js/453.f3c3bebb.chunk.js": "./static/js/453.f3c3bebb.chunk.js",
+    "static/media/hillwmole.png": "./static/media/hillwmole.9c4f8039f9983d7cf00d.png",
+    "index.html": "./index.html",
+    "main.579f2c04.css.map": "./static/css/main.579f2c04.css.map",
+    "main.b936543e.js.map": "./static/js/main.b936543e.js.map",
+    "453.f3c3bebb.chunk.js.map": "./static/js/453.f3c3bebb.chunk.js.map"
   },
-  "entrypoints": ["static/css/main.579f2c04.css", "static/js/main.abaea98d.js"]
+  "entrypoints": ["static/css/main.579f2c04.css", "static/js/main.b936543e.js"]
 }
