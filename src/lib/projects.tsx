@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
+import { MusicTourOriginal } from "@/components/originals/MusicTourOriginal";
+import { JaskisOriginal } from "@/components/originals/JaskisOriginal";
 import {
   GwhacAMoleReimagined,
   RestRantReimagined,
@@ -340,14 +342,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
     techRemastered: ["TypeScript", "React", "Mock API"],
     techReimagined: ["Next.js API Routes", "Drizzle", "OpenAPI"],
-    original: (
-      <ServerAppOriginal
-        title="Music Tour API"
-        tech="Express + PostgreSQL + Sequelize"
-        description="REST API with CRUD operations for bands and tour events. Sequelize migrations and seeders for database management."
-        note="This was a backend-only API project — no frontend was built. The remastered and reimagined tiers add a UI."
-      />
-    ),
+    original: <MusicTourOriginal />,
     remastered: <MusicTourApi />,
     reimagined: <PlaceholderReimagined title="" />,
   },
@@ -373,14 +368,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["MongoDB", "Express"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["Next.js API Routes", "Drizzle", "CRUD UI"],
-    original: (
-      <ServerAppOriginal
-        title="JASKIS API"
-        tech="MongoDB + Express"
-        description="CRUD snack-spot database built as a MongoDB learning exercise. Mongoose models with basic Express routing."
-        note="This was a backend-only API project. The remastered and reimagined tiers add a full UI."
-      />
-    ),
+    original: <JaskisOriginal />,
     remastered: <Jaskis />,
     reimagined: <PlaceholderReimagined title="" />,
   },

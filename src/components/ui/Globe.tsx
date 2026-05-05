@@ -32,6 +32,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
   const [dragging, setDragging] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
   const lastMouse = useRef({ x: 0, y: 0 });
+  const didDrag = useRef(false);
 
   const points = fibonacci(items.length);
 
@@ -46,6 +47,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     setDragging(true);
     setAutoRotate(false);
+    didDrag.current = false;
     lastMouse.current = { x: e.clientX, y: e.clientY };
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   }, []);
@@ -55,6 +57,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
       if (!dragging) return;
       const dx = e.clientX - lastMouse.current.x;
       const dy = e.clientY - lastMouse.current.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
       lastMouse.current = { x: e.clientX, y: e.clientY };
       setRotation((r) => ({
         x: Math.max(-60, Math.min(60, r.x - dy * 0.3)),
@@ -80,6 +83,9 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
+      onClickCapture={(e) => {
+        if (didDrag.current) e.preventDefault();
+      }}
     >
       <div
         className="absolute inset-0 flex items-center justify-center"

@@ -34,6 +34,8 @@ function ProjectCard({ project }: { project: Project }) {
     <Link
       href={`/${project.slug}`}
       className="group block w-44"
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
       style={{ transformStyle: "preserve-3d" }}
     >
       <div
@@ -122,10 +124,15 @@ function ListView() {
 export function LandingView() {
   const [view, setView] = useState<"globe" | "list">("globe");
 
-  const globeItems = PROJECTS.map((project) => ({
+  const projectCards = PROJECTS.map((project) => ({
     id: project.slug,
     node: <ProjectCard project={project} />,
   }));
+  const globeItems = [
+    { id: "_spacer-top", node: <div /> },
+    ...projectCards,
+    { id: "_spacer-bottom", node: <div /> },
+  ];
 
   return (
     <div className="flex flex-1 flex-col items-center px-6 py-12">
