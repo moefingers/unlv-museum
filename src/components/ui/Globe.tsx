@@ -30,6 +30,22 @@ function fibonacci(count: number) {
 const AUTO_SPEED = 0.08;
 const TIME_CONSTANT = 600;
 const VELOCITY_THRESHOLD = 0.5;
+const POLE_LIMIT = 60;
+
+function bounceX(x: number): { x: number; flipped: boolean } {
+  let flipped = false;
+  while (x > POLE_LIMIT || x < -POLE_LIMIT) {
+    if (x > POLE_LIMIT) {
+      x = 2 * POLE_LIMIT - x;
+      flipped = !flipped;
+    }
+    if (x < -POLE_LIMIT) {
+      x = -2 * POLE_LIMIT - x;
+      flipped = !flipped;
+    }
+  }
+  return { x, flipped };
+}
 
 export function Globe({ items, radius = 340 }: GlobeProps) {
   const [rotation, setRotation] = useState({ x: -15, y: 0 });
@@ -69,11 +85,15 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
           const elapsed = now - releaseTime.current;
           const decay = Math.exp(-elapsed / TIME_CONSTANT);
 
+          const rawX = targetX.current - amplitudeX.current * decay;
+          const { x: bouncedX, flipped } = bounceX(rawX);
+          if (flipped) {
+            amplitudeX.current = -amplitudeX.current;
+            targetX.current = 2 * bouncedX - targetX.current;
+          }
+
           applyRotation({
-            x: Math.max(
-              -60,
-              Math.min(60, targetX.current - amplitudeX.current * decay),
-            ),
+            x: bouncedX,
             y: targetY.current - amplitudeY.current * decay,
           });
 
@@ -134,10 +154,8 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
       velocityX.current = 0.8 * vyNow + 0.2 * velocityX.current;
 
       const r = latestRotation.current;
-      applyRotation({
-        x: Math.max(-60, Math.min(60, r.x - dy * 0.3)),
-        y: r.y + dx * 0.3,
-      });
+      const { x: bx } = bounceX(r.x - dy * 0.3);
+      applyRotation({ x: bx, y: r.y + dx * 0.3 });
     },
     [applyRotation],
   );
@@ -155,7 +173,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
     amplitudeY.current = (velocityY.current * TIME_CONSTANT) / 1000;
     amplitudeX.current = (-velocityX.current * TIME_CONSTANT) / 1000;
     targetY.current = r.y + amplitudeY.current;
-    targetX.current = Math.max(-60, Math.min(60, r.x + amplitudeX.current));
+    targetX.current = r.x + amplitudeX.current;
     releaseTime.current = performance.now();
   }, []);
 
