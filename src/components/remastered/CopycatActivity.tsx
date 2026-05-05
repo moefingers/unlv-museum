@@ -4,7 +4,7 @@ export function CopycatActivity() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-6">
       <div className="w-full max-w-lg overflow-hidden rounded-xl border border-zinc-200 shadow-lg dark:border-zinc-700">
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-8 text-white">
+        <div className="bg-linear-to-r from-indigo-500 to-purple-600 px-6 py-8 text-white">
           <h2 className="text-2xl font-bold">Design Recreation</h2>
           <p className="mt-2 text-indigo-100">
             A faithful copy of a reference design mockup, demonstrating

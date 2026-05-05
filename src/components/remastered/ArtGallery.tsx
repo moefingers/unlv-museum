@@ -111,7 +111,7 @@ export function ArtGallery() {
             </button>
           </div>
           <div
-            className={`mt-4 h-48 rounded-lg bg-gradient-to-br ${selected.color}`}
+            className={`mt-4 h-48 rounded-lg bg-linear-to-br ${selected.color}`}
           />
         </div>
       )}
@@ -124,7 +124,7 @@ export function ArtGallery() {
             className="group overflow-hidden rounded-lg border border-zinc-200 transition-shadow hover:shadow-md dark:border-zinc-700"
           >
             <div
-              className={`h-32 bg-gradient-to-br ${art.color} transition-transform group-hover:scale-105`}
+              className={`h-32 bg-linear-to-br ${art.color} transition-transform group-hover:scale-105`}
             />
             <div className="p-2">
               <p className="truncate text-sm font-medium">{art.title}</p>

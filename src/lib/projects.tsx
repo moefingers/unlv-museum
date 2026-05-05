@@ -1,6 +1,14 @@
 import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import {
+  GwhacAMoleReimagined,
+  RestRantReimagined,
+  CommerceArrayReimagined,
+  JacksPaintReimagined,
+  SqlInjectionReimagined,
+  TimerStopwatchReimagined,
+} from "@/components/reimagined";
+import {
   GwhacAMole,
   TimerStopwatch,
   RestaurantMenu,
@@ -106,7 +114,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Canvas", "Leaderboard", "Sound", "Levels"],
     original: <OriginalFrame src="/originals/gwhac-a-mole/index.html" />,
     remastered: <GwhacAMole />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <GwhacAMoleReimagined />,
   },
   {
     slug: "web-game",
@@ -134,7 +142,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Server Actions", "Maps", "Auth", "Drizzle"],
     original: <OriginalFrame src="/originals/rest-rant/index.html" />,
     remastered: <RestRant />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <RestRantReimagined />,
     progression: true,
   },
   {
@@ -148,7 +156,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Server Actions", "Stripe", "Drizzle"],
     original: <OriginalFrame src="/originals/commerce-array/index.html" />,
     remastered: <CommerceArray />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <CommerceArrayReimagined />,
   },
   {
     slug: "enterprize",
@@ -231,7 +239,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Web Workers", "Notifications", "PWA"],
     original: <OriginalFrame src="/originals/timer-stopwatch/index.html" />,
     remastered: <TimerStopwatch />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <TimerStopwatchReimagined />,
   },
   {
     slug: "hxh-logo",
@@ -309,7 +317,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Canvas", "Layers", "Tools", "Export"],
     original: <OriginalFrame src="/originals/jacks-paint/index.html" />,
     remastered: <JacksPaint />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <JacksPaintReimagined />,
   },
   {
     slug: "copycat",
@@ -365,7 +373,7 @@ export const PROJECTS: Project[] = [
     techReimagined: ["React", "Interactive Tutorial", "Sandbox"],
     original: <OriginalFrame src="/originals/sql-injection-demo/index.html" />,
     remastered: <SqlInjectionDemo />,
-    reimagined: <Placeholder label="Reimagined — coming soon" />,
+    reimagined: <SqlInjectionReimagined />,
   },
   {
     slug: "jaskis",

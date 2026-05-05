@@ -42,7 +42,7 @@ export function FoodTruck() {
 
   return (
     <div className="flex min-h-[60vh] flex-col">
-      <header className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-8 text-white">
+      <header className="bg-linear-to-r from-orange-500 to-red-500 px-6 py-8 text-white">
         <h1 className="text-3xl font-bold">🌮 Taco Loco</h1>
         <p className="mt-1 text-orange-100">
           The best street food on four wheels
