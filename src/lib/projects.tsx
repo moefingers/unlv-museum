@@ -1,5 +1,7 @@
 import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
+import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
+import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import {
   GwhacAMoleReimagined,
   RestRantReimagined,
@@ -184,7 +186,14 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Next.js 16", "NextAuth v5", "Vercel Postgres"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["React", "Charts", "RBAC", "Real-time"],
-    original: <Placeholder label="Original — server-side Next.js app" />,
+    original: (
+      <ServerAppOriginal
+        title="Next.js Dashboard"
+        tech="Next.js 16 + NextAuth v5 + Vercel Postgres"
+        description="Full-featured dashboard with invoices, authentication, and database integration. Built following the official Next.js tutorial."
+        note="This was a full-stack Next.js app. The original deployment is no longer live."
+      />
+    ),
     remastered: <NextjsDashboard />,
     reimagined: <PlaceholderReimagined title="" />,
   },
@@ -332,7 +341,12 @@ export const PROJECTS: Project[] = [
     techRemastered: ["TypeScript", "React", "Mock API"],
     techReimagined: ["Next.js API Routes", "Drizzle", "OpenAPI"],
     original: (
-      <Placeholder label="Original — Express/Sequelize API (source view)" />
+      <ServerAppOriginal
+        title="Music Tour API"
+        tech="Express + PostgreSQL + Sequelize"
+        description="REST API with CRUD operations for bands and tour events. Sequelize migrations and seeders for database management."
+        note="This was a backend-only API project — no frontend was built. The remastered and reimagined tiers add a UI."
+      />
     ),
     remastered: <MusicTourApi />,
     reimagined: <PlaceholderReimagined title="" />,
@@ -359,7 +373,14 @@ export const PROJECTS: Project[] = [
     techOriginal: ["MongoDB", "Express"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["Next.js API Routes", "Drizzle", "CRUD UI"],
-    original: <Placeholder label="Original — MongoDB/Express API" />,
+    original: (
+      <ServerAppOriginal
+        title="JASKIS API"
+        tech="MongoDB + Express"
+        description="CRUD snack-spot database built as a MongoDB learning exercise. Mongoose models with basic Express routing."
+        note="This was a backend-only API project. The remastered and reimagined tiers add a full UI."
+      />
+    ),
     remastered: <Jaskis />,
     reimagined: <PlaceholderReimagined title="" />,
   },
@@ -374,7 +395,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Python", "Flask"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["Next.js", "Server Actions", "Image Upload"],
-    original: <Placeholder label="Original — Flask app (source view)" />,
+    original: <OriginalFrame src="/originals/petfax/index.html" />,
     remastered: <PetFax />,
     reimagined: <PetFaxReimagined />,
   },
@@ -387,7 +408,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Python"],
     techRemastered: ["Python → TypeScript", "Side-by-Side"],
     techReimagined: ["Next.js", "Interactive REPL"],
-    original: <Placeholder label="Original — Python source files" />,
+    original: <PythonFundamentalsOriginal />,
     remastered: <PythonFundamentals />,
     reimagined: <PlaceholderReimagined title="" />,
   },
