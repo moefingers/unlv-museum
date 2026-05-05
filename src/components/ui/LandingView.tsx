@@ -29,7 +29,13 @@ const CATEGORY_BACK: Record<Category, string> = {
   exercises: "bg-pink-700",
 };
 
+const DEPTH_LAYERS = 8;
+const LAYER_STEP = 2;
+
 function ProjectCard({ project }: { project: Project }) {
+  const bg = CATEGORY_BG[project.category];
+  const back = CATEGORY_BACK[project.category];
+
   return (
     <Link
       href={`/${project.slug}`}
@@ -38,34 +44,33 @@ function ProjectCard({ project }: { project: Project }) {
       onDragStart={(e) => e.preventDefault()}
       style={{ transformStyle: "preserve-3d" }}
     >
-      <div
-        className="relative rounded-lg bg-white shadow-sm dark:bg-zinc-900"
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Colored top stripe */}
-        <div
-          className={`h-1.5 rounded-t-lg ${CATEGORY_BG[project.category]}`}
-        />
-
-        {/* Content */}
-        <div className="p-3">
-          <h3 className="truncate text-sm font-semibold group-hover:underline">
-            {project.title}
-          </h3>
-          <p className="mt-0.5 text-xs text-zinc-400">{project.year}</p>
+      <div className="relative" style={{ transformStyle: "preserve-3d" }}>
+        {/* Front face */}
+        <div className="relative rounded-lg bg-white dark:bg-zinc-900">
+          <div className={`h-1.5 rounded-t-lg ${bg}`} />
+          <div className="p-3">
+            <h3 className="truncate text-sm font-semibold group-hover:underline">
+              {project.title}
+            </h3>
+            <p className="mt-0.5 text-xs text-zinc-400">{project.year}</p>
+          </div>
         </div>
 
-        {/* Back face for depth */}
-        <div
-          className={`absolute inset-0 rounded-lg ${CATEGORY_BACK[project.category]} opacity-80`}
-          style={{ transform: "translateZ(-6px)" }}
-        />
-
-        {/* Side edges */}
-        <div
-          className={`absolute top-0 bottom-0 left-0 w-full rounded-lg ${CATEGORY_BACK[project.category]} opacity-40`}
-          style={{ transform: "translateZ(-3px)" }}
-        />
+        {/* Stacked depth layers */}
+        {Array.from({ length: DEPTH_LAYERS }, (_, i) => {
+          const z = -(i + 1) * LAYER_STEP;
+          const t = (i + 1) / DEPTH_LAYERS;
+          return (
+            <div
+              key={i}
+              className={`absolute inset-0 rounded-lg ${i < DEPTH_LAYERS / 2 ? back : bg}`}
+              style={{
+                transform: `translateZ(${z}px)`,
+                opacity: 0.6 + t * 0.4,
+              }}
+            />
+          );
+        })}
       </div>
     </Link>
   );
