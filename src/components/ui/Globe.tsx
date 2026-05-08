@@ -197,34 +197,42 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
         className="absolute inset-0 flex items-center justify-center"
         style={{
           transformStyle: "preserve-3d",
-          transform: `rotateZ(-18deg) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
+          transform: "rotateZ(-18deg)",
         }}
       >
-        {items.map((item, i) => {
-          const point = points[i];
-          if (!point) return null;
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
+          }}
+        >
+          {items.map((item, i) => {
+            const point = points[i];
+            if (!point) return null;
 
-          return (
-            <div
-              key={item.id}
-              className="absolute"
-              style={{
-                transformStyle: "preserve-3d",
-                transform: `rotateY(${point.lon}deg) rotateX(${-point.lat}deg) translateZ(${radius}px)`,
-              }}
-            >
+            return (
               <div
-                className="-translate-x-1/2 -translate-y-1/2"
+                key={item.id}
+                className="absolute"
                 style={{
                   transformStyle: "preserve-3d",
-                  backfaceVisibility: "hidden",
+                  transform: `rotateY(${point.lon}deg) rotateX(${-point.lat}deg) translateZ(${radius}px)`,
                 }}
               >
-                {item.node}
+                <div
+                  style={{
+                    transform: "translate(-88px, -36px)",
+                    transformStyle: "preserve-3d",
+                    backfaceVisibility: "hidden",
+                  }}
+                >
+                  {item.node}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
