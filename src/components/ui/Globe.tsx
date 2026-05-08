@@ -197,7 +197,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
         className="absolute inset-0 flex items-center justify-center"
         style={{
           transformStyle: "preserve-3d",
-          transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
+          transform: `rotateZ(-18deg) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
         }}
       >
         {items.map((item, i) => {
