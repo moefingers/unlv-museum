@@ -40,10 +40,14 @@ const myMap = {
 
 // get coordinates via geolocation api
 async function getCoords(){
-	const pos = await new Promise((resolve, reject) => {
-		navigator.geolocation.getCurrentPosition(resolve, reject)
-	});
-	return [pos.coords.latitude, pos.coords.longitude]
+	try {
+		const pos = await new Promise((resolve, reject) => {
+			navigator.geolocation.getCurrentPosition(resolve, reject)
+		});
+		return [pos.coords.latitude, pos.coords.longitude]
+	} catch {
+		return [36.1084, -115.1440]
+	}
 }
 
 // get foursquare businesses
