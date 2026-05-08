@@ -11,13 +11,27 @@ interface Preset {
   body?: string;
 }
 
-interface ApiExplorerProps {
+export interface ApiConfig {
   title: string;
   baseUrl: string;
   presets: Preset[];
 }
 
-export function ApiExplorer({ title, baseUrl, presets }: ApiExplorerProps) {
+interface ApiExplorerProps {
+  title: string;
+  baseUrl: string;
+  presets: Preset[];
+  siblings?: ApiConfig[];
+  onSwitch?: (config: ApiConfig) => void;
+}
+
+export function ApiExplorer({
+  title,
+  baseUrl,
+  presets,
+  siblings,
+  onSwitch,
+}: ApiExplorerProps) {
   const [method, setMethod] = useState<Method>("GET");
   const [path, setPath] = useState(presets[0]?.path ?? "/");
   const [body, setBody] = useState("");
@@ -92,6 +106,26 @@ export function ApiExplorer({ title, baseUrl, presets }: ApiExplorerProps) {
         below is provided so you can interact with the live API. The endpoints
         are also accessible via Postman, curl, or any HTTP client.
       </p>
+
+      {siblings && siblings.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-1">
+          <span className="mr-1 self-center text-xs text-zinc-400">APIs:</span>
+          <span className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900">
+            {title}
+          </span>
+          {siblings
+            .filter((s) => s.title !== title)
+            .map((s) => (
+              <button
+                key={s.baseUrl}
+                onClick={() => onSwitch?.(s)}
+                className="rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+              >
+                {s.title}
+              </button>
+            ))}
+        </div>
+      )}
 
       {/* Presets */}
       <div className="mb-4 flex flex-wrap gap-1.5">

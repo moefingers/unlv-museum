@@ -37,7 +37,7 @@ function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link
-      href={`/${project.slug}`}
+      href={project.href ?? `/${project.slug}`}
       className="group block w-44"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
@@ -100,7 +100,7 @@ function ListView() {
               {projects.map((project) => (
                 <Link
                   key={project.slug}
-                  href={`/${project.slug}`}
+                  href={project.href ?? `/${project.slug}`}
                   className="group rounded-lg border border-zinc-200 p-5 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
                 >
                   <h3 className="font-semibold group-hover:underline">

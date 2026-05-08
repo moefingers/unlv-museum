@@ -2,10 +2,7 @@ import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
-import { MusicTourOriginal } from "@/components/originals/MusicTourOriginal";
-import { JaskisOriginal } from "@/components/originals/JaskisOriginal";
-import { AdminPortalOriginal } from "@/components/originals/AdminPortalOriginal";
-import { SqlDemoOriginal } from "@/components/originals/SqlDemoOriginal";
+import { ApiOriginal } from "@/components/originals/ApiOriginal";
 import {
   GwhacAMoleReimagined,
   RestRantReimagined,
@@ -55,6 +52,8 @@ export interface Project {
   description: string;
   year: string;
   category: Category;
+  /** Override link destination (e.g. /api-client?api=X) */
+  href?: string;
   techOriginal: string[];
   techRemastered: string[];
   techReimagined: string[];
@@ -257,6 +256,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "admin-portal",
+    href: "/api-client?api=admin-portal",
     title: "Admin Portal",
     description: "Admin interface with dynamic form fields.",
     year: "Dec 2023",
@@ -264,7 +264,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["JavaScript", "Express", "Fetch API"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["React", "CRUD", "Validation", "Toast Notifications"],
-    original: <AdminPortalOriginal />,
+    original: <ApiOriginal startWith="Admin Portal" />,
     remastered: <AdminPortal />,
     reimagined: <PlaceholderReimagined title="" />,
   },
@@ -337,6 +337,7 @@ export const PROJECTS: Project[] = [
   // APIs & BACKEND
   {
     slug: "music-tour-api",
+    href: "/api-client?api=music-tour",
     title: "Music Tour API",
     description: "REST API for music tour management.",
     year: "Apr 2024",
@@ -344,12 +345,13 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
     techRemastered: ["TypeScript", "React", "Mock API"],
     techReimagined: ["Next.js API Routes", "Drizzle", "OpenAPI"],
-    original: <MusicTourOriginal />,
+    original: <ApiOriginal startWith="Music Tour API" />,
     remastered: <MusicTourApi />,
     reimagined: <PlaceholderReimagined title="" />,
   },
   {
     slug: "sql-injection-demo",
+    href: "/api-client?api=sql-demo",
     title: "SQL Injection Demo",
     description: "Educational SQL injection demonstration.",
     year: "May 2024",
@@ -357,12 +359,13 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Express", "SQLite", "HTML"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["React", "Interactive Tutorial", "Sandbox"],
-    original: <SqlDemoOriginal />,
+    original: <ApiOriginal startWith="SQL Injection Demo" />,
     remastered: <SqlInjectionDemo />,
     reimagined: <SqlInjectionReimagined />,
   },
   {
     slug: "jaskis",
+    href: "/api-client?api=jaskis",
     title: "JASKIS",
     description: "Snack spot discovery and CRUD.",
     year: "Feb 2024",
@@ -370,7 +373,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["MongoDB", "Express"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["Next.js API Routes", "Drizzle", "CRUD UI"],
-    original: <JaskisOriginal />,
+    original: <ApiOriginal startWith="JASKIS API" />,
     remastered: <Jaskis />,
     reimagined: <PlaceholderReimagined title="" />,
   },
