@@ -227,6 +227,90 @@ const APIS: ApiProject[] = [
   },
 ];
 
+const APIS_V2: ApiProject[] = [
+  {
+    id: "music-tour-v2",
+    title: "Music Tour v2",
+    baseUrl: "/api/music-tour",
+    description:
+      "Reimagined: paginated results, search, filtering, OpenAPI spec. Coming soon.",
+    tech: "Next.js API Routes + Drizzle + OpenAPI",
+    endpoints: [
+      {
+        label: "List bands (paginated)",
+        method: "GET",
+        path: "/?page=1&limit=10",
+        description: "Paginated band listing",
+      },
+      {
+        label: "Search bands",
+        method: "GET",
+        path: "/?search=rock",
+        description: "Full-text search",
+      },
+    ],
+  },
+  {
+    id: "jaskis-v2",
+    title: "JASKIS v2",
+    baseUrl: "/api/jaskis",
+    description:
+      "Reimagined: geolocation-aware, ratings, photo uploads. Coming soon.",
+    tech: "Next.js API Routes + Drizzle + Blob Storage",
+    endpoints: [
+      {
+        label: "List nearby spots",
+        method: "GET",
+        path: "/?lat=36.1&lng=-115.1",
+        description: "Location-based filtering",
+      },
+      {
+        label: "Top rated",
+        method: "GET",
+        path: "/?sort=rating",
+        description: "Sort by rating",
+      },
+    ],
+  },
+  {
+    id: "admin-portal-v2",
+    title: "Admin Portal v2",
+    baseUrl: "/api/admin-portal",
+    description:
+      "Reimagined: auth-gated, audit log, bulk operations. Coming soon.",
+    tech: "Next.js API Routes + Drizzle + Better Auth",
+    endpoints: [
+      {
+        label: "List books",
+        method: "GET",
+        path: "/",
+        description: "Same endpoint, auth required in v2",
+      },
+    ],
+  },
+  {
+    id: "sql-demo-v2",
+    title: "SQL Demo v2",
+    baseUrl: "/api/sql-demo",
+    description:
+      "Reimagined: sandboxed execution, query explain plans, injection taxonomy. Coming soon.",
+    tech: "Next.js API Routes + Sandbox",
+    endpoints: [
+      {
+        label: "Explain query",
+        method: "POST",
+        path: "/",
+        description: "Returns query plan alongside result",
+        body: JSON.stringify(
+          { username: "admin", password: "test", mode: "safe" },
+          null,
+          2,
+        ),
+      },
+    ],
+  },
+];
+
 const METHOD_COLORS: Record<Method, string> = {
   GET: "bg-green-600",
   POST: "bg-blue-600",
@@ -252,6 +336,8 @@ export default function ApiClientPage() {
 function ApiClient() {
   const searchParams = useSearchParams();
   const initialApi = searchParams.get("api") ?? "music-tour";
+  const initialV2 = searchParams.get("v2") === "1";
+  const [v2, setV2] = useState(initialV2);
   const [activeApiId, setActiveApiId] = useState(initialApi);
   const [method, setMethod] = useState<Method>("GET");
   const [path, setPath] = useState("/");
@@ -269,7 +355,9 @@ function ApiClient() {
     }[]
   >([]);
 
-  const activeApi = APIS.find((a) => a.id === activeApiId) ?? APIS[0]!;
+  const currentApis = v2 ? APIS_V2 : APIS;
+  const activeApi =
+    currentApis.find((a) => a.id === activeApiId) ?? currentApis[0]!;
 
   const switchApi = (id: string) => {
     setActiveApiId(id);
@@ -353,54 +441,130 @@ function ApiClient() {
         {/* Left: Knowledge Base */}
         <aside className="w-72 shrink-0 overflow-y-auto border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="p-4">
-            <p className="mb-3 text-xs text-zinc-400">
-              These projects were originally backend-only. The endpoints below
-              are live and backed by a real database.
-            </p>
-          </div>
-          {APIS.map((api) => (
-            <div key={api.id}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs text-zinc-400">
+                Live endpoints backed by a real database.
+              </p>
               <button
-                onClick={() => switchApi(api.id)}
-                className={`w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors dark:border-zinc-800 ${
-                  activeApiId === api.id
-                    ? "bg-white dark:bg-zinc-800"
-                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                onClick={() => {
+                  const next = !v2;
+                  setV2(next);
+                  const nextApis = next ? APIS_V2 : APIS;
+                  setActiveApiId(nextApis[0]!.id);
+                  setResponse(null);
+                  setStatus(null);
+                  const url = new URL(window.location.href);
+                  if (next) url.searchParams.set("v2", "1");
+                  else url.searchParams.delete("v2");
+                  url.searchParams.set("api", nextApis[0]!.id);
+                  window.history.replaceState({}, "", url.toString());
+                }}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
+                  v2
+                    ? "bg-green-600 text-white"
+                    : "bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
                 }`}
               >
-                <p className="text-sm font-semibold">{api.title}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">{api.tech}</p>
+                {v2 ? "v2" : "v1"}
               </button>
-              <Collapsible open={activeApiId === api.id}>
-                <div className="border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800">
-                  <p className="mb-2 text-xs text-zinc-600 dark:text-zinc-400">
-                    {api.description}
-                  </p>
-                  <div className="space-y-1">
-                    {api.endpoints.map((ep, i) => (
-                      <button
-                        key={i}
-                        onClick={() => loadEndpoint(ep)}
-                        className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                      >
-                        <span
-                          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${METHOD_COLORS[ep.method]}`}
-                        />
-                        <span
-                          className={`font-mono font-bold ${METHOD_TEXT[ep.method]}`}
-                        >
-                          {ep.method}
-                        </span>
-                        <span className="truncate text-zinc-600 dark:text-zinc-400">
-                          {ep.description}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Collapsible>
             </div>
-          ))}
+          </div>
+          <div className="flex">
+            <Collapsible open={!v2} direction="horizontal" duration={400}>
+              <div className="w-72">
+                {APIS.map((api) => (
+                  <div key={api.id}>
+                    <button
+                      onClick={() => switchApi(api.id)}
+                      className={`w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors dark:border-zinc-800 ${
+                        activeApiId === api.id && !v2
+                          ? "bg-white dark:bg-zinc-800"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{api.title}</p>
+                      <p className="mt-0.5 text-xs text-zinc-500">{api.tech}</p>
+                    </button>
+                    <Collapsible open={activeApiId === api.id && !v2}>
+                      <div className="border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800">
+                        <p className="mb-2 text-xs text-zinc-600 dark:text-zinc-400">
+                          {api.description}
+                        </p>
+                        <div className="space-y-1">
+                          {api.endpoints.map((ep, i) => (
+                            <button
+                              key={i}
+                              onClick={() => loadEndpoint(ep)}
+                              className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            >
+                              <span
+                                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${METHOD_COLORS[ep.method]}`}
+                              />
+                              <span
+                                className={`font-mono font-bold ${METHOD_TEXT[ep.method]}`}
+                              >
+                                {ep.method}
+                              </span>
+                              <span className="truncate text-zinc-600 dark:text-zinc-400">
+                                {ep.description}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </Collapsible>
+                  </div>
+                ))}
+              </div>
+            </Collapsible>
+            <Collapsible open={v2} direction="horizontal" duration={400}>
+              <div className="w-72">
+                {APIS_V2.map((api) => (
+                  <div key={api.id}>
+                    <button
+                      onClick={() => switchApi(api.id)}
+                      className={`w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors dark:border-zinc-800 ${
+                        activeApiId === api.id && v2
+                          ? "bg-white dark:bg-zinc-800"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{api.title}</p>
+                      <p className="mt-0.5 text-xs text-zinc-500">{api.tech}</p>
+                    </button>
+                    <Collapsible open={activeApiId === api.id && v2}>
+                      <div className="border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800">
+                        <p className="mb-2 text-xs text-zinc-600 dark:text-zinc-400">
+                          {api.description}
+                        </p>
+                        <div className="space-y-1">
+                          {api.endpoints.map((ep, i) => (
+                            <button
+                              key={i}
+                              onClick={() => loadEndpoint(ep)}
+                              className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            >
+                              <span
+                                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${METHOD_COLORS[ep.method]}`}
+                              />
+                              <span
+                                className={`font-mono font-bold ${METHOD_TEXT[ep.method]}`}
+                              >
+                                {ep.method}
+                              </span>
+                              <span className="truncate text-zinc-600 dark:text-zinc-400">
+                                {ep.description}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </Collapsible>
+                  </div>
+                ))}
+              </div>
+            </Collapsible>
+          </div>
 
           {history.length > 0 && (
             <div className="p-4">
@@ -428,30 +592,61 @@ function ApiClient() {
 
         {/* Right: Client */}
         <main className="flex flex-1 flex-col p-6">
-          <div className="mb-1 flex flex-wrap items-baseline gap-1">
-            {APIS.map((api) => (
-              <div key={api.id} className="flex items-baseline">
-                <button
-                  onClick={() => switchApi(api.id)}
-                  className={`shrink-0 text-xl font-bold transition-colors ${
-                    activeApiId === api.id
-                      ? ""
-                      : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400"
-                  }`}
-                >
-                  {api.title}
-                </button>
-                <Collapsible
-                  open={activeApiId === api.id}
-                  direction="horizontal"
-                  duration={200}
-                >
-                  <span className="ml-2 whitespace-nowrap font-mono text-xs text-zinc-400">
-                    {api.baseUrl}
-                  </span>
-                </Collapsible>
+          <div className="mb-1">
+            <Collapsible open={!v2} duration={300}>
+              <div className="flex flex-wrap items-baseline gap-1">
+                {APIS.map((api) => (
+                  <div key={api.id} className="flex items-baseline">
+                    <button
+                      onClick={() => switchApi(api.id)}
+                      className={`shrink-0 text-xl font-bold whitespace-nowrap transition-colors ${
+                        activeApiId === api.id && !v2
+                          ? ""
+                          : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400"
+                      }`}
+                    >
+                      {api.title}
+                    </button>
+                    <Collapsible
+                      open={activeApiId === api.id && !v2}
+                      direction="horizontal"
+                      duration={200}
+                    >
+                      <span className="ml-2 whitespace-nowrap font-mono text-xs text-zinc-400">
+                        {api.baseUrl}
+                      </span>
+                    </Collapsible>
+                  </div>
+                ))}
               </div>
-            ))}
+            </Collapsible>
+            <Collapsible open={v2} duration={300}>
+              <div className="flex flex-wrap items-baseline gap-1">
+                {APIS_V2.map((api) => (
+                  <div key={api.id} className="flex items-baseline">
+                    <button
+                      onClick={() => switchApi(api.id)}
+                      className={`shrink-0 text-xl font-bold whitespace-nowrap transition-colors ${
+                        activeApiId === api.id && v2
+                          ? ""
+                          : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400"
+                      }`}
+                    >
+                      {api.title}
+                    </button>
+                    <Collapsible
+                      open={activeApiId === api.id && v2}
+                      direction="horizontal"
+                      duration={200}
+                    >
+                      <span className="ml-2 whitespace-nowrap font-mono text-xs text-zinc-400">
+                        {api.baseUrl}
+                      </span>
+                    </Collapsible>
+                  </div>
+                ))}
+              </div>
+            </Collapsible>
           </div>
 
           <div className="mb-4 flex gap-2">
