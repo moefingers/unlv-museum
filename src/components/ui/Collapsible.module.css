@@ -8,7 +8,18 @@
   grid-template-rows: 1fr;
 }
 
+.horizontal {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns var(--collapsible-duration, 300ms) ease-out;
+}
+
+.horizontal.open {
+  grid-template-columns: 1fr;
+}
+
 .inner {
   overflow: clip;
   min-height: 0;
+  min-width: 0;
 }

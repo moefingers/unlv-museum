@@ -2,16 +2,18 @@ import s from "./Collapsible.module.css";
 
 export function Collapsible({
   open,
+  direction = "vertical",
   duration,
   children,
 }: {
   open: boolean;
+  direction?: "vertical" | "horizontal";
   duration?: number;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className={`${s.vertical} ${open ? s.open : ""}`}
+      className={`${s[direction]} ${open ? s.open : ""}`}
       style={
         duration
           ? ({

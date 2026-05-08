@@ -428,11 +428,30 @@ function ApiClient() {
 
         {/* Right: Client */}
         <main className="flex flex-1 flex-col p-6">
-          <div className="mb-1 flex items-baseline gap-2">
-            <h2 className="text-xl font-bold">{activeApi.title}</h2>
-            <span className="font-mono text-xs text-zinc-400">
-              {activeApi.baseUrl}
-            </span>
+          <div className="mb-1 flex flex-wrap items-baseline gap-1">
+            {APIS.map((api) => (
+              <div key={api.id} className="flex items-baseline">
+                <button
+                  onClick={() => switchApi(api.id)}
+                  className={`shrink-0 text-xl font-bold transition-colors ${
+                    activeApiId === api.id
+                      ? ""
+                      : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {api.title}
+                </button>
+                <Collapsible
+                  open={activeApiId === api.id}
+                  direction="horizontal"
+                  duration={200}
+                >
+                  <span className="ml-2 whitespace-nowrap font-mono text-xs text-zinc-400">
+                    {api.baseUrl}
+                  </span>
+                </Collapsible>
+              </div>
+            ))}
           </div>
 
           <div className="mb-4 flex gap-2">
