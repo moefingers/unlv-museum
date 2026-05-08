@@ -86,7 +86,12 @@ export function ApiExplorer({ title, baseUrl, presets }: ApiExplorerProps) {
   return (
     <div className="flex min-h-[60vh] flex-col p-6">
       <h2 className="mb-1 text-2xl font-bold">{title}</h2>
-      <p className="mb-4 text-xs font-mono text-zinc-400">{baseUrl}</p>
+      <p className="mb-2 text-xs font-mono text-zinc-400">{baseUrl}</p>
+      <p className="mb-4 rounded bg-zinc-100 px-3 py-2 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+        This project was originally backend-only — no UI was built. The explorer
+        below is provided so you can interact with the live API. The endpoints
+        are also accessible via Postman, curl, or any HTTP client.
+      </p>
 
       {/* Presets */}
       <div className="mb-4 flex flex-wrap gap-1.5">
