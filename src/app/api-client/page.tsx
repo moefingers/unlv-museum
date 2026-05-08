@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Collapsible } from "@/components/ui/Collapsible";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -370,7 +371,7 @@ function ApiClient() {
                 <p className="text-sm font-semibold">{api.title}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">{api.tech}</p>
               </button>
-              {activeApiId === api.id && (
+              <Collapsible open={activeApiId === api.id}>
                 <div className="border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800">
                   <p className="mb-2 text-xs text-zinc-600 dark:text-zinc-400">
                     {api.description}
@@ -397,7 +398,7 @@ function ApiClient() {
                     ))}
                   </div>
                 </div>
-              )}
+              </Collapsible>
             </div>
           ))}
 
