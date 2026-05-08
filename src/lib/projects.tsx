@@ -4,6 +4,8 @@ import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundame
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { MusicTourOriginal } from "@/components/originals/MusicTourOriginal";
 import { JaskisOriginal } from "@/components/originals/JaskisOriginal";
+import { AdminPortalOriginal } from "@/components/originals/AdminPortalOriginal";
+import { SqlDemoOriginal } from "@/components/originals/SqlDemoOriginal";
 import {
   GwhacAMoleReimagined,
   RestRantReimagined,
@@ -262,7 +264,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["JavaScript", "Express", "Fetch API"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["React", "CRUD", "Validation", "Toast Notifications"],
-    original: <OriginalFrame src="/originals/admin-portal/index.html" />,
+    original: <AdminPortalOriginal />,
     remastered: <AdminPortal />,
     reimagined: <PlaceholderReimagined title="" />,
   },
@@ -355,7 +357,7 @@ export const PROJECTS: Project[] = [
     techOriginal: ["Express", "SQLite", "HTML"],
     techRemastered: ["TypeScript", "React", "Tailwind"],
     techReimagined: ["React", "Interactive Tutorial", "Sandbox"],
-    original: <OriginalFrame src="/originals/sql-injection-demo/index.html" />,
+    original: <SqlDemoOriginal />,
     remastered: <SqlInjectionDemo />,
     reimagined: <SqlInjectionReimagined />,
   },
