@@ -147,6 +147,12 @@ export function LandingView() {
 
   return (
     <div className="flex flex-1 flex-col items-center px-6 py-12">
+      <a
+        href="https://software.infinite-syndicate.com"
+        className="mb-4 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+      >
+        ← Software Portfolio
+      </a>
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
         UNLV Museum
       </h1>
