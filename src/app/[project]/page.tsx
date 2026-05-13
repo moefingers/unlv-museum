@@ -18,7 +18,7 @@ export default function ProjectPage() {
   const initialMode =
     modeParam && VALID_MODES.includes(modeParam) ? modeParam : "original";
   const [mode, setMode] = useState<ViewMode>(initialMode);
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(true);
 
   const project = PROJECTS.find((p) => p.slug === params.project);
   if (!project) notFound();
@@ -65,22 +65,24 @@ export default function ProjectPage() {
             </Link>
             <div>
               <h1 className="text-lg font-semibold">{project.title}</h1>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {project.year} &middot; {project.techOriginal.join(", ")}
+              <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                <span>
+                  {project.year} &middot; {project.techOriginal.join(", ")}
+                </span>
+                {note && (
+                  <button
+                    onClick={() => setNotesOpen(!notesOpen)}
+                    className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  >
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}
+                    />
+                    Notes
+                  </button>
+                )}
               </p>
             </div>
-            {note && (
-              <button
-                onClick={() => setNotesOpen(!notesOpen)}
-                className="ml-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              >
-                <ChevronDown
-                  size={14}
-                  className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}
-                />
-                Notes
-              </button>
-            )}
           </div>
           <ModeToggle mode={mode} onChange={handleModeChange} />
         </div>
