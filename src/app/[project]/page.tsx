@@ -6,7 +6,8 @@ import { SlidingView, ModeToggle } from "@/components/ui/SlidingView";
 import { PROJECTS, type ViewMode } from "@/lib/projects";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, ChevronDown } from "lucide-react";
+import { Collapsible } from "@/components/ui/Collapsible";
 
 const VALID_MODES: ViewMode[] = ["original", "remastered", "reimagined"];
 
@@ -17,6 +18,7 @@ export default function ProjectPage() {
   const initialMode =
     modeParam && VALID_MODES.includes(modeParam) ? modeParam : "original";
   const [mode, setMode] = useState<ViewMode>(initialMode);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const project = PROJECTS.find((p) => p.slug === params.project);
   if (!project) notFound();
@@ -27,6 +29,8 @@ export default function ProjectPage() {
     url.searchParams.set("mode", newMode);
     window.history.replaceState({}, "", url.toString());
   };
+
+  const note = project.notes?.[mode];
 
   const reimaginedContent = project.externalLink ? (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -49,23 +53,44 @@ export default function ProjectPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white/80 px-6 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-            aria-label="Back to museum"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-lg font-semibold">{project.title}</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {project.year} &middot; {project.techOriginal.join(", ")}
-            </p>
+      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              aria-label="Back to museum"
+            >
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="text-lg font-semibold">{project.title}</h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {project.year} &middot; {project.techOriginal.join(", ")}
+              </p>
+            </div>
+            {note && (
+              <button
+                onClick={() => setNotesOpen(!notesOpen)}
+                className="ml-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              >
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}
+                />
+                Notes
+              </button>
+            )}
           </div>
+          <ModeToggle mode={mode} onChange={handleModeChange} />
         </div>
-        <ModeToggle mode={mode} onChange={handleModeChange} />
+        {note && (
+          <Collapsible open={notesOpen} duration={200}>
+            <p className="border-t border-zinc-200 bg-amber-50/40 px-6 py-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-amber-950/20 dark:text-zinc-300">
+              {note}
+            </p>
+          </Collapsible>
+        )}
       </header>
 
       <SlidingView mode={mode}>

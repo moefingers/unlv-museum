@@ -62,6 +62,8 @@ export interface Project {
   reimagined: ReactNode;
   progression?: boolean;
   externalLink?: string;
+  /** Per-mode contextual notes shown in collapsible header */
+  notes?: Partial<Record<ViewMode, string>>;
 }
 
 export type Category =
@@ -134,6 +136,14 @@ export const PROJECTS: Project[] = [
     original: <OriginalFrame src="/originals/web-game/part-7/index.html" />,
     remastered: <WebGame />,
     reimagined: <WebGameReimagined />,
+    notes: {
+      original:
+        "The original project only demanded movement via arrow keys and inventory pickup via clicking. NPCs, win conditions, and HP were not part of the original scope.",
+      remastered:
+        "Rewritten in React with keyboard controls and a tighter map layout. Adds HP and a win condition (reach the exit with the key).",
+      reimagined:
+        "Adds NPCs with dialogue, environmental hazards (lava), water requiring a shield, and step tracking.",
+    },
   },
 
   // FULL-STACK
