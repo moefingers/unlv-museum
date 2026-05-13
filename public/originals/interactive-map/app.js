@@ -40,13 +40,20 @@ const myMap = {
 
 // get coordinates via geolocation api
 async function getCoords(){
+	const fallback = [36.1084, -115.1440]
+	if (!navigator.geolocation) return fallback
 	try {
 		const pos = await new Promise((resolve, reject) => {
-			navigator.geolocation.getCurrentPosition(resolve, reject)
+			const timeoutId = setTimeout(() => reject(new Error('geolocation timeout')), 3000)
+			navigator.geolocation.getCurrentPosition(
+				(p) => { clearTimeout(timeoutId); resolve(p) },
+				(e) => { clearTimeout(timeoutId); reject(e) },
+				{ timeout: 3000 }
+			)
 		});
 		return [pos.coords.latitude, pos.coords.longitude]
 	} catch {
-		return [36.1084, -115.1440]
+		return fallback
 	}
 }
 

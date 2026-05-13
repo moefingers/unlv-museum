@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#3a2818"/>
+  <ellipse cx="200" cy="160" rx="160" ry="80" fill="#d4a574"/>
+  <ellipse cx="200" cy="160" rx="140" ry="65" fill="#e8c08a"/>
+  <ellipse cx="200" cy="150" rx="80" ry="20" fill="#8fbc8f"/>
+  <circle cx="160" cy="155" r="6" fill="#d63031"/>
+  <circle cx="200" cy="150" r="6" fill="#fdcb6e"/>
+  <circle cx="240" cy="155" r="6" fill="#d63031"/>
+  <text x="200" y="270" text-anchor="middle" font-family="serif" font-size="18" fill="#fff" font-style="italic">avacado, corn, tomato wrap</text>
+</svg>

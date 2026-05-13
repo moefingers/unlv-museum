@@ -1,0 +1,167 @@
+[
+  {
+    "product_id": 1,
+    "product_name": "Crooked Knob",
+    "image": null,
+    "price": "12.99",
+    "description": "A reliably crooked door knob.",
+    "stock": "50",
+    "details_object": { "category": "Crooked" },
+    "best_seller": true,
+    "store_id": 1
+  },
+  {
+    "product_id": 2,
+    "product_name": "Laptop",
+    "image": null,
+    "price": "899.99",
+    "description": "Used laptop in good condition.",
+    "stock": "5",
+    "details_object": { "category": "Used" },
+    "best_seller": true,
+    "store_id": 2
+  },
+  {
+    "product_id": 3,
+    "product_name": "Hoodie",
+    "image": null,
+    "price": "29.99",
+    "description": "American-made hoodie.",
+    "stock": "30",
+    "details_object": { "category": "American" },
+    "best_seller": true,
+    "store_id": 3
+  },
+  {
+    "product_id": 4,
+    "product_name": "Straight Knob",
+    "image": null,
+    "price": "9.99",
+    "description": "Perfectly straight knob.",
+    "stock": "100",
+    "details_object": { "category": "Straight" },
+    "best_seller": true,
+    "store_id": 1
+  },
+  {
+    "product_id": 5,
+    "product_name": "Phone",
+    "image": null,
+    "price": "499.99",
+    "description": "Refurbished smartphone.",
+    "stock": "12",
+    "details_object": { "category": "Refurbished" },
+    "best_seller": true,
+    "store_id": 2
+  },
+  {
+    "product_id": 6,
+    "product_name": "Shoe",
+    "image": null,
+    "price": "59.99",
+    "description": "African-style shoes.",
+    "stock": "25",
+    "details_object": { "category": "African" },
+    "best_seller": true,
+    "store_id": 3
+  },
+  {
+    "product_id": 7,
+    "product_name": "Curved Knob",
+    "image": null,
+    "price": "14.99",
+    "description": "Elegant curved knob.",
+    "stock": "40",
+    "details_object": { "category": "Curved" },
+    "best_seller": true,
+    "store_id": 1
+  },
+  {
+    "product_id": 8,
+    "product_name": "Charger",
+    "image": null,
+    "price": "19.99",
+    "description": "Brand new charger.",
+    "stock": "200",
+    "details_object": { "category": "New" },
+    "best_seller": true,
+    "store_id": 2
+  },
+  {
+    "product_id": 9,
+    "product_name": "Pants",
+    "image": null,
+    "price": "49.99",
+    "description": "Alien-fit pants.",
+    "stock": "20",
+    "details_object": { "category": "Alien" },
+    "best_seller": true,
+    "store_id": 3
+  },
+  {
+    "product_id": 10,
+    "product_name": "Door Lock",
+    "image": null,
+    "price": "39.99",
+    "description": "Sturdy door lock.",
+    "stock": "60",
+    "details_object": { "category": "Straight" },
+    "best_seller": true,
+    "store_id": 1
+  },
+  {
+    "product_id": 11,
+    "product_name": "Wire",
+    "image": null,
+    "price": "5.99",
+    "description": "Used wire bundle.",
+    "stock": "150",
+    "details_object": { "category": "Used" },
+    "best_seller": true,
+    "store_id": 2
+  },
+  {
+    "product_id": 12,
+    "product_name": "T-shirt",
+    "image": null,
+    "price": "19.99",
+    "description": "American cotton tee.",
+    "stock": "80",
+    "details_object": { "category": "American" },
+    "best_seller": true,
+    "store_id": 3
+  },
+  {
+    "product_id": 13,
+    "product_name": "Knob Hinge",
+    "image": null,
+    "price": "7.49",
+    "description": "Companion hinge.",
+    "stock": "70",
+    "details_object": { "category": "Crooked" },
+    "best_seller": false,
+    "store_id": 1
+  },
+  {
+    "product_id": 14,
+    "product_name": "Headset",
+    "image": null,
+    "price": "79.99",
+    "description": "Wireless headset.",
+    "stock": "18",
+    "details_object": { "category": "New" },
+    "best_seller": false,
+    "store_id": 2
+  },
+  {
+    "product_id": 15,
+    "product_name": "Skirt",
+    "image": null,
+    "price": "34.99",
+    "description": "Pleated skirt.",
+    "stock": "22",
+    "details_object": { "category": "American" },
+    "best_seller": false,
+    "store_id": 3
+  }
+]

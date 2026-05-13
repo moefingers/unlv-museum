@@ -5,7 +5,7 @@ export function OriginalFrame({ src }: { src: string }) {
     <iframe
       src={src}
       className="block h-full w-full border-0 bg-white"
-      sandbox="allow-scripts allow-same-origin allow-popups"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       title="Original project"
     />
   );
