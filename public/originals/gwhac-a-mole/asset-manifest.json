@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "./static/css/main.9b71250b.css",
-    "main.js": "./static/js/main.b936543e.js",
+    "main.css": "./static/css/main.6ef614a3.css",
+    "main.js": "./static/js/main.7efdec51.js",
     "static/js/453.f3c3bebb.chunk.js": "./static/js/453.f3c3bebb.chunk.js",
     "static/media/hillwmole.png": "./static/media/hillwmole.9c4f8039f9983d7cf00d.png",
     "index.html": "./index.html",
-    "main.9b71250b.css.map": "./static/css/main.9b71250b.css.map",
-    "main.b936543e.js.map": "./static/js/main.b936543e.js.map",
+    "main.6ef614a3.css.map": "./static/css/main.6ef614a3.css.map",
+    "main.7efdec51.js.map": "./static/js/main.7efdec51.js.map",
     "453.f3c3bebb.chunk.js.map": "./static/js/453.f3c3bebb.chunk.js.map"
   },
-  "entrypoints": ["static/css/main.9b71250b.css", "static/js/main.b936543e.js"]
+  "entrypoints": ["static/css/main.6ef614a3.css", "static/js/main.7efdec51.js"]
 }

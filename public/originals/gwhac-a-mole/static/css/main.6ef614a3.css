@@ -31,8 +31,10 @@ code {
 .App {
   text-align: center;
 }
-h1 strong {
+h1 .subtitle {
   color: #22c55e;
+  font-size: 0.7em;
+  font-weight: 400;
 }
 .score-time-bar {
   display: flex;
@@ -90,4 +92,4 @@ h1 strong {
   background: #006400;
   border: 4px solid #fff;
 }
-/*# sourceMappingURL=main.9b71250b.css.map*/
+/*# sourceMappingURL=main.6ef614a3.css.map*/
