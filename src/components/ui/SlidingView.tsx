@@ -10,12 +10,6 @@ const VIEW_INDEX: Record<ViewMode, number> = {
   reimagined: 2,
 };
 
-const TRANSLATE: Record<number, string> = {
-  0: "translate-x-0",
-  1: "-translate-x-1/3",
-  2: "-translate-x-2/3",
-};
-
 export function SlidingView({
   mode,
   children,
@@ -26,12 +20,13 @@ export function SlidingView({
   const index = VIEW_INDEX[mode];
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="relative w-full flex-1 overflow-hidden">
       <div
-        className={`flex w-[300%] ${TRANSLATE[index]} transition-transform duration-300 ease-out`}
+        className="flex h-full transition-transform duration-300 ease-out"
+        style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {children.map((child, i) => (
-          <div key={i} className="w-1/3 min-w-0">
+          <div key={i} className="flex w-full shrink-0 flex-col">
             {child}
           </div>
         ))}

@@ -4,7 +4,7 @@ export function OriginalFrame({ src }: { src: string }) {
   return (
     <iframe
       src={src}
-      className="h-[80vh] w-full border-0 bg-white"
+      className="block h-full w-full border-0 bg-white"
       sandbox="allow-scripts allow-same-origin allow-popups"
       title="Original project"
     />
@@ -15,7 +15,7 @@ export function ExternalFrame({ src }: { src: string }) {
   return (
     <iframe
       src={src}
-      className="h-[80vh] w-full border-0"
+      className="block h-full w-full border-0"
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       title="Original project (external)"
     />
