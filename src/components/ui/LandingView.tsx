@@ -110,7 +110,12 @@ function ListView() {
                     {project.description}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1">
-                    {project.techOriginal.map((tech) => (
+                    {(
+                      project.techOriginal ??
+                      project.techRemastered ??
+                      project.techReimagined ??
+                      []
+                    ).map((tech) => (
                       <span
                         key={tech}
                         className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"

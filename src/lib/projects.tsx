@@ -5,7 +5,6 @@ import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { ApiOriginal } from "@/components/originals/ApiOriginal";
 import {
   GwhacAMoleReimagined,
-  RestRantReimagined,
   CommerceArrayReimagined,
   JacksPaintReimagined,
   SqlInjectionReimagined,
@@ -32,7 +31,6 @@ import {
   StockCharts,
   ArtGallery,
   QuirkTruck,
-  RestRant,
   CommerceArray,
   SqlInjectionDemo,
   Enterprize,
@@ -54,12 +52,14 @@ export interface Project {
   category: Category;
   /** Override link destination (e.g. /api-client?api=X) */
   href?: string;
-  techOriginal: string[];
-  techRemastered: string[];
-  techReimagined: string[];
-  original: ReactNode;
-  remastered: ReactNode;
-  reimagined: ReactNode;
+  /** Tech labels per tier. Omit to suppress that tier entirely. */
+  techOriginal?: string[];
+  techRemastered?: string[];
+  techReimagined?: string[];
+  /** Content per tier. Omit to indicate the tier doesn't exist (e.g. no preservable original). */
+  original?: ReactNode;
+  remastered?: ReactNode;
+  reimagined?: ReactNode;
   progression?: boolean;
   externalLink?: string;
   /** Per-mode contextual notes shown in collapsible header */
@@ -149,17 +149,42 @@ export const PROJECTS: Project[] = [
   // FULL-STACK
   {
     slug: "rest-rant",
-    title: "Rest-Rant",
-    description: "Restaurant rating and review application.",
-    year: "Feb – May 2024",
+    title: "Rest-Rant (SPA)",
+    description:
+      "Restaurant rating and review SPA. May 2024 — CRA frontend + separate Express/Postgres backend.",
+    year: "May 2024",
     category: "full-stack",
-    techOriginal: ["Express", "React", "MongoDB"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Server Actions", "Maps", "Auth", "Drizzle"],
+    techOriginal: ["React (CRA)", "React Router", "Express", "PostgreSQL"],
     original: <OriginalFrame src="/originals/rest-rant/index.html" />,
-    remastered: <RestRant />,
-    reimagined: <RestRantReimagined />,
-    progression: true,
+    remastered: <Placeholder label="Coming soon" />,
+    reimagined: <Placeholder label="Coming soon" />,
+    notes: {
+      original:
+        "Frontend SPA preserved as-is. Its Express/Postgres backend was reimplemented as /api/rest-rant (Next.js + Drizzle/Neon) so the SPA functions end-to-end — see the Rest-Rant API card in /api-client.",
+    },
+  },
+  {
+    slug: "rest-rant-ssr",
+    title: "Rest-Rant (SSR)",
+    description:
+      "Restaurant rating SSR app. Feb 2024 — JSX views, form-driven mutations.",
+    year: "Feb 2024",
+    category: "full-stack",
+    techOriginal: [
+      "Next.js Server Components",
+      "Server Actions",
+      "Drizzle",
+      "Neon",
+    ],
+    original: <OriginalFrame src="/originals/rest-rant-ssr" />,
+    remastered: <Placeholder label="Coming soon" />,
+    reimagined: <Placeholder label="Coming soon" />,
+    notes: {
+      original:
+        "The underlying architecture has been vastly altered. The Feb 2024 source ran on Express + express-react-views + MongoDB — none of which is statically hostable. The JSX views and the SSR character (server-rendered per route, form-driven mutations) are preserved verbatim, but the data layer is now Next.js Server Components + Server Actions + Postgres/Neon, sharing storage with the Rest-Rant (SPA) entry. The debug `* { outline: 1px solid black }` rule and the placebear placeholder images are preserved from the original.",
+      remastered:
+        "Future: same SSR feel, but with the debug outline removed, polished Bootstrap styling, and accurate restaurant photos instead of placebear stand-ins.",
+    },
   },
   {
     slug: "commerce-array",

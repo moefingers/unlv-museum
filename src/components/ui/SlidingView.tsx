@@ -38,27 +38,38 @@ export function SlidingView({
 export function ModeToggle({
   mode,
   onChange,
+  available,
 }: {
   mode: ViewMode;
   onChange: (mode: ViewMode) => void;
+  /** Tiers that exist for this project. Missing tiers render disabled. */
+  available: Record<ViewMode, boolean>;
 }) {
   const modes: ViewMode[] = ["original", "remastered", "reimagined"];
 
   return (
     <div className="inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
-      {modes.map((m) => (
-        <button
-          key={m}
-          onClick={() => onChange(m)}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-            mode === m
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          }`}
-        >
-          {m}
-        </button>
-      ))}
+      {modes.map((m) => {
+        const isAvailable = available[m];
+        return (
+          <button
+            key={m}
+            onClick={() => isAvailable && onChange(m)}
+            disabled={!isAvailable}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+              mode === m
+                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
+                : isAvailable
+                  ? "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
+            }`}
+            aria-disabled={!isAvailable}
+            title={isAvailable ? undefined : `${m} not available`}
+          >
+            {m}
+          </button>
+        );
+      })}
     </div>
   );
 }

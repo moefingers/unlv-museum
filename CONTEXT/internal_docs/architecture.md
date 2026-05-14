@@ -8,9 +8,11 @@ Deployed to `unlv-museum.infinite-syndicate.com` as a separate Vercel project wi
 
 ## Three-Tier System
 
-- **Original**: preserved source with only breaking fixes. Served as static HTML via self-hosted iframes. Some originals were CRA/Vite apps rebuilt with `PUBLIC_URL=.` and `HashRouter` for iframe compatibility.
-- **Remastered**: faithful modern rewrite in TypeScript/React/Tailwind. Same scope as the original, superior execution.
-- **Reimagined**: creative expansion reaching canon standards. Database-backed, interactive, with features the original never had.
+- **Original**: preservation. Only breaking fixes, Next.js compatibility ports, auth, and rate limiting are allowed. Nothing else changes — the goal is to show coursework as it was. Served as static HTML via self-hosted iframes (CRA/Vite apps rebuilt with `PUBLIC_URL=.` and `HashRouter` for iframe compat), or as Next.js SSR ports for projects that were originally server-rendered.
+- **Remastered**: stays true to the original, beautified and enhanced in every regard. Scope is small and additive — e.g. adding a leaderboard to gwhac-a-mole counts as remastered, not reimagined. Each remastered should be discussed with the user before building. Bulk generation is forbidden; AI-generated bulk remastereds were called "slop" and removed.
+- **Reimagined**: total rebuild with bells and whistles. Redesigned UX, new modes, new graphics, WebGL, etc. Each reimagined gets its own dedicated dev session to brainstorm and optimize — not built incrementally alongside other work, never bulk-generated.
+
+**Practical rule:** by default, both remastered and reimagined for a project are `<Placeholder label="Coming soon" />` until they get their own dev session. The originals stand alone.
 
 ## Globe Landing Page
 

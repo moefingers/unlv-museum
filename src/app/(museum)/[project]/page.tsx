@@ -14,16 +14,30 @@ const VALID_MODES: ViewMode[] = ["original", "remastered", "reimagined"];
 export default function ProjectPage() {
   const params = useParams<{ project: string }>();
   const searchParams = useSearchParams();
-  const modeParam = searchParams.get("mode") as ViewMode | null;
-  const initialMode =
-    modeParam && VALID_MODES.includes(modeParam) ? modeParam : "original";
-  const [mode, setMode] = useState<ViewMode>(initialMode);
-  const [notesOpen, setNotesOpen] = useState(true);
 
   const project = PROJECTS.find((p) => p.slug === params.project);
   if (!project) notFound();
 
+  const available: Record<ViewMode, boolean> = {
+    original: project.original != null,
+    remastered: project.remastered != null,
+    reimagined: project.reimagined != null || project.externalLink != null,
+  };
+
+  const firstAvailable: ViewMode =
+    (VALID_MODES.find((m) => available[m]) as ViewMode) ?? "original";
+
+  const modeParam = searchParams.get("mode") as ViewMode | null;
+  const initialMode =
+    modeParam && VALID_MODES.includes(modeParam) && available[modeParam]
+      ? modeParam
+      : firstAvailable;
+
+  const [mode, setMode] = useState<ViewMode>(initialMode);
+  const [notesOpen, setNotesOpen] = useState(true);
+
   const handleModeChange = (newMode: ViewMode) => {
+    if (!available[newMode]) return;
     setMode(newMode);
     const url = new URL(window.location.href);
     url.searchParams.set("mode", newMode);
@@ -31,6 +45,13 @@ export default function ProjectPage() {
   };
 
   const note = project.notes?.[mode];
+
+  const tierTech =
+    mode === "original"
+      ? project.techOriginal
+      : mode === "remastered"
+        ? project.techRemastered
+        : project.techReimagined;
 
   const reimaginedContent = project.externalLink ? (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -48,7 +69,7 @@ export default function ProjectPage() {
       </a>
     </div>
   ) : (
-    project.reimagined
+    (project.reimagined ?? <UnavailableSlot label="reimagined" />)
   );
 
   return (
@@ -67,7 +88,10 @@ export default function ProjectPage() {
               <h1 className="text-lg font-semibold">{project.title}</h1>
               <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <span>
-                  {project.year} &middot; {project.techOriginal.join(", ")}
+                  {project.year}
+                  {tierTech && tierTech.length > 0
+                    ? ` · ${tierTech.join(", ")}`
+                    : ""}
                 </span>
                 {note && (
                   <button
@@ -84,7 +108,11 @@ export default function ProjectPage() {
               </p>
             </div>
           </div>
-          <ModeToggle mode={mode} onChange={handleModeChange} />
+          <ModeToggle
+            mode={mode}
+            onChange={handleModeChange}
+            available={available}
+          />
         </div>
         {note && (
           <Collapsible open={notesOpen} duration={200}>
@@ -96,10 +124,20 @@ export default function ProjectPage() {
       </header>
 
       <SlidingView mode={mode}>
-        {project.original}
-        {project.remastered}
+        {project.original ?? <UnavailableSlot label="original" />}
+        {project.remastered ?? <UnavailableSlot label="remastered" />}
         {reimaginedContent}
       </SlidingView>
+    </div>
+  );
+}
+
+function UnavailableSlot({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <p className="text-center text-zinc-400 dark:text-zinc-600">
+        No {label} tier for this project.
+      </p>
     </div>
   );
 }

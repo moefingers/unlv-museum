@@ -15,7 +15,6 @@ export { StockCharts } from "./StockCharts";
 export { ArtGallery } from "./ArtGallery";
 export { QuirkTruck } from "./QuirkTruck";
 export { HxhLogo } from "./HxhLogo";
-export { RestRant } from "./RestRant";
 export { CommerceArray } from "./CommerceArray";
 export { SqlInjectionDemo } from "./SqlInjectionDemo";
 export { Enterprize } from "./Enterprize";

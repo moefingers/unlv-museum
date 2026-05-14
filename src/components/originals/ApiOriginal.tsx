@@ -85,6 +85,87 @@ const ALL_APIS: ApiConfig[] = [
     ],
   },
   {
+    title: "Rest-Rant API",
+    baseUrl: "/api/rest-rant",
+    presets: [
+      { label: "List all places", method: "GET", path: "/places" },
+      {
+        label: "Get place #1 (with comments)",
+        method: "GET",
+        path: "/places/1",
+      },
+      {
+        label: "Create a place",
+        method: "POST",
+        path: "/places",
+        body: JSON.stringify(
+          {
+            name: "Magnolia Bakery",
+            city: "Las Vegas",
+            state: "NV",
+            cuisines: "Bakery, Coffee",
+            pic: "https://placebear.com/g/405/400",
+            founded: 2014,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Update place #1",
+        method: "PUT",
+        path: "/places/1",
+        body: JSON.stringify({ cuisines: "Thai" }, null, 2),
+      },
+      { label: "Delete place #5", method: "DELETE", path: "/places/5" },
+      {
+        label: "Comment on place #2",
+        method: "POST",
+        path: "/places/2/comments",
+        body: JSON.stringify(
+          {
+            authorId: 1,
+            stars: 5,
+            content: "Best cappuccino in Phoenix.",
+            rant: false,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Delete comment #1 of place #1",
+        method: "DELETE",
+        path: "/places/1/comments/1",
+      },
+      {
+        label: "Sign up new user",
+        method: "POST",
+        path: "/users",
+        body: JSON.stringify(
+          {
+            firstName: "Alex",
+            lastName: "Sample",
+            email: "alex@example.com",
+            password: "password",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Login (john@example.com)",
+        method: "POST",
+        path: "/authentication",
+        body: JSON.stringify(
+          { email: "john@example.com", password: "password" },
+          null,
+          2,
+        ),
+      },
+    ],
+  },
+  {
     title: "SQL Injection Demo",
     baseUrl: "/api/sql-demo",
     presets: [

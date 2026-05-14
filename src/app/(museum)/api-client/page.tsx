@@ -168,6 +168,108 @@ const APIS: ApiProject[] = [
     ],
   },
   {
+    id: "rest-rant",
+    title: "Rest-Rant API",
+    baseUrl: "/api/rest-rant",
+    description:
+      "Restaurant review backend. CRUD on places, threaded comments, signup/login auth.",
+    tech: "Originally Express + PostgreSQL + Sequelize + bcrypt",
+    endpoints: [
+      {
+        label: "List places",
+        method: "GET",
+        path: "/places",
+        description: "Returns all places",
+      },
+      {
+        label: "Get place + comments",
+        method: "GET",
+        path: "/places/1",
+        description: "Returns a place with its comments and authors",
+      },
+      {
+        label: "Create place",
+        method: "POST",
+        path: "/places",
+        description: "Creates a new place",
+        body: JSON.stringify(
+          {
+            name: "Magnolia Bakery",
+            city: "Las Vegas",
+            state: "NV",
+            cuisines: "Bakery, Coffee",
+            pic: "https://placebear.com/g/405/400",
+            founded: 2014,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Update place",
+        method: "PUT",
+        path: "/places/1",
+        description: "Updates a place",
+        body: JSON.stringify({ cuisines: "Thai" }, null, 2),
+      },
+      {
+        label: "Delete place",
+        method: "DELETE",
+        path: "/places/5",
+        description: "Deletes a place (cascade comments)",
+      },
+      {
+        label: "Add comment",
+        method: "POST",
+        path: "/places/2/comments",
+        description: "Adds a comment to a place",
+        body: JSON.stringify(
+          {
+            authorId: 1,
+            stars: 5,
+            content: "Best cappuccino in Phoenix.",
+            rant: false,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Delete comment",
+        method: "DELETE",
+        path: "/places/1/comments/1",
+        description: "Deletes a comment under a place",
+      },
+      {
+        label: "Sign up",
+        method: "POST",
+        path: "/users",
+        description: "Creates a new user (bcrypt-hashed password)",
+        body: JSON.stringify(
+          {
+            firstName: "Alex",
+            lastName: "Sample",
+            email: "alex@example.com",
+            password: "password",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Login",
+        method: "POST",
+        path: "/authentication",
+        description: "Verifies email + password, returns the user",
+        body: JSON.stringify(
+          { email: "john@example.com", password: "password" },
+          null,
+          2,
+        ),
+      },
+    ],
+  },
+  {
     id: "sql-demo",
     title: "SQL Injection Demo",
     baseUrl: "/api/sql-demo",
