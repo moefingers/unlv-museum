@@ -61,8 +61,9 @@ Mental model:
 - **Allowed**: bump Node, switch npm → pnpm, modernize build tooling (CRA 4 → 5 if needed, webpack 4 → 5 if needed), bump dev dependencies, add `.npmrc` for hoisted node-linker.
 - **Allowed** (hosting-compat): rewrite dead asset URLs, fix sandboxed iframe constraints (preventDefault, asset paths), add `PUBLIC_URL=.`, `HashRouter` if needed.
 - **Forbidden**: changing the user-facing application's structure, components, runtime behavior, or visible UI. Source code edits are scoped to hosting compatibility. If you find yourself rewriting the actual app, you're past museum-ready and into enhanced.
+- **Forbidden**: cosmetic-only changes. No Prettier, no EditorConfig sweeps, no whitespace cleanups, no comment additions, no rebrandings. The `git diff original..museum-ready` should only contain diffs that have a hosting reason. If a reviewer asks "why this change?" the answer must be "because X breaks on Y constraint" — not "because it looks cleaner."
 
-`main` of each source repo stays untouched as the academic record.
+`original` of each source repo stays untouched as the academic record. The byte-for-byte equivalence between `original` and `museum-ready` (modulo justified hosting fixes) is the load-bearing invariant of the preservation contract.
 
 ### Decision tree per source repo
 

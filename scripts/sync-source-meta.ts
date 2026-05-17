@@ -260,19 +260,14 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
     return;
   }
 
-  // Build desired banner
+  // Build desired banner. Direction 1: tight, museum-link-forward, "versions"
+  // wording. If the template changes, the next sync:source-meta detects the
+  // markers and replaces the block in every converted repo's README.
   const ownerRepo = repo;
   const banner = `${BANNER_START}
-> 🏛️ **This is the museum-ready version of this project.**
+> 🏛️ **[unlv-museum](${MUSEUM_BASE_URL})** · [open in the museum →](${homepage})
 >
-> - **Hosted in the museum:** ${homepage}
->   (the museum entry has tier toggles for original / enhanced / reimagined renderings)
-> - **Unmodified academic record:** [\`original\` branch](https://github.com/${ownerRepo}/tree/original)
-> - **Surgical diff:** [\`git diff original..museum-ready\`](https://github.com/${ownerRepo}/compare/original...museum-ready)
->
-> \`museum-ready\` contains hosting-compatibility fixes only — dead URL
-> replacements, Node-LTS floor, pnpm migration. App structure, components,
-> and visible behavior match the original byte-for-byte.
+> This \`museum-ready\` branch is the host-compatible build. The unmodified academic record lives on the [\`original\` branch](https://github.com/${ownerRepo}/tree/original); [see exactly what changed](https://github.com/${ownerRepo}/compare/original...museum-ready) — hosting-compat fixes only (dead URL replacements, Node-LTS floor, pnpm). App structure and visible behavior match \`original\` byte-for-byte.
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");

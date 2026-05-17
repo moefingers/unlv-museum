@@ -1,14 +1,7 @@
 <!-- unlv-museum-banner-start -->
-> 🏛️ **This is the museum-ready version of this project.**
+> 🏛️ **[unlv-museum](https://unlv-museum.infinite-syndicate.com)** · [open in the museum →](https://unlv-museum.infinite-syndicate.com/js-dom-events)
 >
-> - **Hosted in the museum:** https://unlv-museum.infinite-syndicate.com/js-dom-events
->   (the museum entry has tier toggles for original / enhanced / reimagined renderings)
-> - **Unmodified academic record:** [`original` branch](https://github.com/moefingers/JS-Events-Demonstration/tree/original)
-> - **Surgical diff:** [`git diff original..museum-ready`](https://github.com/moefingers/JS-Events-Demonstration/compare/original...museum-ready)
->
-> `museum-ready` contains hosting-compatibility fixes only — dead URL
-> replacements, Node-LTS floor, pnpm migration. App structure, components,
-> and visible behavior match the original byte-for-byte.
+> This `museum-ready` branch is the host-compatible build. The unmodified academic record lives on the [`original` branch](https://github.com/moefingers/JS-Events-Demonstration/tree/original); [see exactly what changed](https://github.com/moefingers/JS-Events-Demonstration/compare/original...museum-ready) — hosting-compat fixes only (dead URL replacements, Node-LTS floor, pnpm). App structure and visible behavior match `original` byte-for-byte.
 <!-- unlv-museum-banner-end -->
 
 # JS Events Demonstration

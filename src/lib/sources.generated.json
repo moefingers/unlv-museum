@@ -2,7 +2,7 @@
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready",
-    "commit": "c241ed0ea7b73bd05ca5eb7123b5137a4ff1d6c1",
-    "lockHash": "sha256:7c8d715c6acb94386eff41a9155150dd0e44b1e81f6a903125212a53504ae3e3"
+    "commit": "7d38c60e8270381dda343db1bf64b243fed258c8",
+    "lockHash": "sha256:39b1ac48df68c372349f364c30c1dabdc15697818c6d091b247516ea1303934d"
   }
 }

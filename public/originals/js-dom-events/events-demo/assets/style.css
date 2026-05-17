@@ -1,16 +1,14 @@
-div.wrap,
-.wrap p,
-.wrap a {
-  padding: 15px 30px;
-  display: block;
-  border: 2px solid #000;
-  margin: 5px;
+div.wrap, .wrap p, .wrap a {
+    padding: 15px 30px;
+    display: block;
+    border: 2px solid #000;
+    margin: 5px;
 }
 
 span {
-  color: chartreuse;
+    color: chartreuse;
 }
 
 #explanation {
-  visibility: hidden;
+    visibility: hidden;
 }
