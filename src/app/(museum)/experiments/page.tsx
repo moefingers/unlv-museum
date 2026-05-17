@@ -18,7 +18,7 @@ interface Gallery {
 function discoverGalleries(): Gallery[] {
   const publicDir = join(process.cwd(), "public");
   return readdirSync(publicDir)
-    .filter((name) => name.startsWith("banner-experiments"))
+    .filter((name) => name.includes("banner-experiments"))
     .filter((name) => {
       const full = join(publicDir, name);
       return (
@@ -31,10 +31,12 @@ function discoverGalleries(): Gallery[] {
         .filter((f) => f.endsWith(".svg"))
         .sort();
       const sample = svgs[Math.floor(svgs.length / 2)] ?? null;
-      const suffix = name.replace(/^banner-experiments-?/, "");
+      const title = name
+        .replace(/-/g, " ")
+        .replace(/\bbanner experiments\b/i, "Banner experiments");
       return {
         dir: name,
-        title: suffix ? `Banner experiments — ${suffix}` : "Banner experiments",
+        title,
         href: `/${name}/`,
         sample: sample ? `/${name}/${sample}` : null,
         count: svgs.length,
