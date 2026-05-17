@@ -1,12 +1,12 @@
 # Source Conversion Tracking
 
-Per-project tracking for the conversion to the submodule + `museum-ready` workflow described in [sources.md](sources.md). Each section below is **agent-actionable** — an agent should be able to read one project's section and execute the conversion independently.
+Per-project tracking for the conversion to the submodule + `museum-ready/original` workflow described in [sources.md](sources.md). Each section below is **agent-actionable** — an agent should be able to read one project's section and execute the conversion independently.
 
 ## Status legend
 
-- `🔴 not-started` — original is still rendering from current `public/originals/<slug>/`; no submodule, no `museum-ready` branch
+- `🔴 not-started` — original is still rendering from current `public/originals/<slug>/`; no submodule, no `museum-ready/original` branch
 - `🟡 in-progress` — conversion partially done; details in the project's notes
-- `🟢 done` — submodule exists, `museum-ready` branch is the source of truth, `sources` field populated in `projects.tsx`
+- `🟢 done` — submodule exists, `museum-ready/original` branch is the source of truth, `sources` field populated in `projects.tsx`
 
 ## Status table
 
@@ -55,7 +55,7 @@ Each section below is structured to be an **agent's single-page reference** for 
 - **Recipe type**: A (static-copy)
 - **Build entry**: project root (no subfolder)
 - **Build command**: none
-- **Hosting fixes already applied** (must be brought forward into the source's `museum-ready` branch):
+- **Hosting fixes already applied** (must be brought forward into the source's `museum-ready/original` branch):
   1. `index.html` — 5 `<img>` tags swapped from `drive.google.com` URLs to `./images/<name>.svg`. The 5 local SVGs exist in the current `public/originals/food-truck/images/`. Copy them into the source's `images/` directory and update the `<img src>` attributes to match.
   2. The `<img>` alt text and class names stay identical.
 - **Expected `sync.config.ts` entry**:
@@ -83,7 +83,7 @@ Each section below is structured to be an **agent's single-page reference** for 
   - `buildEnv`: `PUBLIC_URL=.`, `NODE_OPTIONS=--openssl-legacy-provider`
   - `.npmrc` in source needed: `node-linker=hoisted`, `shamefully-hoist=true` (CRA 4 peer-dep quirks under pnpm)
 - **Hosting fixes already applied** (mix of source-level and bundle-level):
-  - **Source-level** (apply to `museum-ready` branch):
+  - **Source-level** (apply to `museum-ready/original` branch):
     - `frontend/public/index.html` already has correct `%PUBLIC_URL%/css/style.css` reference (not `http://localhost:5000`)
     - `frontend/src/Home.js` references `./images/chia-fruit-drink.jpg` (not `http://localhost:5000`)
   - **Bundle-level postPatch** (keep in museum, not source — the bundle is post-build artifact):
@@ -144,7 +144,7 @@ Each section below is structured to be an **agent's single-page reference** for 
 
 - **Source repo**: TBD — two candidates in `.sources/`: `UNLV-Making-Interactive-Map` and `JS-Making-an-Interactive-Map`. Pick the one whose `app.js` matches what's served in `public/originals/interactive-map/`. The current `public/originals/interactive-map/app.js` has a custom geolocation timeout (3s) and null-guard, plus the OpenStreetMap tileserver.
 - **Recipe type**: A (static-copy)
-- **Hosting fixes already applied** (to apply on `museum-ready`):
+- **Hosting fixes already applied** (to apply on `museum-ready/original`):
   - `app.js` — geolocation timeout (3s) + null-guard. Falls back to LV coordinates `[36.1084, -115.1440]` if `navigator.geolocation` is missing or times out.
 - **Expected `sync.config.ts` entry**:
   ```ts
@@ -176,7 +176,7 @@ Type B (CRA) or C (Vite) projects. Each follows the same template as `rest-rant`
 All follow the food-truck template: no build, just `static-copy`. Each agent should:
 
 1. Diff the existing `public/originals/<slug>/` against the source's current state.
-2. Apply any drift back to source's `museum-ready` branch.
+2. Apply any drift back to source's `museum-ready/original` branch.
 3. Add the static-copy recipe to `sync.config.ts`.
 
 ---
@@ -197,7 +197,7 @@ These require a user conversation before any conversion.
 □ Read this project's section above
 □ Confirm submodule URL and current local clone exists at .sources/<repo>/
 □ git fetch --unshallow inside the clone
-□ git checkout -b museum-ready from main
+□ git checkout -b museum-ready/original from main
 □ Add .nvmrc with "20" (or current LTS)
 □ Floor test: pnpm install && pnpm run build (skip if Type A)
 □ Walk escalation ladder if floor test fails; apply minimum change
@@ -206,7 +206,7 @@ These require a user conversation before any conversion.
 □ Verify build (or static content) matches current public/originals/<slug>/
 □ Commit + push origin museum-ready
 □ Back in museum: rm -rf .sources/<repo> (the plain clone)
-□ git submodule add -b museum-ready <url> .sources/<repo>
+□ git submodule add -b museum-ready/original <url> .sources/<repo>
 □ Add recipe to sync.config.ts
 □ Write postPatch script if needed (see project's "Bundle-level postPatch" above)
 □ pnpm sync:source <slug>

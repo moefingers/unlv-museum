@@ -10,11 +10,11 @@ The framework gives each original a structured connection back to its source rep
 
 ## Tier ownership model
 
-| Tier           | We wrote it? | Where the code lives                                             | How it's hosted                                             |
-| -------------- | :----------: | ---------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| **Original**   |      No      | Submodule at `.sources/<repo>/` pinned to `museum-ready` branch  | Built artifact in `public/originals/<slug>/`, iframe-served |
-| **Enhanced**   |     Yes      | Native in museum (`src/components/enhanced/` or `src/app/(museum | ssr)/…`)                                                    | Rendered directly as React/Server Component |
-| **Reimagined** |     Yes      | Separate repo + separate Vercel deployment                       | External link (`reimaginedExternal` field)                  |
+| Tier           | We wrote it? | Where the code lives                                                     | How it's hosted                                             |
+| -------------- | :----------: | ------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------- |
+| **Original**   |      No      | Submodule at `.sources/<repo>/` pinned to `museum-ready/original` branch | Built artifact in `public/originals/<slug>/`, iframe-served |
+| **Enhanced**   |     Yes      | Native in museum (`src/components/enhanced/` or `src/app/(museum         | ssr)/…`)                                                    | Rendered directly as React/Server Component |
+| **Reimagined** |     Yes      | Separate repo + separate Vercel deployment                               | External link (`reimaginedExternal` field)                  |
 
 Exceptions:
 
@@ -42,28 +42,28 @@ unlv-museum/                                     ← this repo
 
 Each converted source repo has two branches and one canonical metadata shape, applied by `pnpm sync:source-meta <slug>` (idempotent — safe to re-run anytime).
 
-| Element               | Value                                                                                                                                                                             |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch `original`     | The unmodified academic record. Renamed from the legacy default (`main`/`master`/`shepherd`). GitHub's rename API preserves history, PR refs, and creates redirects.              |
-| Branch `museum-ready` | The hosted version with the Node-LTS floor + pnpm + hosting-compat fixes applied. **Set as the GitHub default branch** — visitors who open `github.com/<owner>/<repo>` land here. |
-| Website (homepage)    | `https://unlv-museum.infinite-syndicate.com/<slug>` — points back at the museum entry that displays this repo.                                                                    |
-| Description prefix    | `🏛️ unlv-museum:` — makes the museum membership visible in any GitHub repo listing.                                                                                               |
+| Element                        | Value                                                                                                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branch `original`              | The unmodified academic record. Renamed from the legacy default (`main`/`master`/`shepherd`). GitHub's rename API preserves history, PR refs, and creates redirects.              |
+| Branch `museum-ready/original` | The hosted version with the Node-LTS floor + pnpm + hosting-compat fixes applied. **Set as the GitHub default branch** — visitors who open `github.com/<owner>/<repo>` land here. |
+| Website (homepage)             | `https://unlv-museum.infinite-syndicate.com/<slug>` — points back at the museum entry that displays this repo.                                                                    |
+| Description prefix             | `🏛️ unlv-museum:` — makes the museum membership visible in any GitHub repo listing.                                                                                               |
 
 Mental model:
 
 - `original` is the past — what was turned in for class. You can `git checkout original` on any source repo to see exactly what was written, byte for byte.
-- `museum-ready` is the present — what builds and runs against today's web. The diff `git diff original..museum-ready` documents exactly what changed for hosting.
-- The museum entry is the visible artifact — built from `museum-ready`, served from `public/originals/<slug>/`.
+- `museum-ready/original` is the present — what builds and runs against today's web. The diff `git diff original..museum-ready/original` documents exactly what changed for hosting.
+- The museum entry is the visible artifact — built from `museum-ready/original`, served from `public/originals/<slug>/`.
 
-### What `museum-ready` is allowed to do
+### What `museum-ready/original` is allowed to do
 
 - **Required floor**: build cleanly on a currently-supported Node LTS. The branch must build on the version pinned in its `.nvmrc`.
 - **Allowed**: bump Node, switch npm → pnpm, modernize build tooling (CRA 4 → 5 if needed, webpack 4 → 5 if needed), bump dev dependencies, add `.npmrc` for hoisted node-linker.
 - **Allowed** (hosting-compat): rewrite dead asset URLs, fix sandboxed iframe constraints (preventDefault, asset paths), add `PUBLIC_URL=.`, `HashRouter` if needed.
 - **Forbidden**: changing the user-facing application's structure, components, runtime behavior, or visible UI. Source code edits are scoped to hosting compatibility. If you find yourself rewriting the actual app, you're past museum-ready and into enhanced.
-- **Forbidden**: cosmetic-only changes. No Prettier, no EditorConfig sweeps, no whitespace cleanups, no comment additions, no rebrandings. The `git diff original..museum-ready` should only contain diffs that have a hosting reason. If a reviewer asks "why this change?" the answer must be "because X breaks on Y constraint" — not "because it looks cleaner."
+- **Forbidden**: cosmetic-only changes. No Prettier, no EditorConfig sweeps, no whitespace cleanups, no comment additions, no rebrandings. The `git diff original..museum-ready/original` should only contain diffs that have a hosting reason. If a reviewer asks "why this change?" the answer must be "because X breaks on Y constraint" — not "because it looks cleaner."
 
-`original` of each source repo stays untouched as the academic record. The byte-for-byte equivalence between `original` and `museum-ready` (modulo justified hosting fixes) is the load-bearing invariant of the preservation contract.
+`original` of each source repo stays untouched as the academic record. The byte-for-byte equivalence between `original` and `museum-ready/original` (modulo justified hosting fixes) is the load-bearing invariant of the preservation contract.
 
 ### Decision tree per source repo
 
@@ -95,7 +95,7 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
    1.1  cd .sources/<repo>
    1.2  git fetch --unshallow             # current clones are shallow
    1.3  git checkout main
-   1.4  git checkout -b museum-ready
+   1.4  git checkout -b museum-ready/original
 
 2. Apply the floor
    2.1  Decide Node version (current LTS, e.g. 20). Write to .nvmrc.
@@ -119,12 +119,12 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 
 5. Commit and push museum-ready
    5.1  git add -A && git commit -m "museum-ready: Node N, pnpm, hosting fixes"
-   5.2  git push origin museum-ready
+   5.2  git push origin museum-ready/original
 
 6. Convert .sources/<repo> from plain clone to submodule
    6.1  cd back to museum root
    6.2  Remove the plain clone (rm -rf .sources/<repo>)
-   6.3  git submodule add -b museum-ready <repo-url> .sources/<repo>
+   6.3  git submodule add -b museum-ready/original <repo-url> .sources/<repo>
    6.4  git submodule update --init --remote
 
 7. Add the slug to sync.config.ts
@@ -144,7 +144,7 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 10. Apply canonical GitHub conventions
    10.1 pnpm sync:source-meta <slug>
         - Renames legacy default branch → `original`
-        - Sets `museum-ready` as the GitHub default branch
+        - Sets `museum-ready/original` as the GitHub default branch
         - Sets the Website (homepage) field to the museum entry URL
         - Prefixes the repo description with 🏛️ unlv-museum:
    10.2 Idempotent: safe to re-run on already-converted repos.
@@ -200,12 +200,12 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 
 ### Guarantees and how each is enforced
 
-| Guarantee                                            | Mechanism                                                                                                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `public/originals/<slug>/` matches recorded lockHash | `scripts/verify-locks.ts` runs in pre-commit when `public/originals/**` or `src/lib/sources.generated.json` changes |
-| Submodule commits are pushed before museum push      | `.husky/pre-push` walks submodules, fails if any has unpushed commits                                               |
-| Cloning museum hydrates submodules                   | `package.json` postinstall: `git submodule update --init --recursive` + `git config push.recurseSubmodules check`   |
-| Linked commit exists on `museum-ready` upstream      | Optional CI job (`pnpm verify:sources --remote`)                                                                    |
+| Guarantee                                                | Mechanism                                                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `public/originals/<slug>/` matches recorded lockHash     | `scripts/verify-locks.ts` runs in pre-commit when `public/originals/**` or `src/lib/sources.generated.json` changes |
+| Submodule commits are pushed before museum push          | `.husky/pre-push` walks submodules, fails if any has unpushed commits                                               |
+| Cloning museum hydrates submodules                       | `package.json` postinstall: `git submodule update --init --recursive` + `git config push.recurseSubmodules check`   |
+| Linked commit exists on `museum-ready/original` upstream | Optional CI job (`pnpm verify:sources --remote`)                                                                    |
 
 ### Vercel deployment
 
@@ -239,7 +239,7 @@ Until a reimagined exists, the tier is `<Placeholder label="Coming soon" />`.
 | Symptom                                              | Likely cause                                                           | Fix                                                                                |
 | ---------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Pre-commit fails with "lockHash mismatch"            | You edited `public/originals/<slug>/` directly without running sync    | Run `pnpm sync:source <slug>`, or if intentional, run `pnpm verify:locks --update` |
-| Pre-push fails with "submodule has unpushed commits" | Forgot to `git push origin museum-ready` inside the submodule          | `cd .sources/<repo> && git push origin museum-ready` then retry                    |
+| Pre-push fails with "submodule has unpushed commits" | Forgot to `git push origin museum-ready/original` inside the submodule | `cd .sources/<repo> && git push origin museum-ready/original` then retry           |
 | Fresh clone has empty `.sources/<repo>` directories  | `pnpm install` postinstall didn't run, or you cloned without recursing | `git submodule update --init --recursive`                                          |
 | Visitor sees old content after sync                  | Browser cached the iframe; hard reload                                 | Cmd-Shift-R / Ctrl-Shift-R                                                         |
 | Build fails on Node 20 with OpenSSL error            | Old CRA/webpack toolchain                                              | Add `NODE_OPTIONS=--openssl-legacy-provider` to recipe's `buildEnv`                |

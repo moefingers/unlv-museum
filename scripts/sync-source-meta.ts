@@ -42,7 +42,9 @@ const projectRoot = resolve(__dirname, "..");
 const MUSEUM_BASE_URL = "https://unlv-museum.infinite-syndicate.com";
 const LEGACY_DEFAULTS = new Set(["main", "master", "shepherd"]);
 const TARGET_ORIGINAL = "original";
-const TARGET_DEFAULT = "museum-ready";
+const TARGET_DEFAULT = "museum-ready/original";
+/** Legacy museum-ready branch name to migrate to TARGET_DEFAULT. */
+const LEGACY_MUSEUM_READY = "museum-ready";
 const REPO_TOPICS = ["unlv-museum", "museum-ready"];
 
 const BANNER_START = "<!-- unlv-museum-banner-start -->";
@@ -103,10 +105,116 @@ function applyMeta(slug: string, info: SourceRef) {
   console.log(`[meta] ${slug} (${repo})`);
 
   applyBranchRename(slug, repo);
+  applyMuseumReadyMigration(slug, repo);
   applyDefaultBranch(slug, repo);
   applyHomepageAndDescription(slug, repo, homepage);
   applyTopics(slug, repo);
   applyReadmeBanner(slug, repo, homepage);
+}
+
+/**
+ * One-time migration: move `museum-ready` → `museum-ready/original`.
+ *
+ * GitHub's git ref namespace prevents `museum-ready` and `museum-ready/X`
+ * from coexisting — a path can be a leaf ref OR a directory of refs, not
+ * both. And the branch rename API rejects `/` in new_name. So we shuffle
+ * through a temp branch:
+ *
+ *   1. Create _unlv-museum-migrating at museum-ready's SHA
+ *   2. Set it as default (so we're allowed to delete museum-ready)
+ *   3. Delete museum-ready
+ *   4. Create museum-ready/original at the same SHA
+ *   5. Set museum-ready/original as default
+ *   6. Delete _unlv-museum-migrating
+ *
+ * Ugly but isolated. Subsequent runs see `museum-ready/original` exists
+ * and skip entirely.
+ */
+function applyMuseumReadyMigration(_slug: string, repo: string) {
+  const branches = JSON.parse(
+    gh(["api", `repos/${repo}/branches`, "--jq", "[.[].name]"]),
+  ) as string[];
+
+  if (branches.includes(TARGET_DEFAULT)) {
+    console.log(`[meta]   ${TARGET_DEFAULT} branch already exists`);
+    return;
+  }
+  if (!branches.includes(LEGACY_MUSEUM_READY)) {
+    // Neither old nor new branch exists — initial conversion hasn't run yet.
+    return;
+  }
+
+  console.log(
+    `[meta]   migrating ${LEGACY_MUSEUM_READY} → ${TARGET_DEFAULT} (via temp branch)`,
+  );
+
+  const TEMP = "_unlv-museum-migrating";
+  const legacySha = gh([
+    "api",
+    `repos/${repo}/branches/${LEGACY_MUSEUM_READY}`,
+    "--jq",
+    ".commit.sha",
+  ]);
+
+  // 1. Create temp branch at legacy SHA
+  gh([
+    "api",
+    `repos/${repo}/git/refs`,
+    "-X",
+    "POST",
+    "-f",
+    `ref=refs/heads/${TEMP}`,
+    "-f",
+    `sha=${legacySha}`,
+  ]);
+
+  // 2. Set temp as default
+  gh([
+    "api",
+    `repos/${repo}`,
+    "-X",
+    "PATCH",
+    "-f",
+    `default_branch=${TEMP}`,
+  ]);
+
+  // 3. Delete museum-ready
+  gh([
+    "api",
+    `repos/${repo}/git/refs/heads/${LEGACY_MUSEUM_READY}`,
+    "-X",
+    "DELETE",
+  ]);
+
+  // 4. Create museum-ready/original at the same SHA
+  gh([
+    "api",
+    `repos/${repo}/git/refs`,
+    "-X",
+    "POST",
+    "-f",
+    `ref=refs/heads/${TARGET_DEFAULT}`,
+    "-f",
+    `sha=${legacySha}`,
+  ]);
+
+  // 5. Set museum-ready/original as default
+  gh([
+    "api",
+    `repos/${repo}`,
+    "-X",
+    "PATCH",
+    "-f",
+    `default_branch=${TARGET_DEFAULT}`,
+  ]);
+
+  // 6. Delete temp branch
+  gh([
+    "api",
+    `repos/${repo}/git/refs/heads/${TEMP}`,
+    "-X",
+    "DELETE",
+  ]);
 }
 
 function applyBranchRename(_slug: string, repo: string) {
@@ -239,23 +347,26 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
     return;
   }
 
-  // Ensure submodule is on museum-ready
+  // Ensure submodule is on TARGET_DEFAULT (museum-ready/original).
+  // git fetch --prune removes locally-tracking refs for branches that were
+  // renamed upstream, so the rename-museum-ready-to-museum-ready/original
+  // migration becomes visible without manual cleanup.
   try {
-    execSync("git fetch origin museum-ready", {
+    execSync(`git fetch --prune origin "${TARGET_DEFAULT}"`, {
       cwd: submoduleRoot,
       stdio: ["ignore", "ignore", "inherit"],
     });
-    execSync("git checkout museum-ready", {
+    execSync(`git checkout "${TARGET_DEFAULT}"`, {
       cwd: submoduleRoot,
       stdio: ["ignore", "ignore", "inherit"],
     });
-    execSync("git pull origin museum-ready", {
+    execSync(`git pull origin "${TARGET_DEFAULT}"`, {
       cwd: submoduleRoot,
       stdio: ["ignore", "ignore", "inherit"],
     });
   } catch (err) {
     console.log(
-      `[meta]   could not sync submodule to museum-ready: ${err instanceof Error ? err.message : err}`,
+      `[meta]   could not sync submodule to ${TARGET_DEFAULT}: ${err instanceof Error ? err.message : err}`,
     );
     return;
   }
@@ -264,10 +375,14 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   // wording. If the template changes, the next sync:source-meta detects the
   // markers and replaces the block in every converted repo's README.
   const ownerRepo = repo;
+  // GitHub branch URLs accept `/` directly in tree/ paths but not in compare/
+  // refs — the compare path is parsed by segment, so we encode the slash there.
+  const branchPath = TARGET_DEFAULT; // "museum-ready/original"
+  const compareEncoded = `${TARGET_ORIGINAL}...${encodeURIComponent(TARGET_DEFAULT)}`;
   const banner = `${BANNER_START}
-> 🏛️ **[unlv-museum](${MUSEUM_BASE_URL})** · [open in the museum →](${homepage})
+> 🏛️ **[UNLV Museum](${MUSEUM_BASE_URL})** · [open in the museum →](${homepage})
 >
-> This \`museum-ready\` branch is the host-compatible build. The unmodified academic record lives on the [\`original\` branch](https://github.com/${ownerRepo}/tree/original); [see exactly what changed](https://github.com/${ownerRepo}/compare/original...museum-ready) — hosting-compat fixes only (dead URL replacements, Node-LTS floor, pnpm). App structure and visible behavior match \`original\` byte-for-byte.
+> This \`${branchPath}\` branch is the host-compatible build. The unmodified academic record lives on the [\`original\` branch](https://github.com/${ownerRepo}/tree/original); [see exactly what changed](https://github.com/${ownerRepo}/compare/${compareEncoded}) — hosting-compat fixes only (dead URL replacements, Node-LTS floor, pnpm). App structure and visible behavior match \`original\` byte-for-byte.
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");
@@ -306,7 +421,7 @@ ${BANNER_END}`;
     `git commit -m "${BANNER_START.replace(/<!--|-->/g, "").trim()}: unlv-museum banner"`,
     { cwd: submoduleRoot, stdio: ["ignore", "inherit", "inherit"] },
   );
-  execSync("git push origin museum-ready", {
+  execSync(`git push origin "${TARGET_DEFAULT}"`, {
     cwd: submoduleRoot,
     stdio: ["ignore", "inherit", "inherit"],
   });

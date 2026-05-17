@@ -1,8 +1,8 @@
 {
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
-    "branch": "museum-ready",
-    "commit": "7d38c60e8270381dda343db1bf64b243fed258c8",
-    "lockHash": "sha256:39b1ac48df68c372349f364c30c1dabdc15697818c6d091b247516ea1303934d"
+    "branch": "museum-ready/original",
+    "commit": "078befc40339333b1c717848cd442cc158539b90",
+    "lockHash": "sha256:bc2f5cf7a14c7050486669de4e048614cb9165e504efacaf917de7c95800c723"
   }
 }

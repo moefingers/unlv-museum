@@ -14,9 +14,9 @@ The tiers differ in what they preserve, who wrote them, and where they live.
 
 Goal: render the coursework as visitors should see it. Source code edits are scoped to **hosting compatibility only**: dead URL substitution, iframe sandbox fixes, asset path corrections, `PUBLIC_URL`/HashRouter swaps for static hosting, Next.js SSR ports for projects that were originally server-rendered.
 
-The build pipeline (Node, package manager, framework version, dev tooling) MAY be modernized on each source repo's `museum-ready` branch as long as the rebuilt output is functionally and visually equivalent. See [sources.md](sources.md) for the full preservation policy. The contract: `museum-ready` must build cleanly on a currently-supported Node LTS.
+The build pipeline (Node, package manager, framework version, dev tooling) MAY be modernized on each source repo's `museum-ready/original` branch as long as the rebuilt output is functionally and visually equivalent. See [sources.md](sources.md) for the full preservation policy. The contract: `museum-ready/original` must build cleanly on a currently-supported Node LTS.
 
-**Where it lives:** submodule at `.sources/<repo>/` pinned to `museum-ready` branch SHA. Built artifact is committed to `public/originals/<slug>/` and iframe-served.
+**Where it lives:** submodule at `.sources/<repo>/` pinned to `museum-ready/original` branch SHA. Built artifact is committed to `public/originals/<slug>/` and iframe-served.
 
 ### Enhanced — enhanced but faithful
 
