@@ -23,6 +23,13 @@ export interface Project {
   slug: string;
   title: string;
   description: string;
+  /**
+   * Full-sentence project synopsis used for the source repo's GitHub
+   * description. Composed as: "Now hosted in my UNLV Museum - ${synopsis}
+   * (UNLV Assignment, ${year})". Distinct from `description`, which is a
+   * short tagline shown on the museum landing card.
+   */
+  synopsis?: string;
   year: string;
   category: Category;
   /** Override link destination (e.g. /api-client?api=X) */
@@ -404,6 +411,8 @@ export const PROJECTS: Project[] = [
     slug: "js-dom-events",
     title: "JavaScript & DOM",
     description: "Event handling, DOM manipulation, OOP.",
+    synopsis:
+      "This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.",
     year: "Dec 2023 – Feb 2024",
     category: "exercises",
     techOriginal: ["JavaScript", "DOM API", "Fetch"],

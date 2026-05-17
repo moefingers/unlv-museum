@@ -35,6 +35,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROJECTS } from "../src/lib/projects";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
@@ -46,6 +47,8 @@ const TARGET_DEFAULT = "museum-ready/original";
 /** Legacy museum-ready branch name to migrate to TARGET_DEFAULT. */
 const LEGACY_MUSEUM_READY = "museum-ready";
 const REPO_TOPICS = ["unlv-museum", "museum-ready"];
+/** GitHub's hard limit on repo description length. */
+const GITHUB_DESCRIPTION_LIMIT = 350;
 
 const BANNER_START = "<!-- unlv-museum-banner-start -->";
 const BANNER_END = "<!-- unlv-museum-banner-end -->";
@@ -293,21 +296,36 @@ function applyHomepageAndDescription(
     console.log(`[meta]   homepage already correct`);
   }
 
-  const desiredPrefix = "🏛️ unlv-museum:";
-  const currentDesc = meta.description ?? "";
-  if (!currentDesc.startsWith(desiredPrefix)) {
-    const newDesc = currentDesc
-      ? `${desiredPrefix} ${currentDesc}`
-      : `${desiredPrefix} ${slug}`;
-    patches.push("-f", `description=${newDesc.slice(0, 350)}`);
-    console.log(`[meta]   prefixing description: ${desiredPrefix}`);
+  const desired = buildDescription(slug);
+  if (desired === null) {
+    console.log(
+      `[meta]   no synopsis defined for ${slug} in projects.tsx — leaving description unchanged`,
+    );
+  } else if (desired.length > GITHUB_DESCRIPTION_LIMIT) {
+    throw new Error(
+      `description for ${slug} is ${desired.length} chars, exceeds GitHub's ${GITHUB_DESCRIPTION_LIMIT}-char limit — shorten the synopsis in projects.tsx`,
+    );
+  } else if (meta.description !== desired) {
+    patches.push("-f", `description=${desired}`);
+    console.log(`[meta]   setting description: ${desired}`);
   } else {
-    console.log(`[meta]   description prefix already set`);
+    console.log(`[meta]   description already current`);
   }
 
   if (patches.length > 0) {
     gh(["api", `repos/${repo}`, "-X", "PATCH", ...patches]);
   }
+}
+
+/**
+ * Compose the GitHub repo description from project metadata.
+ * Shape: "Now hosted in my UNLV Museum - ${synopsis} (UNLV Assignment, ${year})"
+ * Returns null when synopsis is missing — caller leaves description untouched.
+ */
+function buildDescription(slug: string): string | null {
+  const project = PROJECTS.find((p) => p.slug === slug);
+  if (!project?.synopsis) return null;
+  return `Now hosted in my UNLV Museum - ${project.synopsis} (UNLV Assignment, ${project.year})`;
 }
 
 function applyTopics(_slug: string, repo: string) {
