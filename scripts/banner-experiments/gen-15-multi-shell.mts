@@ -46,6 +46,7 @@ import {
   makeScene,
   normalize,
   orientationFromDegrees,
+  worldToBody,
   type Orientation,
 } from "./sphere-math.mts";
 
@@ -157,6 +158,9 @@ const markers: Marker[] = [];
 let globalIdx = 0;
 
 for (const shell of shells) {
+  // Transform world-frame light into this shell's body frame so frame()
+  // (which works in body frame) sees the correct relative direction.
+  const Lbody = worldToBody(L, shell.orient);
   for (const { lat, lon } of fibonacciSphere(shell.count)) {
     const sinL = Math.sin(lat);
     const cosL = Math.cos(lat);
@@ -166,7 +170,7 @@ for (const shell of shells) {
     const cys: string[] = [];
     for (let k = 0; k <= N_KF; k++) {
       const theta = lon + (k / N_KF) * 2 * Math.PI;
-      const f = frame(theta, sinL, cosL, shell.rx, shell.r, L, shell.orient);
+      const f = frame(theta, sinL, cosL, shell.rx, shell.r, Lbody, shell.orient);
       paths.push(f.path);
       cxs.push(f.cxPct);
       cys.push(f.cyPct);

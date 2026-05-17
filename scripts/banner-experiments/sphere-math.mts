@@ -146,8 +146,19 @@ export function makeScene(p: SceneParams) {
     );
     const bbW = maxX - minX;
     const bbH = maxY - minY;
-    const cxPct = bbW > 0.01 ? ((hx - minX) / bbW) * 100 : 35;
-    const cyPct = bbH > 0.01 ? ((hy - minY) / bbH) * 100 : 30;
+    const cxPctLit = bbW > 0.01 ? ((hx - minX) / bbW) * 100 : 35;
+    const cyPctLit = bbH > 0.01 ? ((hy - minY) / bbH) * 100 : 30;
+    // Lambert lighting: dot of bead outward normal with light direction.
+    // Positive = bead faces light (highlight valid). Zero/negative = back-lit,
+    // so push the gradient center off-bbox to fade out the highlight smoothly.
+    const normal_x = cosLat * st;
+    const normal_y = sinLat;
+    const normal_z = cosLat * ct;
+    const litDot = normal_x * L[0] + normal_y * L[1] + normal_z * L[2];
+    const litFactor = Math.max(0, litDot);
+    const OFF_BBOX = 200;
+    const cxPct = cxPctLit * litFactor + OFF_BBOX * (1 - litFactor);
+    const cyPct = cyPctLit * litFactor + OFF_BBOX * (1 - litFactor);
 
     const f = (i: number) =>
       `${pts[i]![0].toFixed(2)},${pts[i]![1].toFixed(2)}`;
@@ -188,6 +199,47 @@ export function normalize(
 ): [number, number, number] {
   const m = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   return [v[0] / m, v[1] / m, v[2] / m];
+}
+
+/**
+ * Transform a vector from world frame into the shell's body frame.
+ * Inverse of project()'s tilt rotations: undo Rz(tiltZ) then undo Rx(tiltX).
+ *
+ * Use this when you have a world-fixed direction (e.g. a light) and want to
+ * express it in the body frame of a shell whose orientation may animate.
+ */
+export function worldToBody(
+  L: readonly [number, number, number],
+  orient: Orientation,
+): [number, number, number] {
+  const cosX = Math.cos(orient.tiltX);
+  const sinX = Math.sin(orient.tiltX);
+  const cosZ = Math.cos(orient.tiltZ);
+  const sinZ = Math.sin(orient.tiltZ);
+  // Undo Rz(tiltZ)
+  const r1x = L[0] * cosZ + L[1] * sinZ;
+  const r1y = -L[0] * sinZ + L[1] * cosZ;
+  const r1z = L[2];
+  // Undo Rx(tiltX)
+  return [r1x, r1y * cosX + r1z * sinX, -r1y * sinX + r1z * cosX];
+}
+
+/**
+ * Transform a point from a shell's body frame into world frame.
+ * Forward composition: Rx(tiltX) then Rz(tiltZ). Mirrors project()'s rotation
+ * steps (without the SVG-Y flip or perspective scale).
+ */
+export function bodyToWorld(
+  p: readonly [number, number, number],
+  orient: Orientation,
+): [number, number, number] {
+  const cosX = Math.cos(orient.tiltX);
+  const sinX = Math.sin(orient.tiltX);
+  const cosZ = Math.cos(orient.tiltZ);
+  const sinZ = Math.sin(orient.tiltZ);
+  const y1 = p[1] * cosX - p[2] * sinX;
+  const z1 = p[1] * sinX + p[2] * cosX;
+  return [p[0] * cosZ - y1 * sinZ, p[0] * sinZ + y1 * cosZ, z1];
 }
 
 /** Build a comma-separated keyTimes string for N+1 evenly-spaced samples. */

@@ -30,6 +30,7 @@ import {
   fibonacciSphere,
   makeScene,
   normalize,
+  worldToBody,
 } from "./sphere-math.mts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,7 +50,8 @@ const { project, frame } = scene;
 const orient = DEFAULT_ORIENTATION;
 const sinB = Math.sin(orient.tiltX);
 const cosB = Math.cos(orient.tiltX);
-const L = normalize([Lx, Ly, Lz]);
+const L_world = normalize([Lx, Ly, Lz]);
+const L = worldToBody(L_world, orient);
 const keyTimes = buildKeyTimes(N_KF);
 
 interface Marker {
@@ -116,7 +118,14 @@ const markerEls = markers
   )
   .join("\n    ");
 
-const lightProj = project(L[0] * 300, L[1] * 300, L[2] * 300, orient);
+// Light icon position uses WORLD-frame L (so it appears at a fixed screen
+// location regardless of body-frame transforms applied to the marker shading).
+const lightProj = project(
+  L_world[0] * 300,
+  L_world[1] * 300,
+  L_world[2] * 300,
+  orient,
+);
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280" width="800" height="280" role="img" aria-label="${N} markers with bbox-relative light-tracking shading, light=(${Lx},${Ly},${Lz})">
   <defs>

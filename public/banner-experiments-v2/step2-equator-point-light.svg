@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Step 2 — equator row, point light">
+  <defs>
+    <radialGradient id="b0" cx="43.4%" cy="42.7%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b1" cx="39.5%" cy="36.9%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b2" cx="32.8%" cy="28.5%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b3" cx="22.0%" cy="26.7%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b4" cx="10.5%" cy="35.4%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b5" cx="-38.9%" cy="41.2%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="b6" cx="-42.4%" cy="44.5%" r="75%"><stop offset="0%" stop-color="#fff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#0f0f1f"/></radialGradient>
+    <radialGradient id="lightIcon" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="60%" stop-color="#fde68a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#fde68a" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.05em; text-transform: uppercase; }
+      .title { font: 700 22px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .sub { font: 500 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #737373; }
+      .sphereGuide { fill: none; stroke: #1f1f23; stroke-width: 1; stroke-dasharray: 2 4; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="800" height="320"/>
+
+  <text class="label" x="40" y="40">v2 · Step 2</text>
+  <text class="title" x="40" y="68">Equator row · static sphere · point light</text>
+  <text class="sub"   x="40" y="92">P_light=(-90,110,220). Each bead computes its own L = normalize(P − C). No Lambert mask.</text>
+
+  <g transform="translate(500 200)">
+    <ellipse class="sphereGuide" cx="0" cy="0" rx="140" ry="133.56"/>
+    <path fill="url(#b0)" d="M-142.92,3.67 C-143.44,-2.79 -142.52,-9.63 -140.91,-11.52 C-139.32,-13.37 -137.67,-9.76 -137.20,-3.53 C-136.72,2.66 -137.56,9.30 -139.11,11.37 C-140.68,13.50 -142.41,10.09 -142.92,3.67 Z"/>
+    <path fill="url(#b1)" d="M-133.53,27.93 C-134.08,20.69 -136.41,13.03 -138.67,10.91 C-140.89,8.84 -142.19,12.91 -141.62,19.89 C-141.07,26.82 -138.87,34.24 -136.66,36.56 C-134.41,38.93 -132.98,35.11 -133.53,27.93 Z"/>
+    <path fill="url(#b2)" d="M-76.10,48.71 C-76.45,40.82 -82.24,33.14 -88.94,31.64 C-95.55,30.16 -100.47,35.28 -100.03,42.99 C-99.59,50.64 -94.03,58.11 -87.51,59.76 C-80.91,61.43 -75.76,56.53 -76.10,48.71 Z"/>
+    <path fill="url(#b3)" d="M15.76,55.12 C15.83,47.04 8.78,40.43 0.00,40.43 C-8.78,40.43 -15.83,47.04 -15.76,55.12 C-15.69,63.13 -8.63,69.57 0.00,69.57 C8.63,69.57 15.69,63.13 15.76,55.12 Z"/>
+    <path fill="url(#b4)" d="M100.03,42.99 C100.47,35.28 95.55,30.16 88.94,31.64 C82.24,33.14 76.45,40.82 76.10,48.71 C75.76,56.53 80.91,61.43 87.51,59.76 C94.03,58.11 99.59,50.64 100.03,42.99 Z"/>
+    <path fill="url(#b5)" d="M141.62,19.89 C142.19,12.91 140.89,8.84 138.67,10.91 C136.41,13.03 134.08,20.69 133.53,27.93 C132.98,35.11 134.41,38.93 136.66,36.56 C138.87,34.24 141.07,26.82 141.62,19.89 Z"/>
+    <path fill="url(#b6)" d="M137.20,-3.53 C137.67,-9.76 139.32,-13.37 140.91,-11.52 C142.52,-9.63 143.44,-2.79 142.92,3.67 C142.41,10.09 140.68,13.50 139.11,11.37 C137.56,9.30 136.72,2.66 137.20,-3.53 Z"/>
+    <circle cx="-158.92" cy="-68.83" r="70.63" fill="url(#lightIcon)"/>
+    <circle cx="-158.92" cy="-68.83" r="8.83" fill="#fffbeb"/>
+  </g>
+</svg>

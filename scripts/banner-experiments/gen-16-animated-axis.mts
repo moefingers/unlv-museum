@@ -47,6 +47,7 @@ import {
   makeScene,
   normalize,
   orientationFromDegrees,
+  worldToBody,
   type Orientation,
 } from "./sphere-math.mts";
 
@@ -231,7 +232,8 @@ for (const shell of shells) {
       const t = k / N_KF;
       const theta = lon + shell.spins * t * 2 * Math.PI;
       const orient = orientAt(t);
-      const Lt = lightAt(t);
+      // World-frame light → shell body frame, since orient may animate per keyframe.
+      const Lt = worldToBody(lightAt(t), orient);
       const f = frame(theta, sinL, cosL, shell.rx, shell.r, Lt, orient);
       paths.push(f.path);
       cxs.push(f.cxPct);
