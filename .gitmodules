@@ -1,0 +1,4 @@
+[submodule ".sources/JS-Events-Demonstration"]
+	path = .sources/JS-Events-Demonstration
+	url = https://github.com/moefingers/JS-Events-Demonstration.git
+	branch = museum-ready

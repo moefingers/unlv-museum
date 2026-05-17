@@ -75,6 +75,12 @@ export type Recipe =
  * Map of museum slug → recipe. Add entries as conversions land.
  */
 export const recipes: Record<string, Recipe> = {
+  "js-dom-events": {
+    type: "static-copy",
+    from: ".sources/JS-Events-Demonstration",
+    to: "public/originals/js-dom-events/events-demo",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

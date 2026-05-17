@@ -1,0 +1,15 @@
+# Built originals are sync-managed (scripts/sync-source.ts). Their byte
+# content is hashed into src/lib/sources.generated.json as lockHash, so any
+# reformatting here would trigger drift detection on the next commit.
+# Edit upstream sources on their museum-ready branches instead.
+public/originals/
+
+# Auto-generated artifacts
+src/lib/sources.generated.json
+
+# Submodules
+.sources/
+
+# Build output
+.next/
+out/

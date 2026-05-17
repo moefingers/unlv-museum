@@ -39,5 +39,10 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
-.sources/
+
+# Source repos: gitignored by default. Each museum-ready submodule is opted
+# back in via a !.sources/<dir> line. See CONTEXT/internal_docs/sources.md.
+.sources/*
+!.sources/JS-Events-Demonstration
+
 dev.log
