@@ -79,6 +79,23 @@ What an actual museum-header banner could look like, combining: sheen sweep + gl
 
 ---
 
+## 09 — Trig-projected cards orbiting a Y-axis
+
+Three cards 120° apart, orbiting on an ellipse. **Three separate `<animateTransform>` per card, one per SMIL transform type** (translate, scale, skewY) on nested `<g>` elements — `type="matrix"` is not a valid SMIL transform type, only the five primitives are.
+
+Math: at each keyframe at orbit angle θ:
+
+- `translate(R·sin(θ), 0)` — orbit position
+- `scale(cos(θ), 1)` — foreshortening (compressed to ~0 at the sides)
+- `skewY(K·sin(θ))` with K ≈ 23° — leans into perspective as the card swings around
+- `opacity = max(0, cos(θ))` — fades out around the back of the sphere
+
+Same animation block per card, phase-shifted via negative `begin` (`0s`, `-3s`, `-6s` on a 9s loop). Proof-of-concept for the "invisible sphere with project cards" visual.
+
+![Orbiting cards](public/banner-experiments/09-orbiting-cards.svg)
+
+---
+
 ## What to look for
 
 | Works                                                       | Doesn't work                           |

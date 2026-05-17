@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280" width="800" height="280" role="img" aria-label="Trig-projected cards orbiting around Y-axis">
+  <defs>
+    <linearGradient id="cardA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="cardB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="cardC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <style>
+      .bg     { fill: #0a0a0a; }
+      .label  { font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.05em; text-transform: uppercase; }
+      .title  { font: 700 24px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .sub    { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #737373; }
+      .axis   { stroke: #262626; stroke-width: 1; stroke-dasharray: 3 5; }
+      .orbit  { fill: none; stroke: #1a1a1a; stroke-width: 1; }
+      .ctext  { font: 700 16px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; text-anchor: middle; dominant-baseline: middle; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="800" height="280"/>
+
+  <text class="label" x="40" y="40">Experiment 09</text>
+  <text class="title" x="40" y="72">Trig-projected cards orbiting a Y-axis</text>
+  <text class="sub"   x="40" y="100">3 cards, 120° apart. Nested g elements: translate (orbit) → scale (foreshortening) → skewY (tilt).</text>
+
+  <g transform="translate(500 180)">
+    <line class="axis" x1="0" y1="-100" x2="0" y2="100"/>
+    <ellipse class="orbit" cx="0" cy="0" rx="140" ry="44"/>
+
+    <!-- CARD A — phase 0° -->
+    <g>
+      <g>
+        <g>
+          <rect x="-32" y="-22" width="64" height="44" rx="6" fill="url(#cardA)"/>
+          <text class="ctext" x="0" y="0">A</text>
+          <animateTransform attributeName="transform" type="skewY"
+            values="0; 11.4; 19.8; 22.9; 19.8; 11.4; 0; -11.4; -19.8; -22.9; -19.8; -11.4; 0"
+            keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+            dur="9s" repeatCount="indefinite"/>
+        </g>
+        <animateTransform attributeName="transform" type="scale"
+          values="1 1; 0.87 1; 0.5 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.5 1; 0.87 1; 1 1"
+          keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+          dur="9s" repeatCount="indefinite"/>
+      </g>
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 70 0; 121.2 0; 140 0; 121.2 0; 70 0; 0 0; -70 0; -121.2 0; -140 0; -121.2 0; -70 0; 0 0"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="opacity"
+        values="1; 0.87; 0.5; 0; 0; 0; 0; 0; 0; 0; 0.5; 0.87; 1"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- CARD B — phase 120° (begin -3s into 9s loop) -->
+    <g>
+      <g>
+        <g>
+          <rect x="-32" y="-22" width="64" height="44" rx="6" fill="url(#cardB)"/>
+          <text class="ctext" x="0" y="0">B</text>
+          <animateTransform attributeName="transform" type="skewY"
+            values="0; 11.4; 19.8; 22.9; 19.8; 11.4; 0; -11.4; -19.8; -22.9; -19.8; -11.4; 0"
+            keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+            dur="9s" begin="-3s" repeatCount="indefinite"/>
+        </g>
+        <animateTransform attributeName="transform" type="scale"
+          values="1 1; 0.87 1; 0.5 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.5 1; 0.87 1; 1 1"
+          keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+          dur="9s" begin="-3s" repeatCount="indefinite"/>
+      </g>
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 70 0; 121.2 0; 140 0; 121.2 0; 70 0; 0 0; -70 0; -121.2 0; -140 0; -121.2 0; -70 0; 0 0"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" begin="-3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity"
+        values="1; 0.87; 0.5; 0; 0; 0; 0; 0; 0; 0; 0.5; 0.87; 1"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" begin="-3s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- CARD C — phase 240° (begin -6s into 9s loop) -->
+    <g>
+      <g>
+        <g>
+          <rect x="-32" y="-22" width="64" height="44" rx="6" fill="url(#cardC)"/>
+          <text class="ctext" x="0" y="0">C</text>
+          <animateTransform attributeName="transform" type="skewY"
+            values="0; 11.4; 19.8; 22.9; 19.8; 11.4; 0; -11.4; -19.8; -22.9; -19.8; -11.4; 0"
+            keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+            dur="9s" begin="-6s" repeatCount="indefinite"/>
+        </g>
+        <animateTransform attributeName="transform" type="scale"
+          values="1 1; 0.87 1; 0.5 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.05 1; 0.5 1; 0.87 1; 1 1"
+          keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+          dur="9s" begin="-6s" repeatCount="indefinite"/>
+      </g>
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 70 0; 121.2 0; 140 0; 121.2 0; 70 0; 0 0; -70 0; -121.2 0; -140 0; -121.2 0; -70 0; 0 0"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" begin="-6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity"
+        values="1; 0.87; 0.5; 0; 0; 0; 0; 0; 0; 0; 0.5; 0.87; 1"
+        keyTimes="0; 0.0833; 0.1667; 0.25; 0.3333; 0.4167; 0.5; 0.5833; 0.6667; 0.75; 0.8333; 0.9167; 1"
+        dur="9s" begin="-6s" repeatCount="indefinite"/>
+    </g>
+  </g>
+</svg>
