@@ -29,7 +29,7 @@ Port Better Auth from zcanon. The museum needs:
 
 - All GET endpoints (read-only data is fine without auth)
 - All original tier content (static HTML, no mutations)
-- All remastered tier content (client-only, no server calls)
+- All enhanced tier content (client-only, no server calls)
 - The landing page and globe
 
 ## Rate Limiting
@@ -60,6 +60,6 @@ Start with Option A. Upgrade to Option B if abuse occurs.
 ## What NOT to do
 
 - Don't gate read-only content behind auth — the museum should be browsable without an account
-- Don't require auth for the original or remastered tiers
+- Don't require auth for the original or enhanced tiers
 - Don't add auth complexity to the globe or landing page
 - Don't rate limit GET requests (only mutations)

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, ChevronDown } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 
-const VALID_MODES: ViewMode[] = ["original", "remastered", "reimagined"];
+const VALID_MODES: ViewMode[] = ["original", "enhanced", "reimagined"];
 
 export default function ProjectPage() {
   const params = useParams<{ project: string }>();
@@ -20,8 +20,7 @@ export default function ProjectPage() {
 
   const available: Record<ViewMode, boolean> = {
     original: project.original != null,
-    remastered:
-      project.remastered != null || project.remasteredExternal != null,
+    enhanced: project.enhanced != null || project.enhancedExternal != null,
     reimagined:
       project.reimagined != null || project.reimaginedExternal != null,
   };
@@ -51,18 +50,18 @@ export default function ProjectPage() {
   const tierTech =
     mode === "original"
       ? project.techOriginal
-      : mode === "remastered"
-        ? project.techRemastered
+      : mode === "enhanced"
+        ? project.techEnhanced
         : project.techReimagined;
 
-  const remasteredContent: ReactNode = project.remasteredExternal ? (
+  const enhancedContent: ReactNode = project.enhancedExternal ? (
     <ExternalTierCard
-      tier="remastered"
+      tier="enhanced"
       title={project.title}
-      href={project.remasteredExternal}
+      href={project.enhancedExternal}
     />
   ) : (
-    (project.remastered ?? <UnavailableSlot label="remastered" />)
+    (project.enhanced ?? <UnavailableSlot label="enhanced" />)
   );
 
   const reimaginedContent: ReactNode = project.reimaginedExternal ? (
@@ -128,7 +127,7 @@ export default function ProjectPage() {
 
       <SlidingView mode={mode}>
         {project.original ?? <UnavailableSlot label="original" />}
-        {remasteredContent}
+        {enhancedContent}
         {reimaginedContent}
       </SlidingView>
     </div>
@@ -150,7 +149,7 @@ function ExternalTierCard({
   title,
   href,
 }: {
-  tier: "remastered" | "reimagined";
+  tier: "enhanced" | "reimagined";
   title: string;
   href: string;
 }) {
@@ -165,7 +164,7 @@ function ExternalTierCard({
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
       >
-        Open {title} {tier === "remastered" ? "Remastered" : "Reimagined"}
+        Open {title} {tier === "enhanced" ? "Enhanced" : "Reimagined"}
         <ExternalLink size={16} />
       </a>
     </div>

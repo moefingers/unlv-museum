@@ -2,11 +2,11 @@
 
 import { type ReactNode } from "react";
 
-type ViewMode = "original" | "remastered" | "reimagined";
+type ViewMode = "original" | "enhanced" | "reimagined";
 
 const VIEW_INDEX: Record<ViewMode, number> = {
   original: 0,
-  remastered: 1,
+  enhanced: 1,
   reimagined: 2,
 };
 
@@ -45,7 +45,7 @@ export function ModeToggle({
   /** Tiers that exist for this project. Missing tiers render disabled. */
   available: Record<ViewMode, boolean>;
 }) {
-  const modes: ViewMode[] = ["original", "remastered", "reimagined"];
+  const modes: ViewMode[] = ["original", "enhanced", "reimagined"];
 
   return (
     <div className="inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">

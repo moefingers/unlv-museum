@@ -74,7 +74,7 @@ export function EmbedAwareHeader() {
           SSR route — viewing standalone
         </p>
         <p style={{ margin: 0, fontSize: "0.75rem", color: "#71717a" }}>
-          Open in the museum to see tier toggle (original / remastered /
+          Open in the museum to see tier toggle (original / enhanced /
           reimagined) and project notes.
         </p>
       </div>

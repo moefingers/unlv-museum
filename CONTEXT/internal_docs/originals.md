@@ -30,7 +30,7 @@ These originals had backend servers that can't be replicated statically:
 | admin-portal       | Express + json-server | Page structure    | Book CRUD            |
 | sql-injection-demo | Express + SQLite      | Login form        | Actual SQL injection |
 
-For these, the remastered and reimagined tiers are where the full experience lives.
+For these, the enhanced and reimagined tiers are where the full experience lives.
 
 ## Non-web originals
 

@@ -112,7 +112,7 @@ function ListView() {
                   <div className="mt-3 flex flex-wrap gap-1">
                     {(
                       project.techOriginal ??
-                      project.techRemastered ??
+                      project.techEnhanced ??
                       project.techReimagined ??
                       []
                     ).map((tech) => (
@@ -163,7 +163,7 @@ export function LandingView() {
       </h1>
       <p className="mt-4 max-w-lg text-center text-zinc-600 dark:text-zinc-400">
         Projects from UNLV&apos;s software development course, rebuilt across
-        three tiers: original, remastered, and reimagined.
+        three tiers: original, enhanced, and reimagined.
       </p>
 
       <div className="mt-6 inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">

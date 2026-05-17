@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://unlv-museum.infinite-syndicate.com"),
   title: { default: "UNLV Museum", template: "%s | UNLV Museum" },
   description:
-    "Projects from UNLV's software development course, rebuilt across three toggleable tiers: original, remastered, and reimagined.",
+    "Projects from UNLV's software development course, rebuilt across three toggleable tiers: original, enhanced, and reimagined.",
   openGraph: {
     title: "UNLV Museum",
     description:

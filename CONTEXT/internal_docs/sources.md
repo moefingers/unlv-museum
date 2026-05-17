@@ -10,15 +10,15 @@ The framework gives each original a structured connection back to its source rep
 
 ## Tier ownership model
 
-| Tier           | We wrote it? | Where the code lives                                               | How it's hosted                                             |
-| -------------- | :----------: | ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------- |
-| **Original**   |      No      | Submodule at `.sources/<repo>/` pinned to `museum-ready` branch    | Built artifact in `public/originals/<slug>/`, iframe-served |
-| **Remastered** |     Yes      | Native in museum (`src/components/remastered/` or `src/app/(museum | ssr)/…`)                                                    | Rendered directly as React/Server Component |
-| **Reimagined** |     Yes      | Separate repo + separate Vercel deployment                         | External link (`reimaginedExternal` field)                  |
+| Tier           | We wrote it? | Where the code lives                                             | How it's hosted                                             |
+| -------------- | :----------: | ---------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------- |
+| **Original**   |      No      | Submodule at `.sources/<repo>/` pinned to `museum-ready` branch  | Built artifact in `public/originals/<slug>/`, iframe-served |
+| **Enhanced**   |     Yes      | Native in museum (`src/components/enhanced/` or `src/app/(museum | ssr)/…`)                                                    | Rendered directly as React/Server Component |
+| **Reimagined** |     Yes      | Separate repo + separate Vercel deployment                       | External link (`reimaginedExternal` field)                  |
 
 Exceptions:
 
-- A remastered may use the submodule pattern if it requires a different stack the museum can't host natively.
+- A enhanced may use the submodule pattern if it requires a different stack the museum can't host natively.
 - A reimagined may live in the museum if it's a tiny component, but the dedicated-dev-session model usually pushes it to its own repo.
 
 ## Originals — the submodule pattern
@@ -60,7 +60,7 @@ Mental model:
 - **Required floor**: build cleanly on a currently-supported Node LTS. The branch must build on the version pinned in its `.nvmrc`.
 - **Allowed**: bump Node, switch npm → pnpm, modernize build tooling (CRA 4 → 5 if needed, webpack 4 → 5 if needed), bump dev dependencies, add `.npmrc` for hoisted node-linker.
 - **Allowed** (hosting-compat): rewrite dead asset URLs, fix sandboxed iframe constraints (preventDefault, asset paths), add `PUBLIC_URL=.`, `HashRouter` if needed.
-- **Forbidden**: changing the user-facing application's structure, components, runtime behavior, or visible UI. Source code edits are scoped to hosting compatibility. If you find yourself rewriting the actual app, you're past museum-ready and into remastered.
+- **Forbidden**: changing the user-facing application's structure, components, runtime behavior, or visible UI. Source code edits are scoped to hosting compatibility. If you find yourself rewriting the actual app, you're past museum-ready and into enhanced.
 
 `main` of each source repo stays untouched as the academic record.
 
@@ -210,13 +210,13 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 
 Vercel does NOT recurse into submodules by default, and we don't want it to. `public/originals/<slug>/` is the committed artifact; Vercel serves it as-is. Submodules are developer-only infrastructure for re-deriving that output.
 
-## Remastered — native in the museum
+## Enhanced — native in the museum
 
-A remastered lives where the rest of museum code lives: `src/components/remastered/<Slug>.tsx`, or a Next.js route in `src/app/(museum)/...` or `src/app/(ssr)/...` for SSR-style remastered.
+A enhanced lives where the rest of museum code lives: `src/components/enhanced/<Slug>.tsx`, or a Next.js route in `src/app/(museum)/...` or `src/app/(ssr)/...` for SSR-style enhanced.
 
-Until a remastered has been built deliberately for a project, its tier is `<Placeholder label="Coming soon" />`. Each remastered requires a dedicated decision-and-build session with the user — bulk generation is forbidden.
+Until a enhanced has been built deliberately for a project, its tier is `<Placeholder label="Coming soon" />`. Each enhanced requires a dedicated decision-and-build session with the user — bulk generation is forbidden.
 
-The escape hatch for remastered work that can't live natively (different stack, pre-existing standalone deployment) is `remasteredExternal: "https://..."` on the project entry, which renders an external-link card.
+The escape hatch for enhanced work that can't live natively (different stack, pre-existing standalone deployment) is `enhancedExternal: "https://..."` on the project entry, which renders an external-link card.
 
 ## Reimagined — separate repo + external
 

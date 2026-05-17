@@ -5,28 +5,33 @@
  * For each converted slug in src/lib/sources.generated.json (or one passed
  * on the command line), this script ensures:
  *
- *   1. The legacy default branch (main/master/shepherd) is renamed to
- *      `original`. GitHub's rename API preserves history, PRs, and
- *      redirects. Already-renamed branches are skipped.
+ *   1. Legacy default branch (main/master/shepherd) renamed to `original`.
+ *      GitHub's rename API preserves history, PRs, and creates redirects.
  *
- *   2. `museum-ready` is set as the GitHub default branch — visitors who
- *      open the repo land on the hosted version.
+ *   2. `museum-ready` is set as the GitHub default branch.
  *
- *   3. The repo's Website (homepage) field is set to the museum entry URL.
+ *   3. Repo Website (homepage) field points to the museum entry URL.
  *
- *   4. The repo's description is prefixed with "🏛️ unlv-museum:" so the
- *      museum membership is visible from any repo listing.
+ *   4. Repo description is prefixed with "🏛️ unlv-museum:".
  *
- * The script is idempotent — re-running on a fully-converted repo is a no-op.
+ *   5. Repo topics include `unlv-museum` and `museum-ready`.
+ *
+ *   6. README on museum-ready has the unlv-museum banner (idempotent via
+ *      marker comments). If the banner needs to be added/updated, the
+ *      script commits and pushes to museum-ready, bumps the submodule
+ *      pointer, and re-runs `pnpm sync:source <slug>` to refresh the
+ *      lockHash so the museum stays consistent.
+ *
+ * Idempotent — re-running on a fully-converted repo is a no-op.
  *
  * Usage:
  *   pnpm sync:source-meta              # all converted slugs
  *   pnpm sync:source-meta <slug>       # one slug
  *
- * Requires: gh CLI authenticated as the org/user that owns each source repo.
+ * Requires: gh CLI authenticated as the owner of each source repo.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +43,10 @@ const MUSEUM_BASE_URL = "https://unlv-museum.infinite-syndicate.com";
 const LEGACY_DEFAULTS = new Set(["main", "master", "shepherd"]);
 const TARGET_ORIGINAL = "original";
 const TARGET_DEFAULT = "museum-ready";
+const REPO_TOPICS = ["unlv-museum", "museum-ready"];
+
+const BANNER_START = "<!-- unlv-museum-banner-start -->";
+const BANNER_END = "<!-- unlv-museum-banner-end -->";
 
 interface SourceRef {
   repo: string;
@@ -93,79 +102,81 @@ function applyMeta(slug: string, info: SourceRef) {
   const homepage = `${MUSEUM_BASE_URL}/${slug}`;
   console.log(`[meta] ${slug} (${repo})`);
 
-  // 1. Inspect current state
-  const meta = JSON.parse(
-    gh([
-      "api",
-      `repos/${repo}`,
-      "--jq",
-      "{default_branch, homepage, description}",
-    ]),
-  ) as { default_branch: string; homepage: string | null; description: string | null };
+  applyBranchRename(slug, repo);
+  applyDefaultBranch(slug, repo);
+  applyHomepageAndDescription(slug, repo, homepage);
+  applyTopics(slug, repo);
+  applyReadmeBanner(slug, repo, homepage);
+}
 
+function applyBranchRename(_slug: string, repo: string) {
   const branches = JSON.parse(
     gh(["api", `repos/${repo}/branches`, "--jq", "[.[].name]"]),
   ) as string[];
 
-  // 2. Rename legacy default → "original" if applicable
-  if (!branches.includes(TARGET_ORIGINAL)) {
-    const legacy = branches.find((b) => LEGACY_DEFAULTS.has(b));
-    if (legacy) {
-      console.log(`[meta]   renaming branch ${legacy} → ${TARGET_ORIGINAL}`);
-      gh([
-        "api",
-        `repos/${repo}/branches/${legacy}/rename`,
-        "-X",
-        "POST",
-        "-f",
-        `new_name=${TARGET_ORIGINAL}`,
-      ]);
-    } else {
-      console.log(
-        `[meta]   no legacy default branch found to rename; expected one of ${[...LEGACY_DEFAULTS].join(", ")}`,
-      );
-    }
-  } else {
+  if (branches.includes(TARGET_ORIGINAL)) {
     console.log(`[meta]   ${TARGET_ORIGINAL} branch already exists`);
+    return;
   }
+  const legacy = branches.find((b) => LEGACY_DEFAULTS.has(b));
+  if (!legacy) {
+    console.log(
+      `[meta]   no legacy default branch to rename; expected one of ${[
+        ...LEGACY_DEFAULTS,
+      ].join(", ")}`,
+    );
+    return;
+  }
+  console.log(`[meta]   renaming branch ${legacy} → ${TARGET_ORIGINAL}`);
+  gh([
+    "api",
+    `repos/${repo}/branches/${legacy}/rename`,
+    "-X",
+    "POST",
+    "-f",
+    `new_name=${TARGET_ORIGINAL}`,
+  ]);
+}
 
-  // 3. Set museum-ready as default branch. Re-query state in case the rename
-  // above auto-updated the default (GitHub does that when you rename the
-  // current default branch).
-  const postRenameState = JSON.parse(
-    gh([
-      "api",
-      `repos/${repo}`,
-      "--jq",
-      "{default_branch}",
-    ]),
+function applyDefaultBranch(_slug: string, repo: string) {
+  const meta = JSON.parse(
+    gh(["api", `repos/${repo}`, "--jq", "{default_branch}"]),
   ) as { default_branch: string };
-
-  const branchesAfter = JSON.parse(
+  const branches = JSON.parse(
     gh(["api", `repos/${repo}/branches`, "--jq", "[.[].name]"]),
   ) as string[];
-
-  if (!branchesAfter.includes(TARGET_DEFAULT)) {
+  if (!branches.includes(TARGET_DEFAULT)) {
     console.log(
-      `[meta]   ${TARGET_DEFAULT} branch missing on remote — was the sync incomplete?`,
+      `[meta]   ${TARGET_DEFAULT} branch missing on remote — sync incomplete?`,
     );
-  } else if (postRenameState.default_branch !== TARGET_DEFAULT) {
-    console.log(
-      `[meta]   setting default branch: ${postRenameState.default_branch} → ${TARGET_DEFAULT}`,
-    );
-    gh([
-      "api",
-      `repos/${repo}`,
-      "-X",
-      "PATCH",
-      "-f",
-      `default_branch=${TARGET_DEFAULT}`,
-    ]);
-  } else {
-    console.log(`[meta]   default branch already ${TARGET_DEFAULT}`);
+    return;
   }
+  if (meta.default_branch === TARGET_DEFAULT) {
+    console.log(`[meta]   default branch already ${TARGET_DEFAULT}`);
+    return;
+  }
+  console.log(
+    `[meta]   setting default branch: ${meta.default_branch} → ${TARGET_DEFAULT}`,
+  );
+  gh([
+    "api",
+    `repos/${repo}`,
+    "-X",
+    "PATCH",
+    "-f",
+    `default_branch=${TARGET_DEFAULT}`,
+  ]);
+}
 
-  // 4. Set homepage + description prefix (idempotent)
+function applyHomepageAndDescription(
+  slug: string,
+  repo: string,
+  homepage: string,
+) {
+  const meta = JSON.parse(
+    gh(["api", `repos/${repo}`, "--jq", "{homepage, description}"]),
+  ) as { homepage: string | null; description: string | null };
+
   const patches: string[] = [];
   if (meta.homepage !== homepage) {
     patches.push("-f", `homepage=${homepage}`);
@@ -182,11 +193,141 @@ function applyMeta(slug: string, info: SourceRef) {
       : `${desiredPrefix} ${slug}`;
     patches.push("-f", `description=${newDesc.slice(0, 350)}`);
     console.log(`[meta]   prefixing description: ${desiredPrefix}`);
+  } else {
+    console.log(`[meta]   description prefix already set`);
   }
 
   if (patches.length > 0) {
     gh(["api", `repos/${repo}`, "-X", "PATCH", ...patches]);
   }
+}
+
+function applyTopics(_slug: string, repo: string) {
+  const current = JSON.parse(
+    gh(["api", `repos/${repo}/topics`, "--jq", ".names"]),
+  ) as string[];
+
+  const missing = REPO_TOPICS.filter((t) => !current.includes(t));
+  if (missing.length === 0) {
+    console.log(`[meta]   topics already include ${REPO_TOPICS.join(", ")}`);
+    return;
+  }
+
+  const next = [...new Set([...current, ...REPO_TOPICS])];
+  console.log(`[meta]   adding topics: ${missing.join(", ")}`);
+  // PUT /repos/{repo}/topics with {"names": [...]} replaces the whole list.
+  // The mediatype header isn't required on modern gh, but pass it to be safe.
+  const namesJson = JSON.stringify({ names: next });
+  execSync(
+    `gh api repos/${repo}/topics -X PUT --input -`,
+    { input: namesJson, stdio: ["pipe", "ignore", "inherit"] },
+  );
+}
+
+function applyReadmeBanner(slug: string, repo: string, homepage: string) {
+  // Submodule path follows convention: .sources/<lastPathSegment>
+  const submoduleDir = repo.split("/")[1];
+  if (!submoduleDir) {
+    console.log(`[meta]   skip banner: could not derive submodule dir`);
+    return;
+  }
+  const submoduleRoot = resolve(projectRoot, ".sources", submoduleDir);
+  if (!existsSync(submoduleRoot)) {
+    console.log(
+      `[meta]   skip banner: ${submoduleRoot} not present locally (submodule not initialized?)`,
+    );
+    return;
+  }
+
+  // Ensure submodule is on museum-ready
+  try {
+    execSync("git fetch origin museum-ready", {
+      cwd: submoduleRoot,
+      stdio: ["ignore", "ignore", "inherit"],
+    });
+    execSync("git checkout museum-ready", {
+      cwd: submoduleRoot,
+      stdio: ["ignore", "ignore", "inherit"],
+    });
+    execSync("git pull origin museum-ready", {
+      cwd: submoduleRoot,
+      stdio: ["ignore", "ignore", "inherit"],
+    });
+  } catch (err) {
+    console.log(
+      `[meta]   could not sync submodule to museum-ready: ${err instanceof Error ? err.message : err}`,
+    );
+    return;
+  }
+
+  // Build desired banner
+  const ownerRepo = repo;
+  const banner = `${BANNER_START}
+> 🏛️ **This is the museum-ready version of this project.**
+>
+> - **Hosted in the museum:** ${homepage}
+>   (the museum entry has tier toggles for original / enhanced / reimagined renderings)
+> - **Unmodified academic record:** [\`original\` branch](https://github.com/${ownerRepo}/tree/original)
+> - **Surgical diff:** [\`git diff original..museum-ready\`](https://github.com/${ownerRepo}/compare/original...museum-ready)
+>
+> \`museum-ready\` contains hosting-compatibility fixes only — dead URL
+> replacements, Node-LTS floor, pnpm migration. App structure, components,
+> and visible behavior match the original byte-for-byte.
+${BANNER_END}`;
+
+  const readmePath = resolve(submoduleRoot, "README.md");
+  const currentReadme = existsSync(readmePath)
+    ? readFileSync(readmePath, "utf8")
+    : "";
+
+  let newReadme: string;
+  if (currentReadme.includes(BANNER_START) && currentReadme.includes(BANNER_END)) {
+    // Replace existing banner block
+    const start = currentReadme.indexOf(BANNER_START);
+    const end = currentReadme.indexOf(BANNER_END) + BANNER_END.length;
+    const before = currentReadme.slice(0, start);
+    const after = currentReadme.slice(end);
+    newReadme = before + banner + after;
+  } else {
+    // Prepend banner + blank line + existing content (or create README)
+    newReadme = currentReadme
+      ? `${banner}\n\n${currentReadme.trimStart()}`
+      : `${banner}\n\n# ${slug}\n`;
+  }
+
+  if (newReadme === currentReadme) {
+    console.log(`[meta]   README banner already current`);
+    return;
+  }
+
+  writeFileSync(readmePath, newReadme);
+  console.log(`[meta]   README banner updated; committing to museum-ready`);
+
+  execSync("git add README.md", {
+    cwd: submoduleRoot,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  execSync(
+    `git commit -m "${BANNER_START.replace(/<!--|-->/g, "").trim()}: unlv-museum banner"`,
+    { cwd: submoduleRoot, stdio: ["ignore", "inherit", "inherit"] },
+  );
+  execSync("git push origin museum-ready", {
+    cwd: submoduleRoot,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+
+  // The submodule pointer in the museum is now stale — bump it.
+  execSync(`git add .sources/${submoduleDir}`, {
+    cwd: projectRoot,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+
+  // Re-sync to refresh lockHash for the new commit.
+  console.log(`[meta]   running pnpm sync:source ${slug} to refresh lockHash`);
+  execSync(`pnpm sync:source ${slug}`, {
+    cwd: projectRoot,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
 }
 
 function gh(args: string[]): string {

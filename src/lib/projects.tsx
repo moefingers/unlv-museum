@@ -5,7 +5,7 @@ import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { ApiOriginal } from "@/components/originals/ApiOriginal";
 import sourcesGenerated from "./sources.generated.json";
 
-export type ViewMode = "original" | "remastered" | "reimagined";
+export type ViewMode = "original" | "enhanced" | "reimagined";
 
 /**
  * Pointer to a source repo that backs an original tier. Populated by
@@ -29,14 +29,14 @@ export interface Project {
   href?: string;
   /** Tech labels per tier. Omit to suppress that tier label. */
   techOriginal?: string[];
-  techRemastered?: string[];
+  techEnhanced?: string[];
   techReimagined?: string[];
   /** Content per tier. Omit to indicate the tier doesn't exist. */
   original?: ReactNode;
-  remastered?: ReactNode;
+  enhanced?: ReactNode;
   reimagined?: ReactNode;
-  /** Escape hatch: remastered lives in another deployment (rare). */
-  remasteredExternal?: string;
+  /** Escape hatch: enhanced lives in another deployment (rare). */
+  enhancedExternal?: string;
   /** Typical reimagined: dedicated rebuild in its own repo + Vercel project. */
   reimaginedExternal?: string;
   progression?: boolean;
@@ -91,11 +91,11 @@ export const PROJECTS: Project[] = [
     year: "Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "CSS"],
-    techRemastered: ["JavaScript", "WebSocket", "P2P Mesh"],
+    techEnhanced: ["JavaScript", "WebSocket", "P2P Mesh"],
     techReimagined: ["Next.js", "Drizzle", "Neon", "WebRTC"],
     original: <OriginalFrame src="/originals/milestown/index.html" />,
-    remastered: COMING_SOON,
-    remasteredExternal: "https://moefingers.github.io/milestown2/",
+    enhanced: COMING_SOON,
+    enhancedExternal: "https://moefingers.github.io/milestown2/",
     reimagined: COMING_SOON,
     reimaginedExternal: "https://own3.vercel.app",
     progression: true,
@@ -108,7 +108,7 @@ export const PROJECTS: Project[] = [
     category: "games",
     techOriginal: ["React", "Create React App", "CSS"],
     original: <OriginalFrame src="/originals/gwhac-a-mole/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -119,7 +119,7 @@ export const PROJECTS: Project[] = [
     category: "games",
     techOriginal: ["JavaScript", "HTML", "live-server"],
     original: <OriginalFrame src="/originals/web-game/part-7/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     notes: {
       original:
@@ -137,7 +137,7 @@ export const PROJECTS: Project[] = [
     category: "full-stack",
     techOriginal: ["React (CRA)", "React Router", "Express", "PostgreSQL"],
     original: <OriginalFrame src="/originals/rest-rant/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     notes: {
       original:
@@ -158,12 +158,12 @@ export const PROJECTS: Project[] = [
       "Neon",
     ],
     original: <OriginalFrame src="/originals/rest-rant-ssr" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     notes: {
       original:
         "The underlying architecture has been vastly altered. The Feb 2024 source ran on Express + express-react-views + MongoDB — none of which is statically hostable. The JSX views and the SSR character (server-rendered per route, form-driven mutations) are preserved verbatim, but the data layer is now Next.js Server Components + Server Actions + Postgres/Neon, sharing storage with the Rest-Rant (SPA) entry. The debug `* { outline: 1px solid black }` rule and the placebear placeholder images are preserved from the original.",
-      remastered:
+      enhanced:
         "Future: same SSR feel, but with the debug outline removed, polished Bootstrap styling, and accurate restaurant photos instead of placebear stand-ins.",
     },
   },
@@ -175,7 +175,7 @@ export const PROJECTS: Project[] = [
     category: "full-stack",
     techOriginal: ["Express", "PostgreSQL", "Sequelize", "React"],
     original: <OriginalFrame src="/originals/commerce-array/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -187,7 +187,7 @@ export const PROJECTS: Project[] = [
     category: "full-stack",
     techOriginal: ["Next.js 15", "Prisma", "NeonDB"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     reimaginedExternal: "https://enterprize-pi.vercel.app",
     progression: true,
@@ -207,7 +207,7 @@ export const PROJECTS: Project[] = [
         note="This was a full-stack Next.js app. The original deployment is no longer live."
       />
     ),
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
 
@@ -220,7 +220,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["React", "Babel", "CSS"],
     original: <OriginalFrame src="/originals/art-gallery/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -231,7 +231,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -242,7 +242,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["React", "Vite", "Ant Design"],
     original: <OriginalFrame src="/originals/timer-stopwatch/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -253,7 +253,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["HTML", "CSS", "jQuery"],
     original: <OriginalFrame src="/originals/food-truck/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -265,7 +265,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["JavaScript", "Express", "Fetch API"],
     original: <ApiOriginal startWith="Admin Portal" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -276,7 +276,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["JavaScript", "Leaflet", "Foursquare API"],
     original: <OriginalFrame src="/originals/interactive-map/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -287,7 +287,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["JavaScript", "Chart.js", "Express"],
     original: <OriginalFrame src="/originals/stock-charts/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -298,7 +298,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["JavaScript", "jQuery", "Canvas"],
     original: <OriginalFrame src="/originals/jacks-paint/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -309,7 +309,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["HTML", "CSS"],
     original: <OriginalFrame src="/originals/copycat/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -320,7 +320,7 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["HTML", "CSS", "JavaScript"],
     original: <OriginalFrame src="/originals/my-values/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
 
@@ -334,7 +334,7 @@ export const PROJECTS: Project[] = [
     category: "api",
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
     original: <ApiOriginal startWith="Music Tour API" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -346,7 +346,7 @@ export const PROJECTS: Project[] = [
     category: "api",
     techOriginal: ["Express", "SQLite", "HTML"],
     original: <ApiOriginal startWith="SQL Injection Demo" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -358,7 +358,7 @@ export const PROJECTS: Project[] = [
     category: "api",
     techOriginal: ["MongoDB", "Express"],
     original: <ApiOriginal startWith="JASKIS API" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
 
@@ -371,7 +371,7 @@ export const PROJECTS: Project[] = [
     category: "python",
     techOriginal: ["Python", "Flask"],
     original: <OriginalFrame src="/originals/petfax/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -382,7 +382,7 @@ export const PROJECTS: Project[] = [
     category: "python",
     techOriginal: ["Python"],
     original: <PythonFundamentalsOriginal />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
 
@@ -397,7 +397,7 @@ export const PROJECTS: Project[] = [
     original: (
       <OriginalFrame src="/originals/html-css-fundamentals/hacker-times/index.html" />
     ),
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -410,7 +410,7 @@ export const PROJECTS: Project[] = [
     original: (
       <OriginalFrame src="/originals/js-dom-events/events-demo/1. The Target Element.html" />
     ),
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -423,7 +423,7 @@ export const PROJECTS: Project[] = [
     original: (
       <OriginalFrame src="/originals/react-exercises/music-search/index.html" />
     ),
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -434,7 +434,7 @@ export const PROJECTS: Project[] = [
     category: "exercises",
     techOriginal: ["HTML", "CSS", "JavaScript"],
     original: <OriginalFrame src="/originals/css-responsive-nav/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
   {
@@ -445,7 +445,7 @@ export const PROJECTS: Project[] = [
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
     original: <OriginalFrame src="/originals/restaurant-menu/index.html" />,
-    remastered: COMING_SOON,
+    enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
 ];
