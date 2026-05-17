@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "git submodule update --init --recursive 2>/dev/null || true && git config push.recurseSubmodules check 2>/dev/null || true",
+    "sync:source": "tsx scripts/sync-source.ts",
+    "verify:locks": "tsx scripts/verify-locks.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -45,6 +48,7 @@
     "lint-staged": "^17.0.4",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.0",
     "typescript": "^6.0.3"
   }
 }

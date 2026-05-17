@@ -12,6 +12,8 @@ This project inherits zcanon's philosophy. Read these essays — they apply here
 Read the CONTEXT docs for decisions already made:
 
 - [Architecture](CONTEXT/internal_docs/architecture.md) — three-tier system, project registry, database schemas
+- [Sources](CONTEXT/internal_docs/sources.md) — **REQUIRED before touching `public/originals/` or any source repo.** Submodule pattern, museum-ready branch policy, sync.config.ts recipes, conversion workflow.
+- [Sources conversion status](CONTEXT/internal_docs/sources-conversions.md) — per-project tracking and agent-ready conversion specs
 - [Globe](CONTEXT/internal_docs/globe.md) — 3D CSS sphere, preserve-3d chain, momentum physics
 - [Originals](CONTEXT/internal_docs/originals.md) — fix-only philosophy, common fixes, backend-dependent projects
 - [Security](CONTEXT/internal_docs/security.md) — auth plan, rate limiting, API access

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { SlidingView, ModeToggle } from "@/components/ui/SlidingView";
 import { PROJECTS, type ViewMode } from "@/lib/projects";
@@ -20,8 +20,10 @@ export default function ProjectPage() {
 
   const available: Record<ViewMode, boolean> = {
     original: project.original != null,
-    remastered: project.remastered != null,
-    reimagined: project.reimagined != null || project.externalLink != null,
+    remastered:
+      project.remastered != null || project.remasteredExternal != null,
+    reimagined:
+      project.reimagined != null || project.reimaginedExternal != null,
   };
 
   const firstAvailable: ViewMode =
@@ -53,21 +55,22 @@ export default function ProjectPage() {
         ? project.techRemastered
         : project.techReimagined;
 
-  const reimaginedContent = project.externalLink ? (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-      <p className="text-zinc-600 dark:text-zinc-400">
-        The reimagined version lives as its own application.
-      </p>
-      <a
-        href={project.externalLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-      >
-        Open {project.title} Reimagined
-        <ExternalLink size={16} />
-      </a>
-    </div>
+  const remasteredContent: ReactNode = project.remasteredExternal ? (
+    <ExternalTierCard
+      tier="remastered"
+      title={project.title}
+      href={project.remasteredExternal}
+    />
+  ) : (
+    (project.remastered ?? <UnavailableSlot label="remastered" />)
+  );
+
+  const reimaginedContent: ReactNode = project.reimaginedExternal ? (
+    <ExternalTierCard
+      tier="reimagined"
+      title={project.title}
+      href={project.reimaginedExternal}
+    />
   ) : (
     (project.reimagined ?? <UnavailableSlot label="reimagined" />)
   );
@@ -125,7 +128,7 @@ export default function ProjectPage() {
 
       <SlidingView mode={mode}>
         {project.original ?? <UnavailableSlot label="original" />}
-        {project.remastered ?? <UnavailableSlot label="remastered" />}
+        {remasteredContent}
         {reimaginedContent}
       </SlidingView>
     </div>
@@ -138,6 +141,33 @@ function UnavailableSlot({ label }: { label: string }) {
       <p className="text-center text-zinc-400 dark:text-zinc-600">
         No {label} tier for this project.
       </p>
+    </div>
+  );
+}
+
+function ExternalTierCard({
+  tier,
+  title,
+  href,
+}: {
+  tier: "remastered" | "reimagined";
+  title: string;
+  href: string;
+}) {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <p className="text-zinc-600 dark:text-zinc-400">
+        The {tier} version lives as its own application.
+      </p>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+      >
+        Open {title} {tier === "remastered" ? "Remastered" : "Reimagined"}
+        <ExternalLink size={16} />
+      </a>
     </div>
   );
 }

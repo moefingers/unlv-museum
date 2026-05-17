@@ -1,1 +1,16 @@
+# Verify every submodule's HEAD has been pushed to its upstream tracking branch.
+# This is the structural guarantee: no museum push can land with stale submodule pointers.
+git submodule foreach --quiet '
+  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || true)
+  if [ -z "$upstream" ]; then
+    echo "submodule $name has no upstream tracking — checkout the museum-ready branch and set tracking"
+    exit 1
+  fi
+  if ! git merge-base --is-ancestor HEAD "$upstream" 2>/dev/null; then
+    echo "submodule $name HEAD is not pushed to $upstream"
+    echo "  cd .sources/$name && git push origin HEAD"
+    exit 1
+  fi
+'
+
 pnpm build

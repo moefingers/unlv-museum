@@ -3,46 +3,21 @@ import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { ApiOriginal } from "@/components/originals/ApiOriginal";
-import {
-  GwhacAMoleReimagined,
-  CommerceArrayReimagined,
-  JacksPaintReimagined,
-  SqlInjectionReimagined,
-  TimerStopwatchReimagined,
-  WebGameReimagined,
-  ArtGalleryReimagined,
-  PetFaxReimagined,
-  PlaceholderReimagined,
-} from "@/components/reimagined";
-import {
-  GwhacAMole,
-  TimerStopwatch,
-  RestaurantMenu,
-  JacksPaint,
-  ResponsiveNav,
-  HtmlCssFundamentals,
-  FoodTruck,
-  CopycatActivity,
-  MyValues,
-  JsDomEvents,
-  ReactExercises,
-  AdminPortal,
-  InteractiveMap,
-  StockCharts,
-  ArtGallery,
-  QuirkTruck,
-  CommerceArray,
-  SqlInjectionDemo,
-  Enterprize,
-  MusicTourApi,
-  PetFax,
-  PythonFundamentals,
-  WebGame,
-  NextjsDashboard,
-  Jaskis,
-} from "@/components/remastered";
+import sourcesGenerated from "./sources.generated.json";
 
 export type ViewMode = "original" | "remastered" | "reimagined";
+
+/**
+ * Pointer to a source repo that backs an original tier. Populated by
+ * `scripts/sync-source.ts` and stored in `sources.generated.json`.
+ * See CONTEXT/internal_docs/sources.md for the full submodule workflow.
+ */
+export interface SourceRef {
+  repo: string; // "owner/repo"
+  branch: string; // typically "museum-ready"
+  commit: string; // SHA pinned at last sync
+  lockHash: string; // sha256 of public/originals/<slug>/
+}
 
 export interface Project {
   slug: string;
@@ -52,16 +27,19 @@ export interface Project {
   category: Category;
   /** Override link destination (e.g. /api-client?api=X) */
   href?: string;
-  /** Tech labels per tier. Omit to suppress that tier entirely. */
+  /** Tech labels per tier. Omit to suppress that tier label. */
   techOriginal?: string[];
   techRemastered?: string[];
   techReimagined?: string[];
-  /** Content per tier. Omit to indicate the tier doesn't exist (e.g. no preservable original). */
+  /** Content per tier. Omit to indicate the tier doesn't exist. */
   original?: ReactNode;
   remastered?: ReactNode;
   reimagined?: ReactNode;
+  /** Escape hatch: remastered lives in another deployment (rare). */
+  remasteredExternal?: string;
+  /** Typical reimagined: dedicated rebuild in its own repo + Vercel project. */
+  reimaginedExternal?: string;
   progression?: boolean;
-  externalLink?: string;
   /** Per-mode contextual notes shown in collapsible header */
   notes?: Partial<Record<ViewMode, string>>;
 }
@@ -91,6 +69,18 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
+const COMING_SOON = <Placeholder label="Coming soon" />;
+
+/**
+ * Look up the source pointer for a slug, if its conversion has been run.
+ * Returns undefined for projects whose submodule conversion is pending,
+ * or that have no source repo (backend-only, Next.js-native).
+ */
+export function getSourceRef(slug: string): SourceRef | undefined {
+  const sources = sourcesGenerated as Record<string, SourceRef>;
+  return sources[slug];
+}
+
 export const PROJECTS: Project[] = [
   // GAMES
   {
@@ -102,14 +92,13 @@ export const PROJECTS: Project[] = [
     category: "games",
     techOriginal: ["JavaScript", "HTML", "CSS"],
     techRemastered: ["JavaScript", "WebSocket", "P2P Mesh"],
-    techReimagined: ["React", "Canvas", "WebRTC", "Server Actions"],
+    techReimagined: ["Next.js", "Drizzle", "Neon", "WebRTC"],
     original: <OriginalFrame src="/originals/milestown/index.html" />,
-    remastered: (
-      <Placeholder label="milestown2 — multiplayer remake (May 2024)" />
-    ),
-    reimagined: <Placeholder label="OWN3 — the definitive version" />,
+    remastered: COMING_SOON,
+    remasteredExternal: "https://moefingers.github.io/milestown2/",
+    reimagined: COMING_SOON,
+    reimaginedExternal: "https://own3.vercel.app",
     progression: true,
-    externalLink: "https://own3.vercel.app",
   },
   {
     slug: "gwhac-a-mole",
@@ -118,11 +107,9 @@ export const PROJECTS: Project[] = [
     year: "Mar 2024",
     category: "games",
     techOriginal: ["React", "Create React App", "CSS"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Canvas", "Leaderboard", "Sound", "Levels"],
     original: <OriginalFrame src="/originals/gwhac-a-mole/index.html" />,
-    remastered: <GwhacAMole />,
-    reimagined: <GwhacAMoleReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "web-game",
@@ -131,18 +118,12 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023 – Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "live-server"],
-    techRemastered: ["TypeScript", "React", "Keyboard Controls"],
-    techReimagined: ["React", "Canvas", "State Machine", "Animations"],
     original: <OriginalFrame src="/originals/web-game/part-7/index.html" />,
-    remastered: <WebGame />,
-    reimagined: <WebGameReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
     notes: {
       original:
         "The original project only demanded movement via arrow keys and inventory pickup via clicking. NPCs, win conditions, and HP were not part of the original scope.",
-      remastered:
-        "Rewritten in React with keyboard controls and a tighter map layout. Adds HP and a win condition (reach the exit with the key).",
-      reimagined:
-        "Adds NPCs with dialogue, environmental hazards (lava), water requiring a shield, and step tracking.",
     },
   },
 
@@ -156,8 +137,8 @@ export const PROJECTS: Project[] = [
     category: "full-stack",
     techOriginal: ["React (CRA)", "React Router", "Express", "PostgreSQL"],
     original: <OriginalFrame src="/originals/rest-rant/index.html" />,
-    remastered: <Placeholder label="Coming soon" />,
-    reimagined: <Placeholder label="Coming soon" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
     notes: {
       original:
         "Frontend SPA preserved as-is. Its Express/Postgres backend was reimplemented as /api/rest-rant (Next.js + Drizzle/Neon) so the SPA functions end-to-end — see the Rest-Rant API card in /api-client.",
@@ -177,8 +158,8 @@ export const PROJECTS: Project[] = [
       "Neon",
     ],
     original: <OriginalFrame src="/originals/rest-rant-ssr" />,
-    remastered: <Placeholder label="Coming soon" />,
-    reimagined: <Placeholder label="Coming soon" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
     notes: {
       original:
         "The underlying architecture has been vastly altered. The Feb 2024 source ran on Express + express-react-views + MongoDB — none of which is statically hostable. The JSX views and the SSR character (server-rendered per route, form-driven mutations) are preserved verbatim, but the data layer is now Next.js Server Components + Server Actions + Postgres/Neon, sharing storage with the Rest-Rant (SPA) entry. The debug `* { outline: 1px solid black }` rule and the placebear placeholder images are preserved from the original.",
@@ -193,11 +174,9 @@ export const PROJECTS: Project[] = [
     year: "Apr 2024",
     category: "full-stack",
     techOriginal: ["Express", "PostgreSQL", "Sequelize", "React"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Server Actions", "Stripe", "Drizzle"],
     original: <OriginalFrame src="/originals/commerce-array/index.html" />,
-    remastered: <CommerceArray />,
-    reimagined: <CommerceArrayReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "enterprize",
@@ -207,13 +186,11 @@ export const PROJECTS: Project[] = [
     year: "Jun 2024",
     category: "full-stack",
     techOriginal: ["Next.js 15", "Prisma", "NeonDB"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["Next.js", "Drizzle", "RBAC", "Audit Log"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    remastered: <Enterprize />,
-    reimagined: <Placeholder label="EnterPrize — live deployment" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
+    reimaginedExternal: "https://enterprize-pi.vercel.app",
     progression: true,
-    externalLink: "https://enterprize-pi.vercel.app",
   },
   {
     slug: "nextjs-dashboard",
@@ -222,8 +199,6 @@ export const PROJECTS: Project[] = [
     year: "Jun 2024",
     category: "full-stack",
     techOriginal: ["Next.js 16", "NextAuth v5", "Vercel Postgres"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Charts", "RBAC", "Real-time"],
     original: (
       <ServerAppOriginal
         title="Next.js Dashboard"
@@ -232,8 +207,8 @@ export const PROJECTS: Project[] = [
         note="This was a full-stack Next.js app. The original deployment is no longer live."
       />
     ),
-    remastered: <NextjsDashboard />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
 
   // FRONTEND & UI
@@ -244,11 +219,9 @@ export const PROJECTS: Project[] = [
     year: "Mar 2024",
     category: "frontend",
     techOriginal: ["React", "Babel", "CSS"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Masonry", "Lightbox", "API Integration"],
     original: <OriginalFrame src="/originals/art-gallery/index.html" />,
-    remastered: <ArtGallery />,
-    reimagined: <ArtGalleryReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "quirk-truck",
@@ -257,11 +230,9 @@ export const PROJECTS: Project[] = [
     year: "Feb 2024",
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Server Components", "Image Optimization"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    remastered: <QuirkTruck />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "timer-stopwatch",
@@ -270,11 +241,9 @@ export const PROJECTS: Project[] = [
     year: "Apr – May 2024",
     category: "frontend",
     techOriginal: ["React", "Vite", "Ant Design"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Web Workers", "Notifications", "PWA"],
     original: <OriginalFrame src="/originals/timer-stopwatch/index.html" />,
-    remastered: <TimerStopwatch />,
-    reimagined: <TimerStopwatchReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "food-truck",
@@ -283,11 +252,9 @@ export const PROJECTS: Project[] = [
     year: "Oct 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS", "jQuery"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Server Components", "CMS", "Ordering"],
     original: <OriginalFrame src="/originals/food-truck/index.html" />,
-    remastered: <FoodTruck />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "admin-portal",
@@ -297,11 +264,9 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "Express", "Fetch API"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "CRUD", "Validation", "Toast Notifications"],
     original: <ApiOriginal startWith="Admin Portal" />,
-    remastered: <AdminPortal />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "interactive-map",
@@ -310,11 +275,9 @@ export const PROJECTS: Project[] = [
     year: "Jan 2024",
     category: "frontend",
     techOriginal: ["JavaScript", "Leaflet", "Foursquare API"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Mapbox", "Search", "Directions"],
     original: <OriginalFrame src="/originals/interactive-map/index.html" />,
-    remastered: <InteractiveMap />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "stock-charts",
@@ -323,11 +286,9 @@ export const PROJECTS: Project[] = [
     year: "Jan 2024",
     category: "frontend",
     techOriginal: ["JavaScript", "Chart.js", "Express"],
-    techRemastered: ["TypeScript", "React", "SVG Charts"],
-    techReimagined: ["React", "Real-time", "WebSocket", "Candlestick"],
     original: <OriginalFrame src="/originals/stock-charts/index.html" />,
-    remastered: <StockCharts />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "jacks-paint",
@@ -336,11 +297,9 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "jQuery", "Canvas"],
-    techRemastered: ["TypeScript", "Canvas API", "Tailwind"],
-    techReimagined: ["React", "Canvas", "Layers", "Tools", "Export"],
     original: <OriginalFrame src="/originals/jacks-paint/index.html" />,
-    remastered: <JacksPaint />,
-    reimagined: <JacksPaintReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "copycat",
@@ -349,11 +308,9 @@ export const PROJECTS: Project[] = [
     year: "Nov 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Responsive", "Animations", "Dark Mode"],
     original: <OriginalFrame src="/originals/copycat/index.html" />,
-    remastered: <CopycatActivity />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "my-values",
@@ -362,11 +319,9 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS", "JavaScript"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Animations", "Interactive", "Shareable"],
     original: <OriginalFrame src="/originals/my-values/index.html" />,
-    remastered: <MyValues />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
 
   // APIs & BACKEND
@@ -378,11 +333,9 @@ export const PROJECTS: Project[] = [
     year: "Apr 2024",
     category: "api",
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
-    techRemastered: ["TypeScript", "React", "Mock API"],
-    techReimagined: ["Next.js API Routes", "Drizzle", "OpenAPI"],
     original: <ApiOriginal startWith="Music Tour API" />,
-    remastered: <MusicTourApi />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "sql-injection-demo",
@@ -392,11 +345,9 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "api",
     techOriginal: ["Express", "SQLite", "HTML"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Interactive Tutorial", "Sandbox"],
     original: <ApiOriginal startWith="SQL Injection Demo" />,
-    remastered: <SqlInjectionDemo />,
-    reimagined: <SqlInjectionReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "jaskis",
@@ -406,11 +357,9 @@ export const PROJECTS: Project[] = [
     year: "Feb 2024",
     category: "api",
     techOriginal: ["MongoDB", "Express"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["Next.js API Routes", "Drizzle", "CRUD UI"],
     original: <ApiOriginal startWith="JASKIS API" />,
-    remastered: <Jaskis />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
 
   // PYTHON
@@ -421,11 +370,9 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "python",
     techOriginal: ["Python", "Flask"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["Next.js", "Server Actions", "Image Upload"],
     original: <OriginalFrame src="/originals/petfax/index.html" />,
-    remastered: <PetFax />,
-    reimagined: <PetFaxReimagined />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "python-fundamentals",
@@ -434,11 +381,9 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "python",
     techOriginal: ["Python"],
-    techRemastered: ["Python → TypeScript", "Side-by-Side"],
-    techReimagined: ["Next.js", "Interactive REPL"],
     original: <PythonFundamentalsOriginal />,
-    remastered: <PythonFundamentals />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
 
   // EXERCISES
@@ -449,13 +394,11 @@ export const PROJECTS: Project[] = [
     year: "Oct – Dec 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS", "Media Queries"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Interactive Demos"],
     original: (
       <OriginalFrame src="/originals/html-css-fundamentals/hacker-times/index.html" />
     ),
-    remastered: <HtmlCssFundamentals />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "js-dom-events",
@@ -464,13 +407,11 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023 – Feb 2024",
     category: "exercises",
     techOriginal: ["JavaScript", "DOM API", "Fetch"],
-    techRemastered: ["TypeScript", "React", "Interactive Demos"],
-    techReimagined: ["React", "Interactive Tutorial"],
     original: (
       <OriginalFrame src="/originals/js-dom-events/events-demo/1. The Target Element.html" />
     ),
-    remastered: <JsDomEvents />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "react-exercises",
@@ -479,13 +420,11 @@ export const PROJECTS: Project[] = [
     year: "Mar – Apr 2024",
     category: "exercises",
     techOriginal: ["React", "React Router", "Bootstrap", "CRA"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Server Components"],
     original: (
       <OriginalFrame src="/originals/react-exercises/music-search/index.html" />
     ),
-    remastered: <ReactExercises />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "css-responsive-nav",
@@ -494,11 +433,9 @@ export const PROJECTS: Project[] = [
     year: "Jun 2024",
     category: "exercises",
     techOriginal: ["HTML", "CSS", "JavaScript"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "Animated Menu", "Mobile-First"],
     original: <OriginalFrame src="/originals/css-responsive-nav/index.html" />,
-    remastered: <ResponsiveNav />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
   {
     slug: "restaurant-menu",
@@ -507,10 +444,8 @@ export const PROJECTS: Project[] = [
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
-    techRemastered: ["TypeScript", "React", "Tailwind"],
-    techReimagined: ["React", "CMS", "Online Ordering"],
     original: <OriginalFrame src="/originals/restaurant-menu/index.html" />,
-    remastered: <RestaurantMenu />,
-    reimagined: <PlaceholderReimagined title="" />,
+    remastered: COMING_SOON,
+    reimagined: COMING_SOON,
   },
 ];

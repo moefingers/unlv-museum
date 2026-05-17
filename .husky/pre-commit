@@ -1,1 +1,2 @@
 pnpm exec lint-staged
+pnpm exec tsx scripts/verify-locks.ts
