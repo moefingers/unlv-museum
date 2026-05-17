@@ -26,5 +26,13 @@ export default async function ProjectOriginalPage({
   const project = PROJECTS.find((p) => p.slug === slug);
   if (!project) notFound();
 
+  // Backend-only projects redirect to the rich /api-client UI rather than
+  // rendering the simpler embedded ApiExplorer inside the museum chrome.
+  // The `href` field is the project's preferred entry point — the Globe
+  // already uses it as the link target.
+  if (project.href) {
+    redirect(project.href);
+  }
+
   return project.original ?? <UnavailableSlot tier="original" />;
 }
