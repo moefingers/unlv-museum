@@ -11,7 +11,8 @@
     "postinstall": "git submodule update --init --recursive 2>/dev/null || true && git config push.recurseSubmodules check 2>/dev/null || true",
     "sync:source": "tsx scripts/sync-source.ts",
     "sync:source-meta": "tsx scripts/sync-source-meta.ts",
-    "verify:locks": "tsx scripts/verify-locks.ts"
+    "verify:locks": "tsx scripts/verify-locks.ts",
+    "banners:update-index": "tsx scripts/banner-experiments/update-index.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
