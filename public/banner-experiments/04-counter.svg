@@ -11,7 +11,7 @@
   <text class="title" x="40" y="86">SMIL — text counter (the dynimage trick)</text>
   <text class="sub"   x="40" y="130">animate attributeName="textContent" with discrete values + fill="freeze"</text>
   <text class="num" x="760" y="110" text-anchor="end">
-    0
+    412
     <animate attributeName="textContent"
              values="0;47;138;221;347;412"
              dur="1.6s"

@@ -110,7 +110,7 @@
   <g transform="translate(340 268)">
     <text class="meta" x="0" y="0">UNLV Assignment · Jan 2024  ·  </text>
     <text class="stat-num" x="218" y="2">
-      0
+      47
       <animate attributeName="textContent"
                values="0;12;28;41;47"
                dur="1.6s"
