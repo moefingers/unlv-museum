@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="800" height="180" role="img" aria-label="Theme-responsive via prefers-color-scheme">
+  <style>
+    :root {
+      --bg: #fafafa;
+      --text: #0a0a0a;
+      --muted: #525252;
+      --accent: #6366f1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --text: #fafafa;
+        --muted: #a3a3a3;
+        --accent: #a78bfa;
+      }
+    }
+    .bg     { fill: var(--bg); }
+    .label  { font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+    .title  { font: 700 28px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--text); }
+    .sub    { font: 500 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+    .accent { fill: var(--accent); }
+    .accent { animation: spin 5s linear infinite; transform-origin: 720px 90px; }
+    @keyframes spin {
+      from { transform: rotate(0deg);   }
+      to   { transform: rotate(360deg); }
+    }
+  </style>
+  <rect class="bg" width="800" height="180"/>
+  <text class="label" x="40" y="46">Experiment 07</text>
+  <text class="title" x="40" y="86">Theme-responsive — prefers-color-scheme</text>
+  <text class="sub"   x="40" y="130">One URL, both themes. Switch your OS/IDE theme and refresh.</text>
+  <g>
+    <rect class="accent" x="700" y="70" width="40" height="40" rx="6"/>
+  </g>
+</svg>

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" width="800" height="240" role="img" aria-label="Fake-3D rotating globe with project marker">
+  <defs>
+    <radialGradient id="sphere" cx="38%" cy="32%" r="65%">
+      <stop offset="0%"  stop-color="#60a5fa"/>
+      <stop offset="55%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#0c1844"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="30%" cy="22%" r="45%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="40%"  stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="50%" cy="50%" r="50%">
+      <stop offset="85%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.5"/>
+    </radialGradient>
+    <clipPath id="sphereClip">
+      <circle cx="140" cy="120" r="92"/>
+    </clipPath>
+    <style>
+      .bg-fill { fill: #0a0a0a; }
+      .label { font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 28px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .sub   { font: 500 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #737373; }
+    </style>
+  </defs>
+
+  <rect class="bg-fill" width="800" height="240"/>
+
+  <!-- starfield -->
+  <g fill="#ffffff" opacity="0.4">
+    <circle cx="290" cy="40"  r="1"/>
+    <circle cx="380" cy="80"  r="1.5"/>
+    <circle cx="470" cy="30"  r="1"/>
+    <circle cx="560" cy="60"  r="1"/>
+    <circle cx="650" cy="40"  r="1.2"/>
+    <circle cx="730" cy="90"  r="1"/>
+    <circle cx="420" cy="200" r="1.5"/>
+    <circle cx="510" cy="180" r="1"/>
+    <circle cx="630" cy="210" r="1"/>
+    <circle cx="730" cy="180" r="1.2"/>
+  </g>
+
+  <!-- sphere -->
+  <g>
+    <circle cx="140" cy="120" r="92" fill="url(#sphere)"/>
+
+    <!-- continents (clipped to sphere, rotating slowly) -->
+    <g clip-path="url(#sphereClip)">
+      <g transform="translate(140 120)">
+        <g fill="#84cc16" opacity="0.55">
+          <path d="M -60,-40 Q -30,-60 5,-50 Q 30,-40 25,-15 Q 0,-10 -45,-20 Q -65,-30 -60,-40 Z"/>
+          <path d="M 30,-15 Q 55,-5 60,20 Q 50,40 25,35 Q 15,15 20,-5 Q 25,-15 30,-15 Z"/>
+          <path d="M -55,25 Q -30,30 -10,40 Q -25,55 -55,50 Q -65,38 -55,25 Z"/>
+          <path d="M 10,45 Q 30,50 35,65 Q 25,75 5,70 Q -5,55 10,45 Z"/>
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="40s" repeatCount="indefinite"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- fixed gloss highlight (doesn't rotate, sells the 3D look) -->
+    <circle cx="140" cy="120" r="92" fill="url(#gloss)"/>
+    <!-- inner rim shadow -->
+    <circle cx="140" cy="120" r="92" fill="url(#rim)"/>
+  </g>
+
+  <!-- project marker — pulses in place at a fixed lat/long -->
+  <g transform="translate(190 78)">
+    <circle r="14" fill="#fbbf24" opacity="0.25">
+      <animate attributeName="r"       values="10;22;10" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="6" fill="#fbbf24"/>
+    <circle r="2.5" fill="#fffbeb"/>
+  </g>
+
+  <!-- text -->
+  <text class="label" x="290" y="60">Experiment 06</text>
+  <text class="title" x="290" y="100">Fake-3D globe — sphere + clipped rotation + fixed gloss</text>
+  <text class="sub"   x="290" y="140">Continents rotate inside a clipPath; gloss layer never rotates</text>
+  <text class="sub"   x="290" y="166">Marker pulses at a fixed projected coordinate</text>
+  <text class="sub"   x="290" y="192" fill="#525252">Pure SVG primitives, no JS, no external resources</text>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="800" height="180" role="img" aria-label="CSS color cycling on fill">
+  <style>
+    .bg { fill: #0a0a0a; }
+    .label { font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.04em; text-transform: uppercase; }
+    .title { font: 700 28px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+    .sub   { font: 500 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #737373; }
+    .swatch { animation: cycle 6s linear infinite; }
+    @keyframes cycle {
+      0%   { fill: #ef4444; }
+      25%  { fill: #f97316; }
+      50%  { fill: #eab308; }
+      75%  { fill: #22c55e; }
+      100% { fill: #ef4444; }
+    }
+  </style>
+  <rect class="bg" width="800" height="180"/>
+  <text class="label" x="40" y="46">Experiment 03</text>
+  <text class="title" x="40" y="86">CSS @keyframes — fill color cycling</text>
+  <text class="sub"   x="40" y="130">Animating discrete color stops; SVG paints update each keyframe</text>
+  <circle class="swatch" cx="720" cy="90" r="22"/>
+</svg>

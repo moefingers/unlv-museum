@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="800" height="180" role="img" aria-label="SMIL animateTransform rotation">
+  <style>
+    .bg { fill: #0a0a0a; }
+    .label { font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.04em; text-transform: uppercase; }
+    .title { font: 700 28px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+    .sub   { font: 500 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #737373; }
+  </style>
+  <rect class="bg" width="800" height="180"/>
+  <text class="label" x="40" y="46">Experiment 02</text>
+  <text class="title" x="40" y="86">SMIL animateTransform — rotation</text>
+  <text class="sub"   x="40" y="130">Native SVG animation; ignores CSS transform-origin quirks</text>
+  <g transform="translate(720, 90)">
+    <g>
+      <polygon points="0,-22 19,11 -19,11" fill="#f97316"/>
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3.5s" repeatCount="indefinite"/>
+    </g>
+  </g>
+</svg>

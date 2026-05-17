@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="800" height="180" role="img" aria-label="CSS keyframes pulse">
+  <style>
+    .bg { fill: #0a0a0a; }
+    .label { font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a3a3a3; letter-spacing: 0.04em; text-transform: uppercase; }
+    .title { font: 700 28px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+    .dot { fill: #22d3ee; animation: pulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.85); }
+      50%      { opacity: 1.0; transform: scale(1.15); }
+    }
+  </style>
+  <rect class="bg" width="800" height="180"/>
+  <text class="label" x="40" y="46">Experiment 01</text>
+  <text class="title" x="40" y="86">CSS @keyframes — opacity + scale pulse</text>
+  <text class="label" x="40" y="130" fill="#737373">transform-box: fill-box keeps the origin local to each shape</text>
+  <g transform="translate(720, 90)">
+    <circle class="dot" r="20"/>
+  </g>
+</svg>

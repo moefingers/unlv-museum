@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="UNLV Museum project banner mockup">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#a78bfa" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#a78bfa" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="sphere" cx="38%" cy="32%" r="65%">
+      <stop offset="0%"  stop-color="#60a5fa"/>
+      <stop offset="55%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#0c1844"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="30%" cy="22%" r="45%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="40%"  stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="50%" cy="50%" r="50%">
+      <stop offset="85%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
+    </radialGradient>
+    <clipPath id="sphereClip">
+      <circle cx="170" cy="160" r="110"/>
+    </clipPath>
+    <style>
+      .eyebrow   { font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a78bfa; letter-spacing: 0.18em; text-transform: uppercase; }
+      .title     { font: 700 44px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .synopsis  { font: 400 18px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #d4d4d8; }
+      .meta      { font: 500 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a1a1aa; }
+      .meta-strong { font: 700 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .stat-num  { font: 800 22px ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace; fill: #fbbf24; }
+      .tier-label { font: 600 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #d4d4d8; letter-spacing: 0.06em; text-transform: uppercase; }
+      .tier-muted { font: 600 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #525252; letter-spacing: 0.06em; text-transform: uppercase; }
+      .cta       { font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #a78bfa; }
+    </style>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="320" fill="url(#bg)"/>
+
+  <!-- sheen sweep across whole banner -->
+  <rect width="1280" height="320" fill="url(#sheen)">
+    <animateTransform attributeName="transform" type="translate" from="-1280 0" to="1280 0" dur="5.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- starfield -->
+  <g fill="#ffffff" opacity="0.35">
+    <circle cx="380" cy="40"  r="1"/>
+    <circle cx="500" cy="72"  r="1.4"/>
+    <circle cx="620" cy="36"  r="1"/>
+    <circle cx="740" cy="60"  r="1.2"/>
+    <circle cx="880" cy="44"  r="1"/>
+    <circle cx="1020" cy="70" r="1.3"/>
+    <circle cx="1170" cy="48" r="1"/>
+    <circle cx="460" cy="280" r="1"/>
+    <circle cx="700" cy="270" r="1.4"/>
+    <circle cx="950" cy="285" r="1"/>
+    <circle cx="1180" cy="265" r="1.2"/>
+  </g>
+
+  <!-- globe -->
+  <g>
+    <circle cx="170" cy="160" r="110" fill="url(#sphere)"/>
+    <g clip-path="url(#sphereClip)">
+      <g transform="translate(170 160)">
+        <g fill="#84cc16" opacity="0.55">
+          <path d="M -72,-48 Q -36,-72 6,-60 Q 36,-48 30,-18 Q 0,-12 -54,-24 Q -78,-36 -72,-48 Z"/>
+          <path d="M 36,-18 Q 66,-6 72,24 Q 60,48 30,42 Q 18,18 24,-6 Q 30,-18 36,-18 Z"/>
+          <path d="M -66,30 Q -36,36 -12,48 Q -30,66 -66,60 Q -78,46 -66,30 Z"/>
+          <path d="M 12,54 Q 36,60 42,78 Q 30,90 6,84 Q -6,66 12,54 Z"/>
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="48s" repeatCount="indefinite"/>
+        </g>
+      </g>
+    </g>
+    <circle cx="170" cy="160" r="110" fill="url(#gloss)"/>
+    <circle cx="170" cy="160" r="110" fill="url(#rim)"/>
+
+    <!-- project marker -->
+    <g transform="translate(230 110)">
+      <circle r="16" fill="#fbbf24" opacity="0.3">
+        <animate attributeName="r"       values="12;26;12" dur="2.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.4;0;0.4" dur="2.4s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="7" fill="#fbbf24"/>
+      <circle r="2.5" fill="#fffbeb"/>
+    </g>
+  </g>
+
+  <!-- hero text -->
+  <text class="eyebrow" x="340" y="68">UNLV Museum</text>
+  <text class="title"   x="340" y="118">JavaScript &amp; DOM</text>
+  <text class="synopsis" x="340" y="160">This project demonstrates JavaScript event handling, DOM manipulation,</text>
+  <text class="synopsis" x="340" y="184">and OOP fundamentals through interactive web page demos.</text>
+
+  <!-- tier dots -->
+  <g transform="translate(340 222)">
+    <circle cx="6"  cy="0" r="6" fill="#22c55e"/>
+    <text   x="20"  y="5" class="tier-label">Original</text>
+    <circle cx="124" cy="0" r="6" fill="none" stroke="#525252" stroke-width="1.5"/>
+    <text   x="138" y="5" class="tier-muted">Enhanced</text>
+    <circle cx="254" cy="0" r="6" fill="none" stroke="#525252" stroke-width="1.5"/>
+    <text   x="268" y="5" class="tier-muted">Reimagined</text>
+  </g>
+
+  <!-- footer row -->
+  <g transform="translate(340 268)">
+    <text class="meta" x="0" y="0">UNLV Assignment · Jan 2024  ·  </text>
+    <text class="stat-num" x="218" y="2">
+      0
+      <animate attributeName="textContent"
+               values="0;12;28;41;47"
+               dur="1.6s"
+               calcMode="discrete"
+               fill="freeze"
+               begin="0.2s"/>
+    </text>
+    <text class="meta" x="252" y="0">commits added</text>
+  </g>
+
+  <g transform="translate(340 296)">
+    <text class="meta" x="0" y="0">1 of 25 projects · 412 commits across the museum</text>
+  </g>
+
+  <!-- CTA arrow at far right -->
+  <g transform="translate(1180 160)">
+    <text class="cta" x="0" y="0" text-anchor="end">open in the museum →</text>
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="2.8s" repeatCount="indefinite"/>
+  </g>
+</svg>
