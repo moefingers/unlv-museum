@@ -1,25 +1,24 @@
 .vertical {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--collapsible-duration, 300ms) ease-out;
+  height: 0;
+  overflow: clip;
+  transition: height var(--collapsible-duration, 300ms) ease-out;
 }
 
 .vertical.open {
-  grid-template-rows: 1fr;
+  height: auto;
 }
 
 .horizontal {
-  display: grid;
-  grid-template-columns: 0fr;
-  transition: grid-template-columns var(--collapsible-duration, 300ms) ease-out;
+  width: 0;
+  overflow: clip;
+  transition: width var(--collapsible-duration, 300ms) ease-out;
 }
 
 .horizontal.open {
-  grid-template-columns: 1fr;
+  width: auto;
 }
 
 .inner {
-  overflow: clip;
   min-height: 0;
   min-width: 0;
 }
