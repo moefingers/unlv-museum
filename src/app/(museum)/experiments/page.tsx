@@ -1,52 +1,34 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
-
 interface Gallery {
-  dir: string;
   title: string;
   href: string;
-  sample: string | null;
-  count: number;
+  sample: string;
 }
 
-/**
- * Auto-discovers every `public/banner-experiments*` directory that has an
- * `index.html`. Each becomes a card on /experiments. Picks a roughly-middle
- * SVG as the sample so it represents the gallery rather than the very first
- * or last iteration.
- */
-function discoverGalleries(): Gallery[] {
-  const publicDir = join(process.cwd(), "public");
-  return readdirSync(publicDir)
-    .filter((name) => name.includes("banner-experiments"))
-    .filter((name) => {
-      const full = join(publicDir, name);
-      return (
-        statSync(full).isDirectory() && existsSync(join(full, "index.html"))
-      );
-    })
-    .map((name) => {
-      const full = join(publicDir, name);
-      const svgs = readdirSync(full)
-        .filter((f) => f.endsWith(".svg"))
-        .sort();
-      const sample = svgs[Math.floor(svgs.length / 2)] ?? null;
-      const title = name
-        .replace(/-/g, " ")
-        .replace(/\bbanner experiments\b/i, "Banner experiments");
-      return {
-        dir: name,
-        title,
-        href: `/${name}/`,
-        sample: sample ? `/${name}/${sample}` : null,
-        count: svgs.length,
-      };
-    })
-    .sort((a, b) => a.dir.localeCompare(b.dir));
-}
+const GALLERIES: Gallery[] = [
+  {
+    title: "Banner experiments",
+    href: "/banner-experiments/",
+    sample: "/banner-experiments/15-multi-300x140x9_150x50x6.svg",
+  },
+  {
+    title: "Banner experiments — v2",
+    href: "/banner-experiments-v2/",
+    sample: "/banner-experiments-v2/step5b-primitive-precess.svg",
+  },
+  {
+    title: "Banner experiments — v3",
+    href: "/banner-experiments-v3/",
+    sample:
+      "/banner-experiments-v3/v3-300x140x9-staticx1_150x80x6-staticx-1@24s_60x35x4-precess@12s.svg",
+  },
+  {
+    title: "Verified banner experiments",
+    href: "/verified-banner-experiments/",
+    sample: "/verified-banner-experiments/11.1-globe-spin-y-axis.svg",
+  },
+];
 
 export default function ExperimentsPage() {
-  const galleries = discoverGalleries();
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-12">
       <h1 className="mb-2 text-2xl font-semibold">Experiments</h1>
@@ -55,8 +37,8 @@ export default function ExperimentsPage() {
         gallery lazy-mounts items as they scroll into view.
       </p>
       <ul className="grid gap-4 sm:grid-cols-2">
-        {galleries.map((g) => (
-          <li key={g.dir}>
+        {GALLERIES.map((g) => (
+          <li key={g.href}>
             <a
               href={g.href}
               className="block overflow-hidden rounded-lg border border-zinc-200 bg-white transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
@@ -65,20 +47,11 @@ export default function ExperimentsPage() {
                 className="grid place-items-center bg-zinc-50 p-4 dark:bg-zinc-950"
                 style={{ aspectRatio: "16/7" }}
               >
-                {g.sample && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={g.sample}
-                    alt=""
-                    className="max-h-full max-w-full"
-                  />
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={g.sample} alt="" className="max-h-full max-w-full" />
               </div>
               <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
                 <h2 className="font-medium">{g.title}</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {g.count} SVG{g.count === 1 ? "" : "s"}
-                </p>
               </div>
             </a>
           </li>
