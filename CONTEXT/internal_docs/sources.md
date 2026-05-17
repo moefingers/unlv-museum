@@ -38,6 +38,23 @@ unlv-museum/                                     ← this repo
     └── verify-locks.ts                          ← pre-commit hash check
 ```
 
+### Canonical GitHub-side conventions per source repo
+
+Each converted source repo has two branches and one canonical metadata shape, applied by `pnpm sync:source-meta <slug>` (idempotent — safe to re-run anytime).
+
+| Element               | Value                                                                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branch `original`     | The unmodified academic record. Renamed from the legacy default (`main`/`master`/`shepherd`). GitHub's rename API preserves history, PR refs, and creates redirects.              |
+| Branch `museum-ready` | The hosted version with the Node-LTS floor + pnpm + hosting-compat fixes applied. **Set as the GitHub default branch** — visitors who open `github.com/<owner>/<repo>` land here. |
+| Website (homepage)    | `https://unlv-museum.infinite-syndicate.com/<slug>` — points back at the museum entry that displays this repo.                                                                    |
+| Description prefix    | `🏛️ unlv-museum:` — makes the museum membership visible in any GitHub repo listing.                                                                                               |
+
+Mental model:
+
+- `original` is the past — what was turned in for class. You can `git checkout original` on any source repo to see exactly what was written, byte for byte.
+- `museum-ready` is the present — what builds and runs against today's web. The diff `git diff original..museum-ready` documents exactly what changed for hosting.
+- The museum entry is the visible artifact — built from `museum-ready`, served from `public/originals/<slug>/`.
+
 ### What `museum-ready` is allowed to do
 
 - **Required floor**: build cleanly on a currently-supported Node LTS. The branch must build on the version pinned in its `.nvmrc`.
@@ -122,6 +139,14 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
         sync.config.ts.
    9.2  Commit. Pre-push hook verifies submodule was already pushed in step 5.2.
    9.3  git push.
+
+10. Apply canonical GitHub conventions
+   10.1 pnpm sync:source-meta <slug>
+        - Renames legacy default branch → `original`
+        - Sets `museum-ready` as the GitHub default branch
+        - Sets the Website (homepage) field to the museum entry URL
+        - Prefixes the repo description with 🏛️ unlv-museum:
+   10.2 Idempotent: safe to re-run on already-converted repos.
 ```
 
 ### Recipe shapes
