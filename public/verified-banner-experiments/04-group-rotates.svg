@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Group of 4 dots rotates around the center">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">04 · animateTransform rotate</text>
+  <text class="title" x="24" y="60">Group of 4 dots rotates around the center</text>
+  <text class="ok"    x="24" y="86">✓ Expected: Four colored dots in a cross pattern rotate together around the center.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Dots stay still or rotate around the wrong pivot.</text>
+  
+  <g transform="translate(400 220)">
+    <g>
+      <circle cx="60" cy="0" r="8" fill="#ef4444"/>
+      <circle cx="0" cy="60" r="8" fill="#22c55e"/>
+      <circle cx="-60" cy="0" r="8" fill="#3b82f6"/>
+      <circle cx="0" cy="-60" r="8" fill="#eab308"/>
+      <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="4s" repeatCount="indefinite"/>
+    </g>
+  </g>
+</svg>

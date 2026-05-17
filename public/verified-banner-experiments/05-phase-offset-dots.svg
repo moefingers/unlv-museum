@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Five dots pulse with phase-offset timing">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">05 · begin offset</text>
+  <text class="title" x="24" y="60">Five dots pulse with phase-offset timing</text>
+  <text class="ok"    x="24" y="86">✓ Expected: Five dots pulse in sequence (left → right wave), then loop.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: All dots pulse in unison or stay still.</text>
+  <circle cx="200" cy="220" r="6" fill="#fafafa"><animate attributeName="r" values="6; 16; 6" keyTimes="0; 0.5; 1" dur="2.5s" begin="0.0s" repeatCount="indefinite"/></circle>
+  <circle cx="300" cy="220" r="6" fill="#fafafa"><animate attributeName="r" values="6; 16; 6" keyTimes="0; 0.5; 1" dur="2.5s" begin="0.2s" repeatCount="indefinite"/></circle>
+  <circle cx="400" cy="220" r="6" fill="#fafafa"><animate attributeName="r" values="6; 16; 6" keyTimes="0; 0.5; 1" dur="2.5s" begin="0.4s" repeatCount="indefinite"/></circle>
+  <circle cx="500" cy="220" r="6" fill="#fafafa"><animate attributeName="r" values="6; 16; 6" keyTimes="0; 0.5; 1" dur="2.5s" begin="0.6s" repeatCount="indefinite"/></circle>
+  <circle cx="600" cy="220" r="6" fill="#fafafa"><animate attributeName="r" values="6; 16; 6" keyTimes="0; 0.5; 1" dur="2.5s" begin="0.8s" repeatCount="indefinite"/></circle>
+</svg>

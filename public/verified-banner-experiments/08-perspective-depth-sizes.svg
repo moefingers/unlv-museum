@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="5 dots at z = −80…+80, projected with D=360">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">08 · perspective scale</text>
+  <text class="title" x="24" y="60">5 dots at z = −80…+80, projected with D=360</text>
+  <text class="ok"    x="24" y="86">✓ Expected: Dots at higher z (forward) are bigger; at lower z (back) are smaller. Sizes vary monotonically left → right.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: All dots same size, or sizes increase backwards.</text>
+  <line x1="100" y1="220" x2="700" y2="220" class="frame-edge"/>
+  <circle cx="269.1" cy="220.0" r="8.2" fill="#fafafa"/>
+  <text x="269.1" y="248.0" font-family="ui-monospace, monospace" font-size="11" fill="#737373" text-anchor="middle">z=-80</text>
+  <circle cx="328.0" cy="220.0" r="9.0" fill="#fafafa"/>
+  <text x="328.0" y="248.0" font-family="ui-monospace, monospace" font-size="11" fill="#737373" text-anchor="middle">z=-40</text>
+  <circle cx="400.0" cy="220.0" r="10.0" fill="#fafafa"/>
+  <text x="400.0" y="248.0" font-family="ui-monospace, monospace" font-size="11" fill="#737373" text-anchor="middle">z=0</text>
+  <circle cx="490.0" cy="220.0" r="11.3" fill="#fafafa"/>
+  <text x="490.0" y="248.0" font-family="ui-monospace, monospace" font-size="11" fill="#737373" text-anchor="middle">z=40</text>
+  <circle cx="605.7" cy="220.0" r="12.9" fill="#fafafa"/>
+  <text x="605.7" y="248.0" font-family="ui-monospace, monospace" font-size="11" fill="#737373" text-anchor="middle">z=80</text>
+</svg>

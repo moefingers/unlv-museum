@@ -13,7 +13,9 @@
     "sync:source-meta": "tsx scripts/sync-source-meta.ts",
     "verify:locks": "tsx scripts/verify-locks.ts",
     "banners:update-index": "tsx scripts/banner-experiments/update-index.mts",
-    "banners:update-index-v2": "tsx scripts/banner-experiments-v2/update-index.mts"
+    "banners:update-index-v2": "tsx scripts/banner-experiments-v2/update-index.mts",
+    "banners:update-index-v3": "tsx scripts/banner-experiments-v3/update-index.mts",
+    "banners:update-index-verified": "tsx scripts/verified-banner-experiments/update-index.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

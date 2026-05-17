@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="A single closed triangle (stroke only)">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">09 · path Z</text>
+  <text class="title" x="24" y="60">A single closed triangle (stroke only)</text>
+  <text class="ok"    x="24" y="86">✓ Expected: An equilateral-ish triangle outlined in white.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Filled shape, missing edge, or no triangle at all.</text>
+  <polygon points="400,140 470,260 330,260" fill="none" stroke="#fafafa" stroke-width="1.5"/>
+</svg>

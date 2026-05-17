@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Flat 2D triangle mesh (no 3D)">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">10 · triangle grid</text>
+  <text class="title" x="24" y="60">Flat 2D triangle mesh (no 3D)</text>
+  <text class="ok"    x="24" y="86">✓ Expected: An offset-rows triangle grid (alternating up/down triangles), drawn as wireframe.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Disconnected lines, missing rows, or no triangles.</text>
+  <polygon points="250,160 300,160 275,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="300,160 325,200 275,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="300,160 350,160 325,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="350,160 375,200 325,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="350,160 400,160 375,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="400,160 425,200 375,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="400,160 450,160 425,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="450,160 475,200 425,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="450,160 500,160 475,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="500,160 525,200 475,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="500,160 550,160 525,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="550,160 575,200 525,200" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="275,200 325,200 250,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="325,200 300,240 250,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="325,200 375,200 300,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="375,200 350,240 300,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="375,200 425,200 350,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="425,200 400,240 350,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="425,200 475,200 400,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="475,200 450,240 400,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="475,200 525,200 450,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="525,200 500,240 450,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="525,200 575,200 500,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="575,200 550,240 500,240" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="250,240 300,240 275,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="300,240 325,280 275,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="300,240 350,240 325,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="350,240 375,280 325,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="350,240 400,240 375,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="400,240 425,280 375,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="400,240 450,240 425,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="450,240 475,280 425,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="450,240 500,240 475,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="500,240 525,280 475,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="500,240 550,240 525,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+  <polygon points="550,240 575,280 525,280" fill="none" stroke="#fafafa" stroke-width="0.75" opacity="0.7"/>
+</svg>

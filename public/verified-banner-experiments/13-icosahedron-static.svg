@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Icosahedron wireframe (12 verts, 30 edges)">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">13 · icosphere edges</text>
+  <text class="title" x="24" y="60">Icosahedron wireframe (12 verts, 30 edges)</text>
+  <text class="ok"    x="24" y="86">✓ Expected: A roughly spherical wireframe of 30 white edges between 12 vertex dots. Back-facing edges faded.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Wrong vertex count, missing edges, or no spherical structure.</text>
+  <line x1="400.0" y1="190.7" x2="400.0" y2="301.4" stroke="#fafafa" stroke-width="0.8" opacity="1.00"/>
+  <line x1="400.0" y1="190.7" x2="450.5" y2="142.0" stroke="#fafafa" stroke-width="0.8" opacity="0.93"/>
+  <line x1="400.0" y1="190.7" x2="349.5" y2="142.0" stroke="#fafafa" stroke-width="0.8" opacity="0.93"/>
+  <line x1="400.0" y1="190.7" x2="487.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="1.00"/>
+  <line x1="400.0" y1="190.7" x2="312.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="1.00"/>
+  <line x1="400.0" y1="161.5" x2="400.0" y2="237.9" stroke="#fafafa" stroke-width="0.8" opacity="0.00"/>
+  <line x1="400.0" y1="161.5" x2="450.5" y2="142.0" stroke="#fafafa" stroke-width="0.8" opacity="0.07"/>
+  <line x1="400.0" y1="161.5" x2="349.5" y2="142.0" stroke="#fafafa" stroke-width="0.8" opacity="0.07"/>
+  <line x1="400.0" y1="161.5" x2="468.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.00"/>
+  <line x1="400.0" y1="161.5" x2="332.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.00"/>
+  <line x1="400.0" y1="301.4" x2="444.5" y2="288.7" stroke="#fafafa" stroke-width="0.8" opacity="0.93"/>
+  <line x1="400.0" y1="301.4" x2="355.5" y2="288.7" stroke="#fafafa" stroke-width="0.8" opacity="0.93"/>
+  <line x1="400.0" y1="301.4" x2="487.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="1.00"/>
+  <line x1="400.0" y1="301.4" x2="312.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="1.00"/>
+  <line x1="400.0" y1="237.9" x2="444.5" y2="288.7" stroke="#fafafa" stroke-width="0.8" opacity="0.07"/>
+  <line x1="400.0" y1="237.9" x2="355.5" y2="288.7" stroke="#fafafa" stroke-width="0.8" opacity="0.07"/>
+  <line x1="400.0" y1="237.9" x2="468.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.00"/>
+  <line x1="400.0" y1="237.9" x2="332.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.00"/>
+  <line x1="450.5" y1="142.0" x2="349.5" y2="142.0" stroke="#fafafa" stroke-width="0.8" opacity="0.50"/>
+  <line x1="450.5" y1="142.0" x2="487.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="0.76"/>
+  <line x1="450.5" y1="142.0" x2="468.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.24"/>
+  <line x1="444.5" y1="288.7" x2="355.5" y2="288.7" stroke="#fafafa" stroke-width="0.8" opacity="0.50"/>
+  <line x1="444.5" y1="288.7" x2="487.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="0.76"/>
+  <line x1="444.5" y1="288.7" x2="468.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.24"/>
+  <line x1="349.5" y1="142.0" x2="312.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="0.76"/>
+  <line x1="349.5" y1="142.0" x2="332.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.24"/>
+  <line x1="355.5" y1="288.7" x2="312.5" y2="236.2" stroke="#fafafa" stroke-width="0.8" opacity="0.76"/>
+  <line x1="355.5" y1="288.7" x2="332.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.24"/>
+  <line x1="487.5" y1="236.2" x2="468.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.50"/>
+  <line x1="312.5" y1="236.2" x2="332.0" y2="207.4" stroke="#fafafa" stroke-width="0.8" opacity="0.50"/>
+  <circle cx="400.0" cy="190.7" r="2" fill="#fafafa"/><circle cx="400.0" cy="161.5" r="2" fill="#fafafa"/><circle cx="400.0" cy="301.4" r="2" fill="#fafafa"/><circle cx="400.0" cy="237.9" r="2" fill="#fafafa"/><circle cx="450.5" cy="142.0" r="2" fill="#fafafa"/><circle cx="444.5" cy="288.7" r="2" fill="#fafafa"/><circle cx="349.5" cy="142.0" r="2" fill="#fafafa"/><circle cx="355.5" cy="288.7" r="2" fill="#fafafa"/><circle cx="487.5" cy="236.2" r="2" fill="#fafafa"/><circle cx="468.0" cy="207.4" r="2" fill="#fafafa"/><circle cx="312.5" cy="236.2" r="2" fill="#fafafa"/><circle cx="332.0" cy="207.4" r="2" fill="#fafafa"/>
+</svg>

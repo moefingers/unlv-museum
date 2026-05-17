@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Each vertex breathes on its own phase">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">16 · per-vertex phase</text>
+  <text class="title" x="24" y="60">Each vertex breathes on its own phase</text>
+  <text class="ok"    x="24" y="86">✓ Expected: Different dots pulse in and out at different times — a shimmering / rippling sphere of dots.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: All dots pulse together (no phase offset) or none pulse.</text>
+  <circle cx="400.0" cy="131.1" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.00s" repeatCount="indefinite"/></circle>
+  <circle cx="423.2" cy="132.8" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.09s" repeatCount="indefinite"/></circle>
+  <circle cx="353.0" cy="140.0" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.15s" repeatCount="indefinite"/></circle>
+  <circle cx="447.1" cy="148.1" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.21s" repeatCount="indefinite"/></circle>
+  <circle cx="358.8" cy="162.3" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.39s" repeatCount="indefinite"/></circle>
+  <circle cx="464.4" cy="156.6" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.45s" repeatCount="indefinite"/></circle>
+  <circle cx="432.7" cy="183.0" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.60s" repeatCount="indefinite"/></circle>
+  <circle cx="318.1" cy="184.9" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.75s" repeatCount="indefinite"/></circle>
+  <circle cx="486.0" cy="187.7" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.84s" repeatCount="indefinite"/></circle>
+  <circle cx="375.8" cy="216.1" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-0.99s" repeatCount="indefinite"/></circle>
+  <circle cx="470.7" cy="226.6" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.20s" repeatCount="indefinite"/></circle>
+  <circle cx="323.3" cy="235.3" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.35s" repeatCount="indefinite"/></circle>
+  <circle cx="415.5" cy="263.0" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.59s" repeatCount="indefinite"/></circle>
+  <circle cx="310.1" cy="241.7" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.71s" repeatCount="indefinite"/></circle>
+  <circle cx="484.4" cy="255.9" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.80s" repeatCount="indefinite"/></circle>
+  <circle cx="356.4" cy="282.3" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-1.95s" repeatCount="indefinite"/></circle>
+  <circle cx="443.4" cy="292.7" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-2.16s" repeatCount="indefinite"/></circle>
+  <circle cx="333.9" cy="285.4" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-2.34s" repeatCount="indefinite"/></circle>
+  <circle cx="394.3" cy="310.7" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-2.55s" repeatCount="indefinite"/></circle>
+  <circle cx="432.7" cy="304.9" r="3" fill="#fafafa"><animate attributeName="r" values="2; 4.5; 2" keyTimes="0; 0.5; 1" dur="3s" begin="-2.79s" repeatCount="indefinite"/></circle>
+</svg>

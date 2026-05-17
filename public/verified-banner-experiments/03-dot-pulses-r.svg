@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Dot pulses its radius">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">03 · animate r</text>
+  <text class="title" x="24" y="60">Dot pulses its radius</text>
+  <text class="ok"    x="24" y="86">✓ Expected: A single dot smoothly grows and shrinks (r=6 → 18 → 6).</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Dot doesn't change size, or sizes are wrong.</text>
+  
+  <circle cx="400" cy="220" r="6" fill="#fafafa">
+    <animate attributeName="r" values="6; 18; 6" keyTimes="0; 0.5; 1" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>

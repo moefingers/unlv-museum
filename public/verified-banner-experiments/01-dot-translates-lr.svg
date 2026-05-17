@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-label="Dot translates left → right">
+  <defs>
+    <style>
+      .bg { fill: #050505; }
+      .label { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #6b7280; letter-spacing: 0.04em; text-transform: uppercase; }
+      .title { font: 700 20px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
+      .ok { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #86efac; }
+      .fail { font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fca5a5; }
+      .frame-edge { fill: none; stroke: #1f1f23; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect class="bg" width="800" height="320"/>
+  <text class="label" x="24" y="32">01 · animate cx</text>
+  <text class="title" x="24" y="60">Dot translates left → right</text>
+  <text class="ok"    x="24" y="86">✓ Expected: A single white dot slides left → right and snaps back, repeating.</text>
+  <text class="fail"  x="24" y="106">✗ If broken: Dot is missing, static, or jumping erratically.</text>
+  
+  <line x1="100" y1="220" x2="700" y2="220" class="frame-edge"/>
+  <circle cx="100" cy="220" r="10" fill="#fafafa">
+    <animate attributeName="cx" from="100" to="700" dur="3s" repeatCount="indefinite"/>
+  </circle>
+</svg>

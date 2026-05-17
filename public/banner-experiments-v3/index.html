@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Banner experiments v2</title>
+    <title>Banner experiments v3</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -54,31 +54,16 @@
       }
       figcaption a { color: inherit; text-decoration: none; }
       figcaption a:hover { color: var(--fg); }
-      .back { color: var(--muted); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 12px; }
-      .back:hover { color: var(--fg); }
     </style>
   </head>
   <body>
-    <a class="back" href="/experiments">← back to experiments</a>
-    <h1>Banner experiments v2 — stepwise light validation</h1>
+    <h1>Banner experiments v3 — multi-sphere, per-bead L recompute</h1>
     <p class="meta" id="meta">Loading…</p>
     <div class="grid" id="grid"></div>
 
     <script>
       const files = [
-        "step1-equator-directional.svg",
-        "step2-equator-point-light.svg",
-        "step3-fibonacci-point-light.svg",
-        "step4-beads-spin-L0_30_300.svg",
-        "step4-beads-spin-L0_n130_220.svg",
-        "step4-beads-spin-L110_90_200.svg",
-        "step4-beads-spin.svg",
-        "step5-axis-spin.svg",
-        "step5b-primitive-precess.svg",
-        "step6-nutate.svg",
-        "step6-tumble.svg",
-        "step6-wobble.svg",
-        "step7-globe-spin-primitive.svg",
+        "v3-300x140x9-staticx1_150x80x6-staticx-1@24s_60x35x4-precess@12s.svg",
       ];
 
       const grid = document.getElementById("grid");
