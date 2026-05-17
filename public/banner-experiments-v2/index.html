@@ -85,8 +85,11 @@
       const meta = document.getElementById("meta");
       meta.textContent = `${files.length} SVGs — only mounted while visible`;
 
+      // Resolve filenames to absolute paths so they work whether the URL
+      // ends with a trailing slash or not (Vercel strips it by default).
+      const basePath = location.pathname.replace(/\/[^/]*$/, '') + '/';
       const figs = files.map((name) => {
-        const href = encodeURI(name);
+        const href = basePath + encodeURI(name);
         const fig = document.createElement("figure");
         fig.dataset.href = href;
         fig.dataset.name = name;
