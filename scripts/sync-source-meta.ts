@@ -35,7 +35,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PROJECTS } from "../src/lib/projects";
+import { PROJECTS, formatProjectDate, getSourceRef } from "../src/lib/projects";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
@@ -319,13 +319,16 @@ function applyHomepageAndDescription(
 
 /**
  * Compose the GitHub repo description from project metadata.
- * Shape: "Now hosted in my UNLV Museum - ${synopsis} (UNLV Assignment, ${year})"
- * Returns null when synopsis is missing — caller leaves description untouched.
+ * Shape: "Now hosted in my UNLV Museum - ${synopsis} (UNLV Assignment, ${date})"
+ * Date cascade: owner commit range on `original` → fork creation date →
+ * manual Project.year override. Returns null when synopsis is missing.
  */
 function buildDescription(slug: string): string | null {
   const project = PROJECTS.find((p) => p.slug === slug);
   if (!project?.synopsis) return null;
-  return `Now hosted in my UNLV Museum - ${project.synopsis} (UNLV Assignment, ${project.year})`;
+  const ref = getSourceRef(slug);
+  const date = (ref && formatProjectDate(ref)) ?? project.year;
+  return `Now hosted in my UNLV Museum - ${project.synopsis} (UNLV Assignment, ${date})`;
 }
 
 function applyTopics(_slug: string, repo: string) {

@@ -32,6 +32,11 @@ import { recipes, type Recipe } from "../sync.config.ts";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
 
+/** GitHub username used to attribute commits as "ours" for date derivation. */
+const OWNER_USERNAME = "moefingers";
+/** Branch to mine for owner-authored commit dates. */
+const ORIGINAL_BRANCH = "original";
+
 const slug = process.argv[2];
 if (!slug) {
   console.error("usage: pnpm sync:source <slug>");
@@ -83,15 +88,29 @@ const commit = readSubmoduleCommit(recipe);
 const branch =
   recipe.type === "patch-only" ? null : readSubmoduleBranch(recipe);
 const repo = recipe.type === "patch-only" ? null : readSubmoduleRepo(recipe);
+const submoduleRoot =
+  recipe.type === "patch-only" ? null : findSubmoduleRootForRecipe(recipe);
+const ownerCommitRange = submoduleRoot
+  ? readOwnerCommitRange(submoduleRoot)
+  : null;
+const forkedAt = repo ? readRepoCreatedAt(repo) : null;
 
 const sourcesPath = resolve(projectRoot, "src/lib/sources.generated.json");
 const sources = JSON.parse(readFileSync(sourcesPath, "utf8")) as Record<
   string,
-  { repo: string; branch: string; commit: string; lockHash: string }
+  SourceRecord
 >;
 
 if (commit && repo && branch) {
-  sources[slug] = { repo, branch, commit, lockHash };
+  sources[slug] = {
+    repo,
+    branch,
+    commit,
+    lockHash,
+    ownerFirstCommit: ownerCommitRange?.first ?? null,
+    ownerLastCommit: ownerCommitRange?.last ?? null,
+    forkedAt,
+  };
 } else {
   // patch-only: still record the lockHash for drift detection, with synthetic placeholders.
   sources[slug] = {
@@ -99,6 +118,9 @@ if (commit && repo && branch) {
     branch: "(museum-side patch-only)",
     commit: "(museum-side patch-only)",
     lockHash,
+    ownerFirstCommit: null,
+    ownerLastCommit: null,
+    forkedAt: null,
   };
 }
 
@@ -109,8 +131,84 @@ console.log(`[sync] ${slug}: done.`);
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
+interface SourceRecord {
+  repo: string;
+  branch: string;
+  commit: string;
+  lockHash: string;
+  /** ISO date (YYYY-MM-DD) of owner's first commit on `original`, or null. */
+  ownerFirstCommit: string | null;
+  /** ISO date (YYYY-MM-DD) of owner's last commit on `original`, or null. */
+  ownerLastCommit: string | null;
+  /** ISO date the GitHub repo was created (fork date for forks), or null. */
+  forkedAt: string | null;
+}
+
 type StaticCopy = Extract<Recipe, { type: "static-copy" }>;
 type BuildRecipe = Extract<Recipe, { type: "cra-build" | "vite-build" }>;
+
+function findSubmoduleRootForRecipe(recipe: Recipe): string | null {
+  if (recipe.type === "patch-only") return null;
+  const start =
+    recipe.type === "static-copy"
+      ? resolve(projectRoot, recipe.from)
+      : resolve(projectRoot, recipe.cwd);
+  return findSubmoduleRoot(start);
+}
+
+/**
+ * First and last commit dates (YYYY-MM-DD) authored by OWNER_USERNAME on
+ * the local `original` branch. Returns null when the owner has no commits
+ * on `original` — typical for forks of starter-code where the owner did
+ * the actual coursework off-git or only touched museum-ready/original.
+ */
+function readOwnerCommitRange(
+  submoduleRoot: string,
+): { first: string; last: string } | null {
+  try {
+    // Try local `original`, fall back to `origin/original` for fresh clones.
+    const refCandidates = [ORIGINAL_BRANCH, `origin/${ORIGINAL_BRANCH}`];
+    let dates: string[] = [];
+    for (const ref of refCandidates) {
+      try {
+        const out = execSync(
+          `git log --author=${OWNER_USERNAME} --pretty=%ad --date=short ${ref}`,
+          { cwd: submoduleRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+        ).trim();
+        if (out) {
+          dates = out.split("\n").filter(Boolean);
+          break;
+        }
+      } catch {
+        // ref doesn't exist locally; try next
+      }
+    }
+    if (dates.length === 0) return null;
+    // git log emits newest-first; last entry is the first commit chronologically.
+    const last = dates[0]!;
+    const first = dates[dates.length - 1]!;
+    return { first, last };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Repo `created_at` from GitHub — the fork date for forks. Falls back to
+ * null if `gh` isn't available or the API call fails. ISO YYYY-MM-DD.
+ */
+function readRepoCreatedAt(repo: string): string | null {
+  try {
+    const out = execSync(`gh api repos/${repo} --jq .created_at`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (!out) return null;
+    return out.slice(0, 10); // YYYY-MM-DD
+  } catch {
+    return null;
+  }
+}
 
 function syncStaticCopy(recipe: StaticCopy) {
   const from = resolve(projectRoot, recipe.from);

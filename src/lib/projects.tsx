@@ -17,6 +17,58 @@ export interface SourceRef {
   branch: string; // typically "museum-ready"
   commit: string; // SHA pinned at last sync
   lockHash: string; // sha256 of public/originals/<slug>/
+  /** ISO YYYY-MM-DD of owner's first commit on `original`, or null. */
+  ownerFirstCommit: string | null;
+  /** ISO YYYY-MM-DD of owner's last commit on `original`, or null. */
+  ownerLastCommit: string | null;
+  /** ISO YYYY-MM-DD of GitHub repo creation (= fork date for forks), or null. */
+  forkedAt: string | null;
+}
+
+/**
+ * Pretty-format the display date for a project using a cascade:
+ *   1. Owner has commits on `original` → first-to-last range (or single date
+ *      if same month).
+ *   2. No owner commits (forked starter) → fork creation date.
+ *   3. Manual `Project.year` override wins when set; this function only
+ *      handles the derived-from-git path.
+ *
+ * Returns null when no derivable date is available — caller falls back.
+ */
+export function formatProjectDate(ref: SourceRef): string | null {
+  if (ref.ownerFirstCommit && ref.ownerLastCommit) {
+    return formatDateRange(ref.ownerFirstCommit, ref.ownerLastCommit);
+  }
+  if (ref.forkedAt) return formatMonthYear(ref.forkedAt);
+  return null;
+}
+
+function formatMonthYear(iso: string): string {
+  // iso is YYYY-MM-DD; parse as UTC to avoid TZ shifts at month boundaries.
+  const [y, m] = iso.split("-").map(Number);
+  if (!y || !m) return iso;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[m - 1]} ${y}`;
+}
+
+function formatDateRange(firstIso: string, lastIso: string): string {
+  const first = formatMonthYear(firstIso);
+  const last = formatMonthYear(lastIso);
+  if (first === last) return first;
+  return `${first} – ${last}`;
 }
 
 export interface Project {
