@@ -15,7 +15,7 @@
 // Narrower aspect (3:1) helps on small displays — the README scales the
 // banner to its container width, so a too-wide intrinsic ratio crushes
 // the rendered height to illegible at mobile widths.
-const W = 1080;
+const W = 700;
 const H = 360;
 const RX = 100;
 const D = 4 * RX;
