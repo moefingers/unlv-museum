@@ -2,8 +2,8 @@
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready/original",
-    "commit": "bf6939092d2a9ce4ed87b3dd550454642b5a2f42",
-    "lockHash": "sha256:a975cf099decc9688510685dc35087b3a691e502b1f89b7eec25187177033388",
+    "commit": "f89365530582dd8b3a47526f6c3cb85459fff94b",
+    "lockHash": "sha256:6571ffdae17e623ac761ced2e65467722692b1456b03725262ff1e773a01fef0",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"

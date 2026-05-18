@@ -33,6 +33,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PROJECTS, formatProjectDate, getSourceRef } from "../src/lib/projects";
@@ -112,7 +113,7 @@ function applyMeta(slug: string, info: SourceRef) {
   applyDefaultBranch(slug, repo);
   applyHomepageAndDescription(slug, repo, homepage);
   applyTopics(slug, repo);
-  applyReadmeBanner(slug, repo, homepage);
+  applyReadmeBanner(slug, repo, homepage, info);
 }
 
 /**
@@ -353,7 +354,12 @@ function applyTopics(_slug: string, repo: string) {
   );
 }
 
-function applyReadmeBanner(slug: string, repo: string, homepage: string) {
+function applyReadmeBanner(
+  slug: string,
+  repo: string,
+  homepage: string,
+  info: SourceRef,
+) {
   // Submodule path follows convention: .sources/<lastPathSegment>
   const submoduleDir = repo.split("/")[1];
   if (!submoduleDir) {
@@ -413,16 +419,32 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   // color scheme to <img>-loaded SVGs reliably. <picture>'s source media
   // selectors DO respect the github.com page's prefers-color-scheme, so the
   // browser picks the right variant before fetching.
+  //
+  // Cache-bust suffix `?v=<hash>` busts camo whenever EITHER the source
+  // content (lockHash) OR the banner-relevant project metadata changes.
+  const bustHash = createHash("sha256")
+    .update(
+      JSON.stringify({
+        lockHash: info.lockHash,
+        title: project?.title ?? "",
+        synopsis: project?.synopsis ?? "",
+        year: project?.year ?? "",
+        plannedTiers: project?.plannedTiers ?? null,
+        techOriginal: project?.techOriginal ?? null,
+      }),
+    )
+    .digest("hex")
+    .slice(0, 10);
   const bannerBase = `${MUSEUM_BASE_URL}/github-banners/${slug}`;
   const banner = `${BANNER_START}
 <a href="${homepage}" target="_blank" rel="noopener">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="${bannerBase}?theme=dark">
-    <img src="${bannerBase}?theme=light" alt="${altText}" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="${bannerBase}?theme=dark&v=${bustHash}">
+    <img src="${bannerBase}?theme=light&v=${bustHash}" alt="${altText}" width="100%">
   </picture>
 </a>
 
-> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in museum→](${homepage})
+> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in museum →](${homepage})
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");
