@@ -1,16 +1,10 @@
 /**
- * Prototype: 14.3 KNN mesh + a few colored points orbiting on an outer
- * radius with backface fade, so they read as travelling behind the sphere.
+ * Museum-header banner prototype — KNN mesh sphere on the right with
+ * orbiting colored points, transparent background, project text + stats
+ * on the left.
  *
- * Each orbiting point has its own:
- *   - orbit axis (tilt the orbit plane independently from the mesh)
- *   - orbit radius (slightly > sphere R)
- *   - period
- *   - phase offset
- *   - color
- *
- * Same projection math as gen-3d-variants — keyframed positions, perspective
- * scale, opacity from depth.
+ * Project data is hardcoded for js-dom-events while we iterate on the
+ * visual; once it lands we'll parametrise and mount as /github-banners/[slug].
  *
  * Usage: pnpm tsx scripts/verified-banner-experiments/gen-banner-orbits.mts
  */
@@ -28,20 +22,19 @@ const outDir = resolve(
   "verified-banner-experiments",
 );
 
-const W = 800;
-const H = 320;
-const RX = 90;
+// ─── Canvas + sphere placement ────────────────────────────────────────────
+const W = 1280;
+const H = 360;
+const RX = 100;
 const D = 4 * RX;
 const TILT_X = Math.atan(44 / 140);
-const N_KF = 64;
+const N_KF = 32; // keyframes — fewer = smaller SVG
+
+const sphereCx = W - 200; // graphic anchored on the right
+const sphereCy = H / 2;
 
 type Vec3 = [number, number, number];
 
-function rotateY(p: Vec3, ang: number): Vec3 {
-  const c = Math.cos(ang),
-    s = Math.sin(ang);
-  return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c];
-}
 function rotateAxis(p: Vec3, axis: Vec3, ang: number): Vec3 {
   const c = Math.cos(ang),
     s = Math.sin(ang),
@@ -59,6 +52,10 @@ function rotateAxis(p: Vec3, axis: Vec3, ang: number): Vec3 {
       y * (uz * uy * k + ux * s) +
       z * (c + uz * uz * k),
   ];
+}
+function unit(v: Vec3): Vec3 {
+  const m = Math.hypot(...v);
+  return [v[0] / m, v[1] / m, v[2] / m];
 }
 
 interface Projected {
@@ -86,17 +83,13 @@ function fibonacciSphere(n: number): { lat: number; lon: number }[] {
   return out;
 }
 
-function buildKeyTimes(n: number): string {
-  return Array.from({ length: n + 1 }, (_, k) => (k / n).toFixed(5)).join("; ");
-}
+const keyTimes = Array.from({ length: N_KF + 1 }, (_, k) =>
+  (k / N_KF).toFixed(4),
+).join("; ");
 
-const keyTimes = buildKeyTimes(N_KF);
-const cx0 = W / 2;
-const cy0 = H / 2 + 30;
-
-// ─── Mesh: same as 14.3 (KNN, tilted-axis rotation) ───────────────────────
-const N14 = 80;
-const K14 = 6;
+// ─── Mesh (14.3 KNN, tilted-axis rotation) ────────────────────────────────
+const N14 = 60;
+const K14 = 5;
 const meshPts: Vec3[] = fibonacciSphere(N14).map(({ lat, lon }) => [
   RX * Math.cos(lat) * Math.sin(lon),
   RX * Math.sin(lat),
@@ -123,23 +116,17 @@ const meshEdges = Array.from(edgeSet).map(
 );
 
 const meshAxis: Vec3 = [0, Math.SQRT1_2, Math.SQRT1_2];
-const meshDur = "18s";
+const meshDur = "22s";
 
 // ─── Orbiting points ──────────────────────────────────────────────────────
 interface Orbit {
   color: string;
   radius: number;
-  axis: Vec3; // orbit-plane normal (unit vector)
-  phase: number; // 0..1
+  axis: Vec3;
+  phase: number;
   dur: string;
   size: number;
 }
-
-function unit(v: Vec3): Vec3 {
-  const m = Math.hypot(...v);
-  return [v[0] / m, v[1] / m, v[2] / m];
-}
-
 const orbits: Orbit[] = [
   {
     color: "#22d3ee",
@@ -175,35 +162,34 @@ const orbits: Orbit[] = [
   },
 ];
 
-// ─── Build SVG ────────────────────────────────────────────────────────────
+// ─── Sphere-side elements ─────────────────────────────────────────────────
 const elems: string[] = [];
 
-// Mesh frames
 const meshFrames: Projected[][] = [];
 for (let kf = 0; kf <= N_KF; kf++) {
   const t = kf / N_KF;
   meshFrames.push(
-    meshPts.map((p) => tiltAndProject(rotateAxis(p, meshAxis, 2 * Math.PI * t))),
+    meshPts.map((p) =>
+      tiltAndProject(rotateAxis(p, meshAxis, 2 * Math.PI * t)),
+    ),
   );
 }
 
-// Vertex dots
 for (let i = 0; i < meshPts.length; i++) {
-  const cxs = meshFrames.map((vs) => (cx0 + vs[i]!.x).toFixed(1));
-  const cys = meshFrames.map((vs) => (cy0 + vs[i]!.y).toFixed(1));
+  const cxs = meshFrames.map((vs) => (sphereCx + vs[i]!.x).toFixed(1));
+  const cys = meshFrames.map((vs) => (sphereCy + vs[i]!.y).toFixed(1));
   const ops = meshFrames.map((vs) =>
     Math.max(0, vs[i]!.z / RX + 0.3).toFixed(2),
   );
   elems.push(
-    `<circle cx="${cxs[0]}" cy="${cys[0]}" r="1.5" fill="#fafafa" opacity="${ops[0]}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/></circle>`,
+    `<circle class="mesh-dot" cx="${cxs[0]}" cy="${cys[0]}" r="1.6" opacity="${ops[0]}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/></circle>`,
   );
 }
 
-// Edges
 for (const [a, b] of meshEdges) {
   const pts = meshFrames.map(
     (vs) =>
-      `${(cx0 + vs[a]!.x).toFixed(1)},${(cy0 + vs[a]!.y).toFixed(1)} ${(cx0 + vs[b]!.x).toFixed(1)},${(cy0 + vs[b]!.y).toFixed(1)}`,
+      `${(sphereCx + vs[a]!.x).toFixed(1)},${(sphereCy + vs[a]!.y).toFixed(1)} ${(sphereCx + vs[b]!.x).toFixed(1)},${(sphereCy + vs[b]!.y).toFixed(1)}`,
   );
   const ops = meshFrames.map((vs) =>
     Math.max(0, Math.min(0.6, (vs[a]!.z + vs[b]!.z) / (2 * RX) + 0.2)).toFixed(
@@ -211,16 +197,12 @@ for (const [a, b] of meshEdges) {
     ),
   );
   elems.push(
-    `<polyline points="${pts[0]}" fill="none" stroke="#fafafa" stroke-width="0.5" opacity="${ops[0]}"><animate attributeName="points" values="${pts.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/></polyline>`,
+    `<polyline class="mesh-edge" points="${pts[0]}" opacity="${ops[0]}"><animate attributeName="points" values="${pts.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${meshDur}" repeatCount="indefinite"/></polyline>`,
   );
 }
 
-// Orbiting points
 for (const orb of orbits) {
-  // Start vector perpendicular to orbit axis: pick any non-parallel ref,
-  // cross-product with axis, normalize, scale by radius.
-  const ref: Vec3 =
-    Math.abs(orb.axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  const ref: Vec3 = Math.abs(orb.axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
   const perp: Vec3 = [
     orb.axis[1] * ref[2] - orb.axis[2] * ref[1],
     orb.axis[2] * ref[0] - orb.axis[0] * ref[2],
@@ -238,22 +220,17 @@ for (const orb of orbits) {
   const rs: string[] = [];
   const ops: string[] = [];
   for (let kf = 0; kf <= N_KF; kf++) {
-    const t = ((kf / N_KF) + orb.phase) % 1;
-    const rotated = rotateAxis(start, orb.axis, 2 * Math.PI * t);
-    const proj = tiltAndProject(rotated);
-    cxs.push((cx0 + proj.x).toFixed(1));
-    cys.push((cy0 + proj.y).toFixed(1));
+    const t = (kf / N_KF + orb.phase) % 1;
+    const proj = tiltAndProject(rotateAxis(start, orb.axis, 2 * Math.PI * t));
+    cxs.push((sphereCx + proj.x).toFixed(1));
+    cys.push((sphereCy + proj.y).toFixed(1));
     rs.push((orb.size * proj.s).toFixed(2));
-    // Backface fade: opacity drops smoothly as z goes negative.
-    // 1.0 at z >= RX (front), 0.0 at z <= -RX (back).
     const op = Math.max(0, Math.min(1, (proj.z + RX) / (2 * RX)));
-    // Square the curve so the "behind the sphere" portion fades faster,
-    // emphasising the occlusion illusion.
     ops.push((op * op).toFixed(3));
   }
-  // Trailing glow under the main dot, larger and dimmer
+  // Glow (larger, dimmer)
   elems.push(
-    `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 2.4).toFixed(2)}" fill="${orb.color}" opacity="${(parseFloat(ops[0]!) * 0.25).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 2.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.25).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
+    `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 2.4).toFixed(2)}" fill="${orb.color}" opacity="${(parseFloat(ops[0]!) * 0.22).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 2.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.22).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
   );
   // Main dot
   elems.push(
@@ -261,11 +238,89 @@ for (const orb of orbits) {
   );
 }
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Banner prototype: KNN mesh with orbiting colored points">
-  <rect width="${W}" height="${H}" fill="#050505"/>
+// ─── Text content (hardcoded for js-dom-events while iterating) ───────────
+const project = {
+  title: "JavaScript & DOM",
+  synopsis:
+    "This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.",
+  stats: [
+    { label: "UNLV Assignment", value: "Jan 2024" },
+    { label: "Primary lang", value: "JavaScript" },
+    { label: "Status", value: "Starter fork" },
+  ],
+};
+
+// Word-wrap synopsis to ~52 chars per line (rough).
+function wrap(text: string, maxChars: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+  for (const w of words) {
+    if ((line + " " + w).trim().length <= maxChars) {
+      line = line ? line + " " + w : w;
+    } else {
+      lines.push(line);
+      line = w;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+const synopsisLines = wrap(project.synopsis, 52);
+
+const textX = 48;
+const titleY = 96;
+const synopsisStart = 138;
+const synopsisLineHeight = 26;
+const statsY = H - 56;
+
+const titleSvg = `<text class="banner-title" x="${textX}" y="${titleY}">${project.title}</text>`;
+const synopsisSvg = synopsisLines
+  .map(
+    (line, i) =>
+      `<text class="banner-synopsis" x="${textX}" y="${synopsisStart + i * synopsisLineHeight}">${line}</text>`,
+  )
+  .join("\n  ");
+
+// Stats laid out as label/value pairs, each in its own column.
+const statCols = project.stats.map((s, i) => {
+  const colX = textX + i * 220;
+  return `<g>
+    <text class="banner-stat-label" x="${colX}" y="${statsY}">${s.label}</text>
+    <text class="banner-stat-value" x="${colX}" y="${statsY + 22}">${s.value}</text>
+  </g>`;
+});
+
+// "Now hosted in" label at the very top
+const eyebrow = `<text class="banner-eyebrow" x="${textX}" y="58">Hosted in the UNLV Museum</text>`;
+
+// ─── Final SVG ────────────────────────────────────────────────────────────
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${project.title} — ${project.synopsis}">
+  <defs>
+    <style>
+      .banner-eyebrow { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.08em; text-transform: uppercase; fill: #71717a; }
+      .banner-title { font: 700 36px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #18181b; }
+      .banner-synopsis { font: 400 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #3f3f46; }
+      .banner-stat-label { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; fill: #71717a; }
+      .banner-stat-value { font: 500 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #18181b; }
+      .mesh-dot  { fill: #18181b; }
+      .mesh-edge { fill: none; stroke: #18181b; stroke-width: 0.5; }
+      @media (prefers-color-scheme: dark) {
+        .banner-title       { fill: #fafafa; }
+        .banner-synopsis    { fill: #d4d4d8; }
+        .banner-stat-value  { fill: #fafafa; }
+        .mesh-dot           { fill: #fafafa; }
+        .mesh-edge          { stroke: #fafafa; }
+      }
+    </style>
+  </defs>
+  ${eyebrow}
+  ${titleSvg}
+  ${synopsisSvg}
+  ${statCols.join("\n  ")}
   ${elems.join("\n  ")}
 </svg>`;
 
-const id = "banner-01-orbiting-knn-yz45";
+const id = "banner-02-orbiting-knn-with-stats";
 writeFileSync(resolve(outDir, `${id}.svg`), svg);
 console.log(`  ${id}.svg — ${(svg.length / 1024).toFixed(1)} KB`);
