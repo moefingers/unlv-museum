@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="JavaScript & DOM — This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="JavaScript &amp; DOM — This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.">
   <defs>
     <style>
       .banner-eyebrow { font: 600 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.08em; text-transform: uppercase; fill: #71717a; }
@@ -18,7 +18,7 @@
     </style>
   </defs>
   <text class="banner-eyebrow" x="48" y="58">Hosted in the UNLV Museum</text>
-  <text class="banner-title" x="48" y="96">JavaScript & DOM</text>
+  <text class="banner-title" x="48" y="96">JavaScript &amp; DOM</text>
   <text class="banner-synopsis" x="48" y="138">This project demonstrates JavaScript event handling,</text>
   <text class="banner-synopsis" x="48" y="164">DOM manipulation, and OOP fundamentals through</text>
   <text class="banner-synopsis" x="48" y="190">interactive web page demos.</text>

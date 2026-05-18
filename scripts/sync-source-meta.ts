@@ -392,18 +392,27 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
     return;
   }
 
-  // Build desired banner. Direction 1: tight, museum-link-forward, "versions"
-  // wording. If the template changes, the next sync:source-meta detects the
-  // markers and replaces the block in every converted repo's README.
+  // Build desired banner: animated SVG banner served from the museum's
+  // /github-banners/<slug> endpoint, wrapped in an anchor that opens the
+  // museum entry, followed by a compact audit-context subtext.
+  //
+  // The banner image URL is the museum-hosted SVG endpoint (not a static
+  // file). camo on GitHub will cache the rendered output; we can bust the
+  // cache via lockHash if needed by adding ?v=<hash>.
   const ownerRepo = repo;
+  const branchPath = TARGET_DEFAULT; // "museum-ready/original"
   // GitHub branch URLs accept `/` directly in tree/ paths but not in compare/
   // refs — the compare path is parsed by segment, so we encode the slash there.
-  const branchPath = TARGET_DEFAULT; // "museum-ready/original"
   const compareEncoded = `${TARGET_ORIGINAL}...${encodeURIComponent(TARGET_DEFAULT)}`;
+  const project = PROJECTS.find((p) => p.slug === slug);
+  const altText = project?.synopsis ?? project?.title ?? slug;
+  const bannerSvgUrl = `${MUSEUM_BASE_URL}/github-banners/${slug}`;
   const banner = `${BANNER_START}
-> 🏛️ **[UNLV Museum](${MUSEUM_BASE_URL})** · [open in the museum →](${homepage})
->
-> This \`${branchPath}\` branch is the host-compatible build. The unmodified academic record lives on the [\`original\` branch](https://github.com/${ownerRepo}/tree/original); [see exactly what changed](https://github.com/${ownerRepo}/compare/${compareEncoded}) — hosting-compat fixes only (dead URL replacements, Node-LTS floor, pnpm). App structure and visible behavior match \`original\` byte-for-byte.
+<a href="${homepage}" target="_blank" rel="noopener">
+  <img src="${bannerSvgUrl}" alt="${altText.replace(/"/g, "&quot;")}" width="100%">
+</a>
+
+> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in the museum →](${homepage})
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");

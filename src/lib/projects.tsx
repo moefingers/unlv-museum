@@ -86,6 +86,19 @@ export interface Project {
   category: Category;
   /** Override link destination (e.g. /api-client?api=X) */
   href?: string;
+  /**
+   * GitHub "owner/repo" slug for the project's source repository, when
+   * one exists. Used by the /github-banners endpoint to fetch live repo
+   * facts (fork status, languages, commits) even before sync:source has
+   * populated sources.generated.json.
+   */
+  repo?: string;
+  /**
+   * Which tiers are part of this project's museum journey. Banner tier
+   * indicators only show the entries listed here. Defaults to all three;
+   * narrow for simple repos that will never get a reimagined version.
+   */
+  plannedTiers?: ViewMode[];
   /** Tech labels per tier. Omit to suppress that tier label. */
   techOriginal?: string[];
   techEnhanced?: string[];
@@ -144,9 +157,12 @@ export const PROJECTS: Project[] = [
   // GAMES
   {
     slug: "milestown",
+    repo: "moefingers/UNLV-MilestO-W-N",
     title: "MilestO-W-N",
     description:
       "1-4 player territory game. Three generations: original, multiplayer remake, and OWN3.",
+    synopsis:
+      "1-4 player territory game built in vanilla JS — the seed of a three-generation chain: the original, a multiplayer WebSocket remake, and the OWN3 rebuild.",
     year: "Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "CSS"],
@@ -284,8 +300,11 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "quirk-truck",
+    repo: "moefingers/quirkTruck",
     title: "Quirk Truck",
     description: "Dynamic truck catalog. Precursor to EnterPrize.",
+    synopsis:
+      "Dynamic truck catalog built in React on Create React App — the precursor to the EnterPrize enterprise rewrite.",
     year: "Feb 2024",
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
@@ -317,9 +336,12 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "admin-portal",
+    repo: "moefingers/JS-Building-an-Admin-Portal",
     href: "/api-client?api=admin-portal",
     title: "Admin Portal",
     description: "Admin interface with dynamic form fields.",
+    synopsis:
+      "Admin interface with dynamic form fields — JavaScript frontend, Express backend, Fetch-driven CRUD built end-to-end on top of a UNLV starter.",
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "Express", "Fetch API"],
@@ -461,12 +483,14 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "js-dom-events",
+    repo: "moefingers/JS-Events-Demonstration",
     title: "JavaScript & DOM",
     description: "Event handling, DOM manipulation, OOP.",
     synopsis:
       "This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.",
     year: "Dec 2023 – Feb 2024",
     category: "exercises",
+    plannedTiers: ["original", "enhanced"],
     techOriginal: ["JavaScript", "DOM API", "Fetch"],
     original: (
       <OriginalFrame src="/originals/js-dom-events/events-demo/1. The Target Element.html" />
