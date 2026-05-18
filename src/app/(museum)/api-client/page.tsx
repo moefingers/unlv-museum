@@ -808,15 +808,25 @@ function ApiClient() {
                 </option>
               ))}
             </select>
-            <input
-              value={path}
-              onChange={(e) => {
-                setPath(e.target.value);
-                setNavigateTo(null); // user took manual control
-              }}
-              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
-              placeholder="/endpoint"
-            />
+            {/*
+              baseUrl prefix is rendered as a read-only-styled segment glued
+              to the path input so it's abundantly clear the user's typed
+              path is appended to that prefix when the request fires.
+            */}
+            <div className="flex flex-1 items-stretch overflow-hidden rounded-md border border-zinc-300 focus-within:border-zinc-500 dark:border-zinc-600 dark:focus-within:border-zinc-400">
+              <span className="flex items-center border-r border-zinc-300 bg-zinc-100 px-3 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                {activeApi.baseUrl}
+              </span>
+              <input
+                value={path}
+                onChange={(e) => {
+                  setPath(e.target.value);
+                  setNavigateTo(null); // user took manual control
+                }}
+                className="min-w-0 flex-1 bg-transparent px-3 py-2 font-mono text-sm outline-none dark:bg-zinc-800"
+                placeholder="/endpoint"
+              />
+            </div>
             <button
               onClick={send}
               disabled={loading}
