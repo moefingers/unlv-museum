@@ -422,7 +422,7 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   </picture>
 </a>
 
-> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in the museum →](${homepage})
+> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in museum→](${homepage})
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");

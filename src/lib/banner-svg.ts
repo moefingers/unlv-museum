@@ -12,13 +12,16 @@
  */
 
 // ─── Canvas + sphere math ────────────────────────────────────────────────
-const W = 1280;
+// Narrower aspect (3:1) helps on small displays — the README scales the
+// banner to its container width, so a too-wide intrinsic ratio crushes
+// the rendered height to illegible at mobile widths.
+const W = 1080;
 const H = 360;
 const RX = 100;
 const D = 4 * RX;
 const TILT_X = Math.atan(44 / 140);
 const N_KF = 32;
-const sphereCx = W - 200;
+const sphereCx = W - 170;
 const sphereCy = H / 2;
 
 type Vec3 = [number, number, number];
