@@ -405,11 +405,21 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   // refs — the compare path is parsed by segment, so we encode the slash there.
   const compareEncoded = `${TARGET_ORIGINAL}...${encodeURIComponent(TARGET_DEFAULT)}`;
   const project = PROJECTS.find((p) => p.slug === slug);
-  const altText = project?.synopsis ?? project?.title ?? slug;
-  const bannerSvgUrl = `${MUSEUM_BASE_URL}/github-banners/${slug}`;
+  const altText = (project?.synopsis ?? project?.title ?? slug).replace(
+    /"/g,
+    "&quot;",
+  );
+  // Two theme-pinned SVG URLs because camo doesn't propagate the host page's
+  // color scheme to <img>-loaded SVGs reliably. <picture>'s source media
+  // selectors DO respect the github.com page's prefers-color-scheme, so the
+  // browser picks the right variant before fetching.
+  const bannerBase = `${MUSEUM_BASE_URL}/github-banners/${slug}`;
   const banner = `${BANNER_START}
 <a href="${homepage}" target="_blank" rel="noopener">
-  <img src="${bannerSvgUrl}" alt="${altText.replace(/"/g, "&quot;")}" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="${bannerBase}?theme=dark">
+    <img src="${bannerBase}?theme=light" alt="${altText}" width="100%">
+  </picture>
 </a>
 
 > This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in the museum →](${homepage})

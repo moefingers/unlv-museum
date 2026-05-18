@@ -219,10 +219,13 @@ function isComingSoonPlaceholder(node: unknown): boolean {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+  const themeParam = new URL(req.url).searchParams.get("theme");
+  const theme: "light" | "dark" | undefined =
+    themeParam === "light" || themeParam === "dark" ? themeParam : undefined;
 
   const project = PROJECTS.find((p) => p.slug === slug);
   if (!project) {
@@ -276,6 +279,7 @@ export async function GET(
     languages: facts.languages,
     tiers: tiersFor(slug),
     forkedFrom: facts.fork ? facts.parent : null,
+    theme,
   };
 
   const svg = renderBanner(input);

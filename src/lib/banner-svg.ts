@@ -259,6 +259,14 @@ export interface BannerInput {
   tiers: { label: string; state: TierState }[];
   /** owner/repo of the upstream when this repo is a fork; null otherwise. */
   forkedFrom: string | null;
+  /**
+   * Lock the banner palette to a specific theme. When omitted, the SVG
+   * includes a prefers-color-scheme media query and adapts automatically.
+   * GitHub's camo proxy doesn't propagate the host page's color scheme to
+   * `<img>`-loaded SVGs reliably, so READMEs serve two themed variants via
+   * `<picture>` and use this knob to pin each one.
+   */
+  theme?: "light" | "dark";
 }
 
 function esc(s: string): string {
@@ -284,6 +292,77 @@ function wrap(text: string, maxChars: number): string[] {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+// Palette per theme — used either inside @media (when theme is undefined) or
+// emitted unconditionally (when theme is pinned via `?theme=light|dark`).
+const LIGHT_PALETTE = {
+  svgColor: "#18181b",
+  eyebrow: "#71717a",
+  title: "#18181b",
+  synopsis: "#3f3f46",
+  tierLabel: "#71717a",
+  stat: "#52525b",
+  statSep: "#a1a1aa",
+  starter: "#71717a",
+  forkPath: "#71717a",
+  chipFill: "#f4f4f5",
+  chipStroke: "#e4e4e7",
+  chipText: "#3f3f46",
+  meshDot: "#18181b",
+  meshEdge: "#18181b",
+};
+const DARK_PALETTE: typeof LIGHT_PALETTE = {
+  svgColor: "#fafafa",
+  eyebrow: "#a1a1aa",
+  title: "#fafafa",
+  synopsis: "#d4d4d8",
+  tierLabel: "#a1a1aa",
+  stat: "#a1a1aa",
+  statSep: "#52525b",
+  starter: "#a1a1aa",
+  forkPath: "#a1a1aa",
+  chipFill: "#27272a",
+  chipStroke: "#3f3f46",
+  chipText: "#d4d4d8",
+  meshDot: "#fafafa",
+  meshEdge: "#fafafa",
+};
+
+function paletteCss(p: typeof LIGHT_PALETTE, indent = "      "): string {
+  const i = indent;
+  return [
+    `svg                 { color: ${p.svgColor}; }`,
+    `.banner-eyebrow     { fill: ${p.eyebrow}; }`,
+    `.banner-title       { fill: ${p.title}; }`,
+    `.banner-synopsis    { fill: ${p.synopsis}; }`,
+    `.tier-label         { fill: ${p.tierLabel}; }`,
+    `.banner-stat        { fill: ${p.stat}; }`,
+    `.banner-stat-sep    { fill: ${p.statSep}; }`,
+    `.banner-starter     { fill: ${p.starter}; }`,
+    `.banner-fork path   { fill: ${p.forkPath}; }`,
+    `.chip rect          { fill: ${p.chipFill}; stroke: ${p.chipStroke}; }`,
+    `.chip text          { fill: ${p.chipText}; }`,
+    `.mesh-dot           { fill: ${p.meshDot}; }`,
+    `.mesh-edge          { stroke: ${p.meshEdge}; }`,
+  ]
+    .map((line) => i + line)
+    .join("\n");
+}
+
+/**
+ * When a theme is pinned, emit the palette unconditionally so the rendered
+ * SVG is theme-locked (no @media query) — needed because `<img>`-loaded SVGs
+ * on github.com don't reliably honour prefers-color-scheme. When theme is
+ * undefined, emit the responsive variant (light default + dark override).
+ */
+function themeRules(theme: "light" | "dark" | undefined): string {
+  if (theme === "light") return paletteCss(LIGHT_PALETTE);
+  if (theme === "dark") return paletteCss(DARK_PALETTE);
+  return `${paletteCss(LIGHT_PALETTE)}
+      @media (prefers-color-scheme: dark) {
+${paletteCss(DARK_PALETTE, "        ")}
+      }`;
 }
 
 const TEXT_X = 48;
@@ -463,35 +542,17 @@ export function renderBanner(p: BannerInput): string {
       <rect width="${W}" height="${H}" fill="url(#shimmerEdgeFade)"/>
     </mask>
     <style>
-      svg { color: #fafafa; }
-      svg { color: #18181b; }
-      .banner-eyebrow { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; fill: #71717a; }
-      .banner-title { font: 700 34px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #18181b; }
-      .banner-synopsis { font: 400 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #3f3f46; }
-      .tier-label { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; fill: #71717a; }
-      .banner-stat { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #52525b; }
-      .banner-stat-sep { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #a1a1aa; }
-      .banner-starter { font: 400 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #71717a; font-style: italic; }
-      .banner-fork path { fill: #71717a; }
-      .chip rect { fill: #f4f4f5; stroke: #e4e4e7; stroke-width: 1; }
-      .chip text { font: 500 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #3f3f46; }
-      .mesh-dot  { fill: #18181b; }
-      .mesh-edge { fill: none; stroke: #18181b; stroke-width: 0.5; }
-      @media (prefers-color-scheme: dark) {
-        svg                 { color: #fafafa; }
-        .banner-eyebrow     { fill: #a1a1aa; }
-        .banner-title       { fill: #fafafa; }
-        .banner-synopsis    { fill: #d4d4d8; }
-        .tier-label         { fill: #a1a1aa; }
-        .banner-stat        { fill: #a1a1aa; }
-        .banner-stat-sep    { fill: #52525b; }
-        .banner-starter     { fill: #a1a1aa; }
-        .banner-fork path   { fill: #a1a1aa; }
-        .chip rect          { fill: #27272a; stroke: #3f3f46; }
-        .chip text          { fill: #d4d4d8; }
-        .mesh-dot           { fill: #fafafa; }
-        .mesh-edge          { stroke: #fafafa; }
-      }
+      .banner-eyebrow { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+      .banner-title { font: 700 34px system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .banner-synopsis { font: 400 17px system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .tier-label { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+      .banner-stat { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; }
+      .banner-stat-sep { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; }
+      .banner-starter { font: 400 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; font-style: italic; }
+      .chip rect { stroke-width: 1; }
+      .chip text { font: 500 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; }
+      .mesh-edge { fill: none; stroke-width: 0.5; }
+      ${themeRules(p.theme)}
     </style>
   </defs>
   ${sphereHalo}
