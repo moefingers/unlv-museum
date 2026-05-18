@@ -804,11 +804,13 @@ function ApiClient() {
               }}
               className={`rounded-md px-3 py-2 text-sm font-bold text-white ${METHOD_COLORS[method]}`}
             >
-              {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
+              {(["GET", "POST", "PUT", "PATCH", "DELETE", "OPEN"] as const).map(
+                (m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ),
+              )}
             </select>
             {/*
               baseUrl prefix is a read-only-styled segment glued to the path
@@ -856,7 +858,7 @@ function ApiClient() {
             </button>
           </div>
 
-          {method !== "GET" && (
+          {method !== "GET" && method !== "OPEN" && (
             <div className="mb-4">
               <label className="mb-1 block text-xs font-medium text-zinc-500">
                 Request Body
