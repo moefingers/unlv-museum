@@ -81,6 +81,12 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/js-dom-events/events-demo",
   },
 
+  "admin-portal": {
+    type: "static-copy",
+    from: ".sources/JS-Building-an-Admin-Portal/public",
+    to: "public/originals/admin-portal",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

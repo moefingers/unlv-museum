@@ -1,183 +1,205 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "A simple API for managing a database of books for sale.",
-    "version": "1.0.0",
-    "title": "Book API"
-  },
-  "host": "localhost:3001",
-  "basePath": "/",
-  "schemes": ["http"],
-  "paths": {
-    "/listBooks": {
-      "get": {
-        "tags": ["book"],
-        "summary": "listBooks",
-        "description": "retrieves a list of books from the server",
-        "operationId": "listBooks",
-        "produces": ["application/json"],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Book"
-              }
-            }
-          }
-        }
-      }
+    "swagger": "2.0",
+    "info": {
+        "description": "A simple API for managing a database of books for sale.",
+        "version": "1.0.0",
+        "title": "Book API"
     },
-    "/updateBook": {
-      "patch": {
-        "tags": ["book"],
-        "summary": "updateBook",
-        "description": "updates the properties of a specific book on the server. 'id' is a required field when invoking this endpoint.",
-        "operationId": "updateBook",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "parameters": [
-          {
-            "description": "updated book object",
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/Book"
+    "host": "unlv-museum.infinite-syndicate.com",
+    "basePath": "/api/admin-portal",
+    "schemes": [
+        "http"
+    ],
+    "paths": {
+        "/listBooks": {
+            "get": {
+                "tags": [
+                    "book"
+                ],
+                "summary": "listBooks",
+                "description": "retrieves a list of books from the server",
+                "operationId": "listBooks",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Book"
+                            }
+                        }
+                    }
+                }
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "$ref": "#/definitions/Book"
+        },
+        "/updateBook": {
+            "patch": {
+                "tags": [
+                    "book"
+                ],
+                "summary": "updateBook",
+                "description": "updates the properties of a specific book on the server. 'id' is a required field when invoking this endpoint.",
+                "operationId": "updateBook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "updated book object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Book"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/Book"
+                        }
+                    },
+                    "400": {
+                        "description": "missing required field",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "404": {
+                        "description": "could not find book with supplied id",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
             }
-          },
-          "400": {
-            "description": "missing required field",
-            "schema": {
-              "$ref": "#/definitions/Error"
+        },
+        "/removeBook/{bookId}": {
+            "delete": {
+                "tags": [
+                    "book"
+                ],
+                "summary": "removeBook",
+                "description": "deletes a specific book from the server",
+                "operationId": "removeBook",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "bookId",
+                        "description": "The id of the book to delete. Because we can't give a DELETE request a body, interpolate the id into the url instead."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/Book"
+                        }
+                    },
+                    "404": {
+                        "description": "could not find book with supplied id",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
             }
-          },
-          "404": {
-            "description": "could not find book with supplied id",
-            "schema": {
-              "$ref": "#/definitions/Error"
+        },
+        "/addBook": {
+            "post": {
+                "tags": [
+                    "book"
+                ],
+                "summary": "addBook",
+                "description": "saves a new book to the server",
+                "operationId": "addBook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "book object to add",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Book"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/Book"
+                        }
+                    },
+                    "400": {
+                        "description": "missing required field",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     },
-    "/removeBook/{bookId}": {
-      "delete": {
-        "tags": ["book"],
-        "summary": "removeBook",
-        "description": "deletes a specific book from the server",
-        "operationId": "removeBook",
-        "produces": ["application/json"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "bookId",
-            "description": "The id of the book to delete. Because we can't give a DELETE request a body, interpolate the id into the url instead."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "$ref": "#/definitions/Book"
+    "definitions": {
+        "Book": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "title": {
+                    "type": "string",
+                    "example": "The Annals of Arathrae"
+                },
+                "year": {
+                    "type": "integer",
+                    "example": 2016
+                },
+                "description": {
+                    "type": "string",
+                    "example": "This anthology tells the intertwined narratives of six fairy tales."
+                },
+                "quantity": {
+                    "type": "integer",
+                    "example": 8
+                },
+                "imageURL": {
+                    "type": "string",
+                    "example": "/assets/arathrae.jpeg"
+                }
             }
-          },
-          "404": {
-            "description": "could not find book with supplied id",
-            "schema": {
-              "$ref": "#/definitions/Error"
+        },
+        "Error": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "boolean",
+                    "example": "true"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "'id' is required to call this method"
+                }
             }
-          }
         }
-      }
-    },
-    "/addBook": {
-      "post": {
-        "tags": ["book"],
-        "summary": "addBook",
-        "description": "saves a new book to the server",
-        "operationId": "addBook",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "parameters": [
-          {
-            "description": "book object to add",
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/Book"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "$ref": "#/definitions/Book"
-            }
-          },
-          "400": {
-            "description": "missing required field",
-            "schema": {
-              "$ref": "#/definitions/Error"
-            }
-          }
-        }
-      }
     }
-  },
-  "definitions": {
-    "Book": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer",
-          "example": 3
-        },
-        "title": {
-          "type": "string",
-          "example": "The Annals of Arathrae"
-        },
-        "year": {
-          "type": "integer",
-          "example": 2016
-        },
-        "description": {
-          "type": "string",
-          "example": "This anthology tells the intertwined narratives of six fairy tales."
-        },
-        "quantity": {
-          "type": "integer",
-          "example": 8
-        },
-        "imageURL": {
-          "type": "string",
-          "example": "/assets/arathrae.jpeg"
-        }
-      }
-    },
-    "Error": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "boolean",
-          "example": "true"
-        },
-        "message": {
-          "type": "string",
-          "example": "'id' is required to call this method"
-        }
-      }
-    }
-  }
 }

@@ -6,7 +6,7 @@ async function main() {
   let bookManagementContainer = document.querySelector(".book-container")
   bookManagementContainer.innerHTML = ""
 
-  let response = await fetch("http://localhost:3001/listBooks");
+  let response = await fetch("/api/admin-portal/listBooks");
   let books = await response.json();
   document.getElementById("buttonAddBook").addEventListener("click", addBook, false);
   document.getElementById("buttonReload").addEventListener("click", main, false);
@@ -203,7 +203,7 @@ function submitEdit(event) {
   // console.log(document.querySelector(`#card${this.magicID} #inputAvailableQuantity`).value)
   // console.log(document.querySelector(`#card${this.magicID} #inputImgSrc`).value)
 
-  fetch('http://localhost:3001/updateBook', {
+  fetch('/api/admin-portal/updateBook', {
     method: 'PATCH',
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(
@@ -230,7 +230,7 @@ function deleteBook(event) {
   );
 
   if (confirmation === "yes") {
-    fetch(`http://127.0.0.1:3001/removeBook/${this.magicID}`, {method: 'DELETE'})
+    fetch(`/api/admin-portal/removeBook/${this.magicID}`, {method: 'DELETE'})
     .then(main)
     console.log("Your stupid little book has been removed from the genepool.");
   } else {
@@ -244,7 +244,7 @@ function addBook(event) {
   console.log(this);
   console.log(event);
   
-  fetch("http://127.0.0.1:3001/addBook", {
+  fetch("/api/admin-portal/addBook", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

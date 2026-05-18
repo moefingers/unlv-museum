@@ -2,3 +2,7 @@
 	path = .sources/JS-Events-Demonstration
 	url = https://github.com/moefingers/JS-Events-Demonstration.git
 	branch = museum-ready/original
+[submodule ".sources/JS-Building-an-Admin-Portal"]
+	path = .sources/JS-Building-an-Admin-Portal
+	url = https://github.com/moefingers/JS-Building-an-Admin-Portal.git
+	branch = museum-ready/original

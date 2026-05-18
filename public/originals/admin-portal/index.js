@@ -1,6 +1,6 @@
 async function main() {
 
-    let response = await fetch('http://localhost:3001/listBooks')
+    let response = await fetch('/api/admin-portal/listBooks')
     let books = await response.json()
 
     books.forEach(renderBook)
@@ -28,7 +28,7 @@ function renderBook(book) {
 main()
 
 async function updateBook3(newName){
-let response = await fetch('http://127.0.0.1:3001/updateBook', {
+let response = await fetch('/api/admin-portal/updateBook', {
     method: "PATCH",
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({

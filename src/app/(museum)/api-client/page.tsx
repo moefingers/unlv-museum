@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 
-type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPEN";
 
 interface Endpoint {
   label: string;
@@ -14,6 +14,13 @@ interface Endpoint {
   path: string;
   description: string;
   body?: string;
+  /**
+   * When set, the Send button navigates here in a new tab instead of fetching.
+   * Used for the "Frontend (admin UI)" pseudo-endpoint on admin-portal — the
+   * original Express server served HTML at `/` alongside the JSON routes, so
+   * the frontend reads naturally as a sibling endpoint that opens a URL.
+   */
+  navigateTo?: string;
 }
 
 interface ApiProject {
@@ -121,25 +128,33 @@ const APIS: ApiProject[] = [
     title: "Admin Portal",
     baseUrl: "/api/admin-portal",
     description:
-      "Book inventory management system. CRUD operations for a library catalog.",
-    tech: "Originally Express + json-server",
+      "Book inventory management. The original Express server served the admin UI HTML at / alongside these JSON routes, so the frontend reads as a sibling endpoint that opens a URL.",
+    tech: "Originally Express + JSON file store",
     endpoints: [
+      {
+        label: "Open admin UI",
+        method: "OPEN",
+        path: "/",
+        description: "Frontend (admin UI)",
+        navigateTo: "/originals/admin-portal/admin.html",
+      },
+      {
+        label: "Open book list",
+        method: "OPEN",
+        path: "/index.html",
+        description: "Frontend (read-only book list)",
+        navigateTo: "/originals/admin-portal/index.html",
+      },
       {
         label: "List books",
         method: "GET",
-        path: "/",
+        path: "/listBooks",
         description: "Returns all books",
       },
       {
-        label: "Get book",
-        method: "GET",
-        path: "/1",
-        description: "Returns a single book",
-      },
-      {
-        label: "Create book",
+        label: "Add book",
         method: "POST",
-        path: "/",
+        path: "/addBook",
         description: "Adds a new book",
         body: JSON.stringify(
           {
@@ -154,16 +169,16 @@ const APIS: ApiProject[] = [
       },
       {
         label: "Update book",
-        method: "PUT",
-        path: "/1",
-        description: "Updates a book",
-        body: JSON.stringify({ quantity: 500 }, null, 2),
+        method: "PATCH",
+        path: "/updateBook",
+        description: "Updates a book (id in body)",
+        body: JSON.stringify({ id: 1, quantity: 500 }, null, 2),
       },
       {
-        label: "Delete book",
+        label: "Remove book",
         method: "DELETE",
-        path: "/3",
-        description: "Removes a book",
+        path: "/removeBook/3",
+        description: "Removes a book by id",
       },
     ],
   },
@@ -417,14 +432,18 @@ const METHOD_COLORS: Record<Method, string> = {
   GET: "bg-green-600",
   POST: "bg-blue-600",
   PUT: "bg-amber-600",
+  PATCH: "bg-amber-600",
   DELETE: "bg-red-600",
+  OPEN: "bg-violet-600",
 };
 
 const METHOD_TEXT: Record<Method, string> = {
   GET: "text-green-600 dark:text-green-400",
   POST: "text-blue-600 dark:text-blue-400",
   PUT: "text-amber-600 dark:text-amber-400",
+  PATCH: "text-amber-600 dark:text-amber-400",
   DELETE: "text-red-600 dark:text-red-400",
+  OPEN: "text-violet-600 dark:text-violet-400",
 };
 
 export default function ApiClientPage() {
@@ -444,6 +463,9 @@ function ApiClient() {
   const [method, setMethod] = useState<Method>("GET");
   const [path, setPath] = useState("/");
   const [body, setBody] = useState("");
+  // When the loaded endpoint has `navigateTo`, Send opens that URL instead
+  // of fetching. Reset to null whenever a regular endpoint is loaded.
+  const [navigateTo, setNavigateTo] = useState<string | null>(null);
   const [response, setResponse] = useState<string | null>(null);
   const [status, setStatus] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -466,6 +488,7 @@ function ApiClient() {
     setPath("/");
     setMethod("GET");
     setBody("");
+    setNavigateTo(null);
     setResponse(null);
     setStatus(null);
     const url = new URL(window.location.href);
@@ -477,11 +500,27 @@ function ApiClient() {
     setMethod(ep.method);
     setPath(ep.path);
     setBody(ep.body ?? "");
+    setNavigateTo(ep.navigateTo ?? null);
     setResponse(null);
     setStatus(null);
   };
 
   const send = async () => {
+    // Frontend pseudo-endpoint: open the URL in a new tab rather than fetch.
+    if (navigateTo) {
+      window.open(navigateTo, "_blank", "noopener");
+      setHistory((prev) => [
+        {
+          api: activeApi.title,
+          method,
+          path,
+          status: 200,
+          time: 0,
+        },
+        ...prev.slice(0, 29),
+      ]);
+      return;
+    }
     setLoading(true);
     setResponse(null);
     setStatus(null);

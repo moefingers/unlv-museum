@@ -44,5 +44,6 @@ next-env.d.ts
 # back in via a !.sources/<dir> line. See CONTEXT/internal_docs/sources.md.
 .sources/*
 !.sources/JS-Events-Demonstration
+!.sources/JS-Building-an-Admin-Portal
 
 dev.log

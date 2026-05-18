@@ -337,17 +337,20 @@ export const PROJECTS: Project[] = [
   {
     slug: "admin-portal",
     repo: "moefingers/JS-Building-an-Admin-Portal",
-    href: "/api-client?api=admin-portal",
     title: "Admin Portal",
     description: "Admin interface with dynamic form fields.",
     synopsis:
-      "Admin interface with dynamic form fields — JavaScript frontend, Express backend, Fetch-driven CRUD built end-to-end on top of a UNLV starter.",
+      "Book inventory admin — JavaScript frontend with Bootstrap, Express + JSON-file backend, Fetch-driven CRUD against a starter API.",
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "Express", "Fetch API"],
-    original: <ApiOriginal startWith="Admin Portal" />,
+    original: <OriginalFrame src="/originals/admin-portal/admin.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "Frontend preserved as-is; Express backend reimplemented as /api/admin-portal/* — see the Admin Portal card in /api-client to poke at the JSON endpoints. URLs in admin.js/index.js were rewritten from localhost:3001 to /api/admin-portal.",
+    },
   },
   {
     slug: "interactive-map",
