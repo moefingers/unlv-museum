@@ -507,7 +507,10 @@ function ApiClient() {
 
   const send = async () => {
     // Frontend pseudo-endpoint: open the URL in a new tab rather than fetch.
-    if (navigateTo) {
+    // Method check guards against stale navigateTo state if the user tweaked
+    // the request after loading an OPEN endpoint (we also clear navigateTo
+    // on manual edits, but the method check is the load-bearing condition).
+    if (method === "OPEN" && navigateTo) {
       window.open(navigateTo, "_blank", "noopener");
       setHistory((prev) => [
         {
@@ -793,10 +796,13 @@ function ApiClient() {
           <div className="mb-4 flex gap-2">
             <select
               value={method}
-              onChange={(e) => setMethod(e.target.value as Method)}
+              onChange={(e) => {
+                setMethod(e.target.value as Method);
+                setNavigateTo(null); // user took manual control
+              }}
               className={`rounded-md px-3 py-2 text-sm font-bold text-white ${METHOD_COLORS[method]}`}
             >
-              {(["GET", "POST", "PUT", "DELETE"] as const).map((m) => (
+              {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>
@@ -804,7 +810,10 @@ function ApiClient() {
             </select>
             <input
               value={path}
-              onChange={(e) => setPath(e.target.value)}
+              onChange={(e) => {
+                setPath(e.target.value);
+                setNavigateTo(null); // user took manual control
+              }}
               className="flex-1 rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
               placeholder="/endpoint"
             />
@@ -824,7 +833,10 @@ function ApiClient() {
               </label>
               <textarea
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={(e) => {
+                  setBody(e.target.value);
+                  setNavigateTo(null);
+                }}
                 rows={5}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
                 placeholder='{"key": "value"}'
