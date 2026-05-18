@@ -416,13 +416,12 @@ export function renderBanner(p: BannerInput): string {
   const shimmer = `<rect width="${W}" height="${H}" fill="url(#bannerShimmer)" mask="url(#shimmerEdgeMask)" pointer-events="none"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(p.title + " — " + p.synopsis)}">
-  <rect width="${W}" height="${H}" fill="#050505"/>
   <defs>
     ${ORBIT_GLOW_DEFS}
     <radialGradient id="sphereHalo" cx="50%" cy="50%" r="50%">
-      <stop offset="0.45" stop-color="#fafafa" stop-opacity="0"/>
-      <stop offset="0.82" stop-color="#fafafa" stop-opacity="0.06"/>
-      <stop offset="1" stop-color="#fafafa" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="currentColor" stop-opacity="0"/>
+      <stop offset="0.82" stop-color="currentColor" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="liveDotCore" cx="35%" cy="35%" r="65%">
       <stop offset="0" stop-color="#bbf7d0"/>
@@ -465,18 +464,34 @@ export function renderBanner(p: BannerInput): string {
     </mask>
     <style>
       svg { color: #fafafa; }
-      .banner-eyebrow { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; fill: #a1a1aa; }
-      .banner-title { font: 700 34px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #fafafa; }
-      .banner-synopsis { font: 400 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #d4d4d8; }
-      .tier-label { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; fill: #a1a1aa; }
-      .banner-stat { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #a1a1aa; }
-      .banner-stat-sep { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #52525b; }
-      .banner-starter { font: 400 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #a1a1aa; font-style: italic; }
-      .banner-fork path { fill: #a1a1aa; }
-      .chip rect { fill: #27272a; stroke: #3f3f46; stroke-width: 1; }
-      .chip text { font: 500 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #d4d4d8; }
-      .mesh-dot  { fill: #fafafa; }
-      .mesh-edge { fill: none; stroke: #fafafa; stroke-width: 0.5; }
+      svg { color: #18181b; }
+      .banner-eyebrow { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; fill: #71717a; }
+      .banner-title { font: 700 34px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #18181b; }
+      .banner-synopsis { font: 400 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #3f3f46; }
+      .tier-label { font: 600 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; fill: #71717a; }
+      .banner-stat { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #52525b; }
+      .banner-stat-sep { font: 500 13px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #a1a1aa; }
+      .banner-starter { font: 400 12px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #71717a; font-style: italic; }
+      .banner-fork path { fill: #71717a; }
+      .chip rect { fill: #f4f4f5; stroke: #e4e4e7; stroke-width: 1; }
+      .chip text { font: 500 11px ui-monospace, "Segoe UI Mono", Menlo, monospace; fill: #3f3f46; }
+      .mesh-dot  { fill: #18181b; }
+      .mesh-edge { fill: none; stroke: #18181b; stroke-width: 0.5; }
+      @media (prefers-color-scheme: dark) {
+        svg                 { color: #fafafa; }
+        .banner-eyebrow     { fill: #a1a1aa; }
+        .banner-title       { fill: #fafafa; }
+        .banner-synopsis    { fill: #d4d4d8; }
+        .tier-label         { fill: #a1a1aa; }
+        .banner-stat        { fill: #a1a1aa; }
+        .banner-stat-sep    { fill: #52525b; }
+        .banner-starter     { fill: #a1a1aa; }
+        .banner-fork path   { fill: #a1a1aa; }
+        .chip rect          { fill: #27272a; stroke: #3f3f46; }
+        .chip text          { fill: #d4d4d8; }
+        .mesh-dot           { fill: #fafafa; }
+        .mesh-edge          { stroke: #fafafa; }
+      }
     </style>
   </defs>
   ${sphereHalo}
