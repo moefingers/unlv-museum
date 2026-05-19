@@ -6,3 +6,7 @@
 	path = .sources/JS-Building-an-Admin-Portal
 	url = https://github.com/moefingers/JS-Building-an-Admin-Portal.git
 	branch = museum-ready/original
+[submodule ".sources/JS-Building-a-Shared-Counter-Part-1"]
+	path = .sources/JS-Building-a-Shared-Counter-Part-1
+	url = https://github.com/moefingers/JS-Building-a-Shared-Counter-Part-1.git
+	branch = museum-ready/original

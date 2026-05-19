@@ -485,6 +485,20 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
   {
+    slug: "shared-counter",
+    repo: "moefingers/JS-Building-a-Shared-Counter-Part-1",
+    title: "Shared Counter — Part 1",
+    description: "Counter buttons with local state, Bootstrap-styled.",
+    synopsis:
+      "Click-to-increment counter built in vanilla JS with Bootstrap. Part 1 of a planned three-part series — local state only, no shared backend yet; later parts wire up json-server and finally a real persisted store.",
+    year: "Dec 2023",
+    category: "exercises",
+    plannedTiers: ["original", "enhanced"],
+    techOriginal: ["JavaScript", "Bootstrap"],
+    original: <OriginalFrame src="/originals/shared-counter/index.html" />,
+    enhanced: COMING_SOON,
+  },
+  {
     slug: "js-dom-events",
     repo: "moefingers/JS-Events-Demonstration",
     title: "JavaScript & DOM",

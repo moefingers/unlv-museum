@@ -45,5 +45,6 @@ next-env.d.ts
 .sources/*
 !.sources/JS-Events-Demonstration
 !.sources/JS-Building-an-Admin-Portal
+!.sources/JS-Building-a-Shared-Counter-Part-1
 
 dev.log

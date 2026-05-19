@@ -87,6 +87,12 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/admin-portal",
   },
 
+  "shared-counter": {
+    type: "static-copy",
+    from: ".sources/JS-Building-a-Shared-Counter-Part-1/public",
+    to: "public/originals/shared-counter",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //
