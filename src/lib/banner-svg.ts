@@ -186,7 +186,7 @@ interface Orbit {
 }
 
 const SIZE_FLOOR = 7;
-const SIZE_CEILING = 16;
+const SIZE_CEILING = 15;
 
 /** Short labels per language for the orbit glyph. */
 const SHORT_CODE: Record<string, string> = {
@@ -356,9 +356,9 @@ function buildSphereInner(orbits: Orbit[]): string {
     }
     // Glow uses a radial gradient (bright center → transparent edge) so the
     // halo blends softly into the background instead of presenting a hard
-    // disk edge. r is enlarged ~3.4x and opacity tracks the depth-fade.
+    // disk edge. r is enlarged ~2.4x and opacity tracks the depth-fade.
     elems.push(
-      `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 3.4).toFixed(2)}" fill="url(#${orb.glowId})" opacity="${(parseFloat(ops[0]!) * 1).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 3.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.55).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
+      `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 2.4).toFixed(2)}" fill="url(#${orb.glowId})" opacity="${(parseFloat(ops[0]!) * 0.55).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 2.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.55).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
     );
     // No separate solid dot — the glow's gradient now has a fully opaque
     // center (0-50% radius) that serves as the icon's backdrop, then
