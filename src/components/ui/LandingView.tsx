@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Globe } from "@/components/ui/Globe";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
@@ -128,10 +128,17 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
-function ListCard({ project }: { project: Project }) {
+function ListCard({
+  project,
+  registerRef,
+}: {
+  project: Project;
+  registerRef: (slug: string, el: HTMLAnchorElement | null) => void;
+}) {
   return (
     <Link
       key={project.slug}
+      ref={(el) => registerRef(project.slug, el)}
       href={project.href ?? `/${project.slug}`}
       className={styles.listCardLink}
       // backdrop-filter is applied inline because Turbopack/Lightning CSS
@@ -199,17 +206,85 @@ function sortProjects(
 
 /*
  * Flat grid in both modes. The sort axis only changes the ordering; the
- * DOM structure stays identical so a FLIP transition can morph each card
+ * DOM structure stays identical so a FLIP transition morphs each card
  * from its old position to its new one. Category identity is rendered as
  * a per-card background tint (no headers) — see ListCard.
+ *
+ * FLIP (First Last Invert Play) implementation:
+ *  - prevRects: each card's bbox captured at the end of the previous
+ *    render (keyed by project.slug).
+ *  - useLayoutEffect runs after DOM commit but before paint. It measures
+ *    each card's NEW bbox, computes the delta from prev, and applies an
+ *    inverse translate + transitionless transform so the card visually
+ *    stays put. Then on the next frame, the inverse is removed with a
+ *    transition restored — the browser interpolates from inverse → none,
+ *    which renders as a smooth flight from old to new position.
+ *
+ * Using `key={project.slug}` upstream means React reuses each card's
+ * DOM node across reorders, so the transition fires on the same element
+ * rather than mounting/unmounting.
  */
+const FLIP_DURATION_MS = 500;
+const FLIP_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
+
 function ListView({ sort }: { sort: "category" | "time" }) {
   const projects = sortProjects(PROJECTS, sort);
+
+  // Live element refs keyed by slug. ListCard registers/unregisters itself.
+  const elementRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  // Last measured rect for each slug — what FLIP inverts against.
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+
+  const registerRef = (slug: string, el: HTMLAnchorElement | null) => {
+    if (el) elementRefs.current.set(slug, el);
+    else elementRefs.current.delete(slug);
+  };
+
+  useLayoutEffect(() => {
+    const nextRects = new Map<string, DOMRect>();
+    elementRefs.current.forEach((el, slug) => {
+      nextRects.set(slug, el.getBoundingClientRect());
+    });
+
+    // First pass: apply inverse transform + disable transition so each
+    // card visually stays at its previous position despite the new DOM
+    // order. Skip cards that didn't move (or are new — no prev rect).
+    elementRefs.current.forEach((el, slug) => {
+      const prev = prevRects.current.get(slug);
+      const next = nextRects.get(slug);
+      if (!prev || !next) return;
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+      if (dx === 0 && dy === 0) return;
+      el.style.transition = "none";
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+
+    // Second pass on the next frame: release the inverse with a real
+    // transition. requestAnimationFrame guarantees the inverse painted
+    // first; if we cleared synchronously the browser would coalesce
+    // both styles into a single repaint and the user would see no motion.
+    const raf = requestAnimationFrame(() => {
+      elementRefs.current.forEach((el) => {
+        if (!el.style.transform) return;
+        el.style.transition = `transform ${FLIP_DURATION_MS}ms ${FLIP_EASING}`;
+        el.style.transform = "";
+      });
+    });
+
+    prevRects.current = nextRects;
+    return () => cancelAnimationFrame(raf);
+  }, [sort]);
+
   return (
     <div className={styles.listShell}>
       <div className={styles.listGrid}>
         {projects.map((project) => (
-          <ListCard key={project.slug} project={project} />
+          <ListCard
+            key={project.slug}
+            project={project}
+            registerRef={registerRef}
+          />
         ))}
       </div>
     </div>
@@ -359,13 +434,6 @@ export function LandingView() {
         data-legend-open={legendOpen}
         // Mesh dodge so the breathing dots avoid the legend backing.
         data-mesh-dodge=""
-        // Inline backdrop-filter (Lightning CSS strips it from modules
-        // in this project). Light blur softens the mesh under the legend
-        // backing without obscuring it.
-        style={{
-          backdropFilter: "blur(2px)",
-          WebkitBackdropFilter: "blur(2px)",
-        }}
       >
         <div className={styles.legendBody}>
           {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
