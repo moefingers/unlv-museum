@@ -115,7 +115,15 @@ export const auth = betterAuth({
     max: 30,
     storage: "database",
     customRules: {
-      "/get-session": { window: 60, max: 200 },
+      // /get-session is the chip's heartbeat — read-only, no security
+      // concern, hit on every component mount AND every Link prefetch
+      // Next.js does behind the scenes. cookieCache (above) makes the
+      // server-side reads cheap (no DB query) but Better Auth still
+      // counts the requests for rate limiting, and the chip can easily
+      // burst past any sane per-minute limit during normal browsing.
+      // Returning false from the rule function disables rate limiting
+      // for the path entirely.
+      "/get-session": () => false,
       "/sign-out": { window: 60, max: 30 },
       "/sign-in/social": { window: 60, max: 20 },
       "/callback/github": { window: 60, max: 20 },
