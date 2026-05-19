@@ -20,4 +20,16 @@
 
 .item {
   position: absolute;
+  /*
+   * Cards' transform encodes their Fibonacci-sphere position
+   * (rotateY(lon) rotateX(-lat) translateZ(radius)). When the parent
+   * sort axis changes, each card's index → position mapping changes,
+   * the transform string updates, and this transition makes the card
+   * arc smoothly to its new spot. `key={item.id}` upstream keeps the
+   * same DOM node across reorders so the transition fires cleanly.
+   *
+   * 700ms is long enough to read the motion, short enough to feel
+   * intentional. ease-in-out gives the arc a gentle launch + landing.
+   */
+  transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
 }

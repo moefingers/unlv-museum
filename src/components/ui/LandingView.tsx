@@ -194,7 +194,18 @@ export function LandingView() {
   // fixed for stability); only List re-renders against it.
   const [sort, setSort] = useState<"category" | "time">("category");
 
-  const projectCards = PROJECTS.map((project) => ({
+  // Apply the sort axis to BOTH List and Globe. For Globe this changes which
+  // Fibonacci-sphere index each project maps to, so toggling re-shuffles
+  // positions. With `key={item.id}` stable, React reuses each card's DOM
+  // node and only its transform changes — CSS transition on .item handles
+  // the flight across the sphere.
+  const orderedProjects =
+    sort === "time"
+      ? [...PROJECTS].sort((a, b) =>
+          projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
+        )
+      : PROJECTS;
+  const projectCards = orderedProjects.map((project) => ({
     id: project.slug,
     node: <ProjectCard project={project} />,
   }));
@@ -240,35 +251,33 @@ export function LandingView() {
           </button>
         </div>
         {/*
-          Sort axis: only renders in List view because Globe's spatial order
-          is fixed (reordering cards in 3D space would be disorienting).
+          Sort axis: applies to both views. In List it swaps section
+          grouping; in Globe it re-shuffles Fibonacci-sphere positions
+          and cards fly to their new spots (stable `key={item.id}` +
+          a CSS transition on .item's transform).
         */}
-        {view === "list" && (
-          <div className={styles.viewToggle}>
-            <button
-              onClick={() => setSort("category")}
-              className={`${styles.viewButton} ${
-                sort === "category"
-                  ? styles.viewButtonActive
-                  : styles.viewButtonIdle
-              }`}
-            >
-              <FolderTree size={14} />
-              Category
-            </button>
-            <button
-              onClick={() => setSort("time")}
-              className={`${styles.viewButton} ${
-                sort === "time"
-                  ? styles.viewButtonActive
-                  : styles.viewButtonIdle
-              }`}
-            >
-              <Clock size={14} />
-              Time
-            </button>
-          </div>
-        )}
+        <div className={styles.viewToggle}>
+          <button
+            onClick={() => setSort("category")}
+            className={`${styles.viewButton} ${
+              sort === "category"
+                ? styles.viewButtonActive
+                : styles.viewButtonIdle
+            }`}
+          >
+            <FolderTree size={14} />
+            Category
+          </button>
+          <button
+            onClick={() => setSort("time")}
+            className={`${styles.viewButton} ${
+              sort === "time" ? styles.viewButtonActive : styles.viewButtonIdle
+            }`}
+          >
+            <Clock size={14} />
+            Time
+          </button>
+        </div>
       </div>
 
       {view === "globe" ? (
