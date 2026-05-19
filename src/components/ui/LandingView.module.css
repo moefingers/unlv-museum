@@ -47,10 +47,23 @@
 /* View toggle — segmented pill group, same vocabulary as the tier picker
    in ProjectChrome. Active button gets a card-surface fill; inactive
    button stays muted-on-muted. */
-.viewToggle {
+/*
+ * Two-toggle row: View (Globe/List) and Sort (Category/Time). Sort renders
+ * only when view === "list", so the row collapses gracefully to one toggle
+ * in Globe mode. The wrapper exists so both pills share the same top margin
+ * (they each have `margin-top` on .viewToggle, which would compound here).
+ */
+.toggleRow {
   margin-top: calc(
     var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1)
   );
+  display: inline-flex;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.viewToggle {
   display: inline-flex;
   border-radius: var(--radius-lg);
   background: var(--muted);

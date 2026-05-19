@@ -9,8 +9,44 @@ import {
   type Category,
   type Project,
 } from "@/lib/projects";
-import { Globe as GlobeIcon, List } from "lucide-react";
+import { Globe as GlobeIcon, List, FolderTree, Clock } from "lucide-react";
 import styles from "./LandingView.module.css";
+
+/**
+ * Parse a project's freeform `year` string ("Jan 2024", "Dec 2023 – Jan 2024",
+ * "Mar 2024", "2014") into a sortable YYYY-MM key. For date ranges, returns
+ * the END date so "most recently worked on" surfaces first when sorted desc.
+ * Unparseable inputs return "0000-00" — sorted last.
+ */
+const MONTH_INDEX: Record<string, string> = {
+  jan: "01",
+  feb: "02",
+  mar: "03",
+  apr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  aug: "08",
+  sep: "09",
+  oct: "10",
+  nov: "11",
+  dec: "12",
+};
+function projectSortKey(yearText: string): string {
+  // Range "Dec 2023 – Jan 2024" → use the second half. Handle both en-dash
+  // and hyphen separators defensively.
+  const lastSegment = yearText.split(/–|—|-/).pop()?.trim() ?? yearText;
+  const monthMatch = lastSegment.match(/([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+  if (monthMatch) {
+    const m = MONTH_INDEX[monthMatch[1]!.toLowerCase()] ?? "00";
+    return `${monthMatch[2]}-${m}`;
+  }
+  // Year-only ("2014") — pin to end-of-year so it sorts after dated items
+  // in the same year.
+  const yearOnly = lastSegment.match(/(\d{4})/);
+  if (yearOnly) return `${yearOnly[1]}-12`;
+  return "0000-00";
+}
 
 /**
  * Globe-card hex pairs. Kept as literal hex (not zcanon tokens) because
@@ -84,15 +120,57 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
-function ListView() {
-  const categories = Object.keys(CATEGORY_LABELS) as Category[];
+function ListCard({ project }: { project: Project }) {
+  return (
+    <Link
+      key={project.slug}
+      href={project.href ?? `/${project.slug}`}
+      className={styles.listCardLink}
+    >
+      <h3 className={styles.listCardTitle}>{project.title}</h3>
+      <p className={`text-sm ${styles.listCardDescription}`}>
+        {project.description}
+      </p>
+      <div className={styles.listCardTech}>
+        {(
+          project.techOriginal ??
+          project.techEnhanced ??
+          project.techReimagined ??
+          []
+        ).map((tech) => (
+          <span key={tech} className={`text-xs ${styles.techChip}`}>
+            {tech}
+          </span>
+        ))}
+      </div>
+      <p className={`text-xs ${styles.listCardYear}`}>{project.year}</p>
+    </Link>
+  );
+}
 
+function ListView({ sort }: { sort: "category" | "time" }) {
+  if (sort === "time") {
+    // Flat newest-first stream; no section headers.
+    const projects = [...PROJECTS].sort((a, b) =>
+      projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
+    );
+    return (
+      <div className={styles.listShell}>
+        <div className={styles.listGrid}>
+          {projects.map((project) => (
+            <ListCard key={project.slug} project={project} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const categories = Object.keys(CATEGORY_LABELS) as Category[];
   return (
     <div className={styles.listShell}>
       {categories.map((category) => {
         const projects = PROJECTS.filter((p) => p.category === category);
         if (projects.length === 0) return null;
-
         return (
           <section key={category} className={styles.listSection}>
             <h2 className={`text-xl font-semibold ${styles.listSectionTitle}`}>
@@ -100,31 +178,7 @@ function ListView() {
             </h2>
             <div className={styles.listGrid}>
               {projects.map((project) => (
-                <Link
-                  key={project.slug}
-                  href={project.href ?? `/${project.slug}`}
-                  className={styles.listCardLink}
-                >
-                  <h3 className={styles.listCardTitle}>{project.title}</h3>
-                  <p className={`text-sm ${styles.listCardDescription}`}>
-                    {project.description}
-                  </p>
-                  <div className={styles.listCardTech}>
-                    {(
-                      project.techOriginal ??
-                      project.techEnhanced ??
-                      project.techReimagined ??
-                      []
-                    ).map((tech) => (
-                      <span key={tech} className={`text-xs ${styles.techChip}`}>
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <p className={`text-xs ${styles.listCardYear}`}>
-                    {project.year}
-                  </p>
-                </Link>
+                <ListCard key={project.slug} project={project} />
               ))}
             </div>
           </section>
@@ -136,6 +190,9 @@ function ListView() {
 
 export function LandingView() {
   const [view, setView] = useState<"globe" | "list">("globe");
+  // Sort axis is orthogonal to view. Globe ignores it (its spatial order is
+  // fixed for stability); only List re-renders against it.
+  const [sort, setSort] = useState<"category" | "time">("category");
 
   const projectCards = PROJECTS.map((project) => ({
     id: project.slug,
@@ -161,25 +218,57 @@ export function LandingView() {
         three tiers: original, enhanced, and reimagined.
       </p>
 
-      <div className={styles.viewToggle}>
-        <button
-          onClick={() => setView("globe")}
-          className={`${styles.viewButton} ${
-            view === "globe" ? styles.viewButtonActive : styles.viewButtonIdle
-          }`}
-        >
-          <GlobeIcon size={14} />
-          Globe
-        </button>
-        <button
-          onClick={() => setView("list")}
-          className={`${styles.viewButton} ${
-            view === "list" ? styles.viewButtonActive : styles.viewButtonIdle
-          }`}
-        >
-          <List size={14} />
-          List
-        </button>
+      <div className={styles.toggleRow}>
+        <div className={styles.viewToggle}>
+          <button
+            onClick={() => setView("globe")}
+            className={`${styles.viewButton} ${
+              view === "globe" ? styles.viewButtonActive : styles.viewButtonIdle
+            }`}
+          >
+            <GlobeIcon size={14} />
+            Globe
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={`${styles.viewButton} ${
+              view === "list" ? styles.viewButtonActive : styles.viewButtonIdle
+            }`}
+          >
+            <List size={14} />
+            List
+          </button>
+        </div>
+        {/*
+          Sort axis: only renders in List view because Globe's spatial order
+          is fixed (reordering cards in 3D space would be disorienting).
+        */}
+        {view === "list" && (
+          <div className={styles.viewToggle}>
+            <button
+              onClick={() => setSort("category")}
+              className={`${styles.viewButton} ${
+                sort === "category"
+                  ? styles.viewButtonActive
+                  : styles.viewButtonIdle
+              }`}
+            >
+              <FolderTree size={14} />
+              Category
+            </button>
+            <button
+              onClick={() => setSort("time")}
+              className={`${styles.viewButton} ${
+                sort === "time"
+                  ? styles.viewButtonActive
+                  : styles.viewButtonIdle
+              }`}
+            >
+              <Clock size={14} />
+              Time
+            </button>
+          </div>
+        )}
       </div>
 
       {view === "globe" ? (
@@ -199,7 +288,7 @@ export function LandingView() {
         </div>
       ) : (
         <div style={{ marginTop: "3rem", width: "100%" }}>
-          <ListView />
+          <ListView sort={sort} />
         </div>
       )}
     </div>
