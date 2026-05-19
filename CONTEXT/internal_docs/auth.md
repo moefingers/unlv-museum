@@ -32,6 +32,20 @@ unlv-museum (Neon project)
 
 External museum-referenced projects (`own3.vercel.app`, `enterprize.vercel.app`, etc.) are **unrelated** — they have their own auth, their own DBs. The museum just links out to them. No shared identity.
 
+## Deploy-Time Gotcha: Sensitive Env Vars Need a Fresh Build
+
+Vercel's **sensitive** env vars are baked into each deploy at build time — existing deploys do NOT pick up new values added afterwards. If you push auth code and _then_ push env vars via `pnpm vercel:env push`, the running deploy will still throw `BetterAuthError: You are using the default secret` because `process.env.BETTER_AUTH_SECRET` was undefined when that build's environment was sealed.
+
+**Fix:** push an empty commit (or any commit) after the env vars land. Vercel will build a fresh deploy with the new env, and Better Auth will resolve the secret correctly.
+
+This bit us once during the auth rollout — flagging it here so future env additions follow the order:
+
+1. Add the env var to `.env.local`
+2. `pnpm vercel:env push --yes`
+3. Push a commit (any) to trigger a fresh deploy
+
+If sensitive isn't required, mark the env var as `encrypted` instead (`# @vercel: type=encrypted target=...` annotation) — those are readable at runtime by Vercel's runtime and don't require a rebuild.
+
 ## GitHub OAuth App
 
 - Application name: **UNLV Museum**
@@ -66,13 +80,17 @@ Both routes call `authClient.signIn.social({ provider: "github", callbackURL: <c
 
 ## Authentication by Environment
 
-| Feature               | localhost | LAN IP         | Vercel preview | Production | Chrome MCP         |
-| --------------------- | --------- | -------------- | -------------- | ---------- | ------------------ |
-| GitHub OAuth (direct) | Yes       | No — via relay | No — via relay | Yes        | No (bot detection) |
-| PAT (POST → cookie)   | Yes       | Yes            | Yes            | Yes        | Yes (primary)      |
-| WAF rate limiting     | No-op     | No-op          | Active         | Active     | Same as env        |
+| Feature               | localhost      | LAN IP         | Vercel preview | Production | Chrome MCP         |
+| --------------------- | -------------- | -------------- | -------------- | ---------- | ------------------ |
+| GitHub OAuth (direct) | No — via relay | No — via relay | No — via relay | Yes        | No (bot detection) |
+| PAT (POST → cookie)   | Yes            | Yes            | Yes            | Yes        | Yes (primary)      |
+| WAF rate limiting     | No-op          | No-op          | Active         | Active     | Same as env        |
 
-Three callback URLs registered on the GitHub OAuth App: production, `localhost`, and `127.0.0.1`. Local dev signs in directly. Preview, LAN IPs, and other non-registered origins **relay through production** — see §OAuth Relay. Chrome MCP and other automated browsers use **PAT** because GitHub's OAuth flow trips bot detection — see §PAT.
+**One callback URL registered on the GitHub OAuth App: production only.** GitHub's "Authorization callback URL" field is literally singular — no comma-separated list (despite the docs implying otherwise). So localhost, LAN IPs, preview deployments, and anything that isn't production all **relay through production** — see §OAuth Relay.
+
+This diverges from zcanon/OutlastSite, which use Google. Google allows multiple callbacks AND has a localhost-port-agnostic exemption, so their gate is "localhost direct, others relay." GitHub's restrictions collapse that to "production direct, everything else relay."
+
+Chrome MCP and other automated browsers use **PAT** because OAuth flows trip bot detection — see §PAT. PAT is also the only way to sign in locally without internet connectivity to production.
 
 ## Verified-User Signal
 
