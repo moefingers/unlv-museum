@@ -11,6 +11,64 @@
  * works through <img> embedding (GitHub camo respects it).
  */
 
+// Brand icons sourced from simple-icons (CC0). Each icon is a 24×24 path
+// drawn in a single color — we render it in `labelColor` chosen for
+// contrast against the orbit's brand color (e.g. dark text on yellow JS).
+// Unknown languages render with just the colored dot, no glyph.
+import {
+  siJavascript,
+  siTypescript,
+  siHtml5,
+  siCss,
+  siSass,
+  siPython,
+  siGo,
+  siRust,
+  siRuby,
+  siPhp,
+  siC,
+  siCplusplus,
+  siSharp,
+  siGnubash,
+  siDocker,
+  siVuedotjs,
+  siSvelte,
+  siAstro,
+  siMarkdown,
+  siCoffeescript,
+} from "simple-icons";
+
+interface SimpleIcon {
+  path: string;
+  hex: string;
+  title: string;
+}
+
+const LANG_ICONS: Record<string, SimpleIcon | undefined> = {
+  JavaScript: siJavascript,
+  TypeScript: siTypescript,
+  HTML: siHtml5,
+  CSS: siCss,
+  SCSS: siSass,
+  Sass: siSass,
+  Python: siPython,
+  Go: siGo,
+  Rust: siRust,
+  Ruby: siRuby,
+  PHP: siPhp,
+  C: siC,
+  "C++": siCplusplus,
+  "C#": siSharp,
+  Shell: siGnubash,
+  Bash: siGnubash,
+  Dockerfile: siDocker,
+  Vue: siVuedotjs,
+  Svelte: siSvelte,
+  Astro: siAstro,
+  Markdown: siMarkdown,
+  CoffeeScript: siCoffeescript,
+};
+
 // ─── Canvas + sphere math ────────────────────────────────────────────────
 // Narrower aspect (3:1) helps on small displays — the README scales the
 // banner to its container width, so a too-wide intrinsic ratio crushes
@@ -110,67 +168,131 @@ const meshAxis: Vec3 = [0, Math.SQRT1_2, Math.SQRT1_2];
 const meshDur = "22s";
 
 interface Orbit {
+  lang: string;
   color: string;
-  /** Radial-gradient id; one per orbit color, defined in the SVG <defs>. */
+  /** Radial-gradient id; one per orbit, defined in the SVG <defs>. */
   glowId: string;
+  /** Inline SVG path (24×24 viewBox) for the language's brand icon, when known. */
+  icon: SimpleIcon | null;
+  /** Fallback short-code shown when no icon is available. */
+  label: string;
+  /** Text/icon color picked for contrast against `color`. */
+  labelColor: string;
   radius: number;
   axis: Vec3;
   phase: number;
   dur: string;
   size: number;
 }
-const orbits: Orbit[] = [
-  {
-    color: "#22d3ee",
-    glowId: "orbGlowCyan",
-    radius: RX * 1.32,
-    axis: unit([0.1, 0.9, 0.1]),
-    phase: 0.0,
-    dur: "11s",
-    size: 4.5,
-  },
-  {
-    color: "#f472b6",
-    glowId: "orbGlowPink",
-    radius: RX * 1.45,
-    axis: unit([0.6, 0.3, -0.7]),
-    phase: 0.33,
-    dur: "13s",
-    size: 3.8,
-  },
-  {
-    color: "#fbbf24",
-    glowId: "orbGlowAmber",
-    radius: RX * 1.25,
-    axis: unit([-0.4, 0.6, 0.6]),
-    phase: 0.66,
-    dur: "9s",
-    size: 5.0,
-  },
-  {
-    color: "#a78bfa",
-    glowId: "orbGlowViolet",
-    radius: RX * 1.55,
-    axis: unit([0.5, -0.4, 0.7]),
-    phase: 0.18,
-    dur: "16s",
-    size: 4.0,
-  },
-];
 
-/** Radial-gradient defs for the four orbit colors, emitted into the SVG <defs>. */
-const ORBIT_GLOW_DEFS = orbits
-  .map(
-    (o) =>
-      `<radialGradient id="${o.glowId}" cx="50%" cy="50%" r="50%">
+const SIZE_FLOOR = 7;
+const SIZE_CEILING = 16;
+
+/** Short labels per language for the orbit glyph. */
+const SHORT_CODE: Record<string, string> = {
+  JavaScript: "JS",
+  TypeScript: "TS",
+  HTML: "HTML",
+  CSS: "CSS",
+  SCSS: "SCSS",
+  Python: "Py",
+  Java: "Java",
+  C: "C",
+  "C++": "C++",
+  "C#": "C#",
+  Go: "Go",
+  Rust: "Rs",
+  Ruby: "Rb",
+  PHP: "PHP",
+  Shell: "Sh",
+  Dockerfile: "Dk",
+  Vue: "Vue",
+  Svelte: "Sv",
+  Astro: "As",
+  Markdown: "MD",
+};
+
+function shortCode(name: string): string {
+  return SHORT_CODE[name] ?? name.slice(0, 2);
+}
+
+/** Pick #18181b or #fafafa based on the background's perceived luminance. */
+function contrastText(hex: string): string {
+  if (!hex.startsWith("#") || hex.length < 7) return "#fafafa";
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? "#18181b" : "#fafafa";
+}
+
+/**
+ * Tiny deterministic PRNG so the same language always orbits the same way
+ * across renders. mulberry32 with the input language name hashed to a seed.
+ */
+function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function prng(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateOrbits(languages: BannerLanguage[]): Orbit[] {
+  return languages.map((lang) => {
+    const rnd = prng(hashString(lang.name));
+    const ax = rnd() * 1.6 - 0.8;
+    const ay = 0.2 + rnd() * 0.7; // bias positive so orbits aren't all flat
+    const az = rnd() * 1.6 - 0.8;
+    const axis = unit([ax, ay, az]);
+    const radius = RX * (1.2 + rnd() * 0.4);
+    const phase = rnd();
+    const durSec = 9 + rnd() * 8;
+    const dur = `${durSec.toFixed(0)}s`;
+    const size = SIZE_FLOOR + (lang.pct / 100) * (SIZE_CEILING - SIZE_FLOOR);
+    return {
+      lang: lang.name,
+      color: lang.color,
+      glowId: `orbGlow-${lang.name.replace(/[^a-z0-9]/gi, "")}`,
+      icon: LANG_ICONS[lang.name] ?? null,
+      label: shortCode(lang.name),
+      labelColor: contrastText(lang.color),
+      radius,
+      axis,
+      phase,
+      dur,
+      size,
+    };
+  });
+}
+
+function buildSphereElems(languages: BannerLanguage[]): string {
+  const orbits = generateOrbits(languages);
+  const orbitGradientDefs = orbits
+    .map(
+      (o) =>
+        `<radialGradient id="${o.glowId}" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="${o.color}" stop-opacity="1"/>
       <stop offset="0.45" stop-color="${o.color}" stop-opacity="0.5"/>
       <stop offset="1" stop-color="${o.color}" stop-opacity="0"/>
     </radialGradient>`,
-  )
-  .join("\n    ");
+    )
+    .join("\n    ");
+  return orbitGradientDefs + "\n  " + buildSphereInner(orbits);
+}
 
-function buildSphereElems(): string {
+function buildSphereInner(orbits: Orbit[]): string {
   const elems: string[] = [];
   const frames: Projected[][] = [];
   for (let kf = 0; kf <= N_KF; kf++) {
@@ -239,6 +361,34 @@ function buildSphereElems(): string {
     elems.push(
       `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${rs[0]}" fill="${orb.color}" opacity="${ops[0]}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
     );
+
+    // Glyph at the dot's center: prefer a brand icon from simple-icons,
+    // fall back to a short letter label. The icon's nested <svg> uses
+    // viewBox="0 0 24 24" so the brand-art draws in its native coords;
+    // we animate x/y/width/height per-frame to follow the orbit, and
+    // opacity to fade with the backface like the dot itself.
+    if (orb.icon) {
+      // Icon fills about 1.5× the dot diameter at any size.
+      const iconScale = 1.5;
+      const iconSizes = rs.map((r) =>
+        (parseFloat(r) * iconScale * 2).toFixed(2),
+      );
+      const iconXs = cxs.map((cx, i) =>
+        (parseFloat(cx) - parseFloat(iconSizes[i]!) / 2).toFixed(2),
+      );
+      const iconYs = cys.map((cy, i) =>
+        (parseFloat(cy) - parseFloat(iconSizes[i]!) / 2).toFixed(2),
+      );
+      elems.push(
+        `<svg x="${iconXs[0]}" y="${iconYs[0]}" width="${iconSizes[0]}" height="${iconSizes[0]}" viewBox="0 0 24 24" overflow="visible"><animate attributeName="x" values="${iconXs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="y" values="${iconYs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="width" values="${iconSizes.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="height" values="${iconSizes.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><path d="${orb.icon.path}" fill="${orb.labelColor}" opacity="${ops[0]}"><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></path></svg>`,
+      );
+    } else {
+      // Fallback letter label, animated cx/cy/opacity in lockstep with the dot.
+      const fontSizes = rs.map((r) => (parseFloat(r) * 1.1).toFixed(2));
+      elems.push(
+        `<text x="${cxs[0]}" y="${cys[0]}" fill="${orb.labelColor}" font-size="${fontSizes[0]}" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle" dominant-baseline="central" opacity="${ops[0]}" pointer-events="none"><animate attributeName="x" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="y" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="font-size" values="${fontSizes.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/>${orb.label}</text>`,
+      );
+    }
   }
   return elems.join("\n  ");
 }
@@ -488,7 +638,7 @@ export function renderBanner(p: BannerInput): string {
     ? `<g transform="translate(${TEXT_X}, ${STARTER_Y - 12})" class="banner-fork"><path d="${FORK_PATH}"/></g><text class="banner-starter" x="${TEXT_X + 22}" y="${STARTER_Y}">Forked from ${esc(p.forkedFrom)}</text>`
     : "";
 
-  const sphereSvg = buildSphereElems();
+  const sphereSvg = buildSphereElems(p.languages);
 
   // Hollow halo around the sphere: faint ring, transparent center.
   const sphereHalo = `<circle cx="${sphereCx}" cy="${sphereCy}" r="${RX * 1.85}" fill="url(#sphereHalo)"/>`;
@@ -499,7 +649,6 @@ export function renderBanner(p: BannerInput): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(p.title + " — " + p.synopsis)}">
   <defs>
-    ${ORBIT_GLOW_DEFS}
     <radialGradient id="sphereHalo" cx="50%" cy="50%" r="50%">
       <stop offset="0.45" stop-color="currentColor" stop-opacity="0"/>
       <stop offset="0.82" stop-color="currentColor" stop-opacity="0.08"/>
