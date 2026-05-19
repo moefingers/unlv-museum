@@ -100,6 +100,62 @@
   margin-top: calc(
     var(--space-8) * var(--app-margin, 1) * var(--room-margin, 1)
   );
+  /*
+   * View toggle: when inactive, the wrapper collapses to height 0 +
+   * opacity 0 so it doesn't reserve scroll space. The inner
+   * .globeScaleHost owns the visible scale animation; keeping the
+   * Globe mounted means its ref stays live for the BreathingMesh
+   * cutout to track during the close transition.
+   *
+   * Duration tuned slow (900ms) so the cutout-with-globe departure
+   * reads as a deliberate move. The wrapper height and opacity ease
+   * the same so list slides in cleanly underneath.
+   */
+  --view-toggle-duration: 900ms;
+  transition:
+    opacity var(--view-toggle-duration) var(--ease-out),
+    max-height var(--view-toggle-duration) var(--ease-out),
+    margin-top var(--view-toggle-duration) var(--ease-out);
+  max-height: 1200px;
+  overflow: hidden;
+}
+.globeWrap[data-view-active="false"] {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  pointer-events: none;
+}
+
+/* Inner host that owns the scale animation. Pivots from 50% 38% to match
+   the apparent visual center of the globe (sphere sits slightly above
+   the wrapper's vertical middle because of legend + hint below). */
+.globeScaleHost {
+  transform-origin: 50% 38%;
+  transform: scale(1);
+  transition: transform 900ms var(--ease-out);
+}
+.globeWrap[data-view-active="false"] .globeScaleHost {
+  transform: scale(0);
+}
+
+/* List mount mirrors the wrapper pattern. */
+.listMount {
+  margin-top: calc(
+    var(--space-12) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  width: 100%;
+  transition:
+    opacity 900ms var(--ease-out),
+    max-height 900ms var(--ease-out),
+    margin-top 900ms var(--ease-out);
+  max-height: 100000px;
+  overflow: hidden;
+}
+.listMount[data-view-active="false"] {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  pointer-events: none;
 }
 
 .globeLegend {

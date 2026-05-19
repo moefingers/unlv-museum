@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Globe } from "@/components/ui/Globe";
+import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import {
   PROJECTS,
   CATEGORY_LABELS,
@@ -194,6 +195,11 @@ export function LandingView() {
   // fixed for stability); only List re-renders against it.
   const [sort, setSort] = useState<"category" | "time">("category");
 
+  // Ref on the globe wrapper. BreathingMesh measures it each frame to align
+  // its circular cutout to wherever the globe is rendered (centers, scrolls,
+  // etc.). In List view the ref is passed as null and the mesh fills.
+  const globeWrapRef = useRef<HTMLDivElement | null>(null);
+
   // Apply the sort axis to BOTH List and Globe. For Globe this changes which
   // Fibonacci-sphere index each project maps to, so toggling re-shuffles
   // positions. With `key={item.id}` stable, React reuses each card's DOM
@@ -217,6 +223,16 @@ export function LandingView() {
 
   return (
     <div className={styles.shell}>
+      {/*
+        Page-wide breathing triangular mesh sits behind everything (fixed
+        position, z-index: -1, pointerEvents none). The globe wrapper is
+        always mounted (just scaled to 0 in List view), so its ref stays
+        live and we always pass it as the cutout target. As the globe's
+        wrapper shrinks via CSS scale, its bounding rect shrinks too, and
+        the cutout naturally tracks it down to zero. Going back to Globe,
+        the wrapper scales 0 → 1 and the cutout opens in lockstep.
+      */}
+      <BreathingMesh cutoutTarget={globeWrapRef} />
       <a
         href="https://software.infinite-syndicate.com"
         className={`text-sm ${styles.portfolioLink}`}
@@ -280,26 +296,33 @@ export function LandingView() {
         </div>
       </div>
 
-      {view === "globe" ? (
-        <div className={styles.globeWrap}>
+      {/*
+        Both views are always mounted. Switching toggles a data-view
+        attribute on each surface; CSS scales the inactive one to 0
+        (and reduces its height to 0 so it doesn't reserve layout space
+        when collapsed). Keeping the globe in the tree means its ref
+        stays live during the close animation — the mesh cutout shrinks
+        in lockstep with the globe rather than snapping at unmount.
+      */}
+      <div className={styles.globeWrap} data-view-active={view === "globe"}>
+        <div ref={globeWrapRef} className={styles.globeScaleHost}>
           <Globe items={globeItems} />
-          <div className={styles.globeLegend}>
-            {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
-              <span key={cat} className={`text-xs ${styles.legendItem}`}>
-                <span className={styles.categoryDot} data-category={cat} />
-                {CATEGORY_LABELS[cat]}
-              </span>
-            ))}
-          </div>
-          <p className={`text-xs ${styles.globeHint}`}>
-            Drag to rotate. Click a card to explore.
-          </p>
         </div>
-      ) : (
-        <div style={{ marginTop: "3rem", width: "100%" }}>
-          <ListView sort={sort} />
+        <div className={styles.globeLegend}>
+          {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
+            <span key={cat} className={`text-xs ${styles.legendItem}`}>
+              <span className={styles.categoryDot} data-category={cat} />
+              {CATEGORY_LABELS[cat]}
+            </span>
+          ))}
         </div>
-      )}
+        <p className={`text-xs ${styles.globeHint}`}>
+          Drag to rotate. Click a card to explore.
+        </p>
+      </div>
+      <div className={styles.listMount} data-view-active={view === "list"}>
+        <ListView sort={sort} />
+      </div>
     </div>
   );
 }
