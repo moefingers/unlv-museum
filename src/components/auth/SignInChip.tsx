@@ -13,6 +13,35 @@ import { authClient, useSession } from "@/lib/auth-client";
 import { BadgeCheck, LogOut, Loader2 } from "lucide-react";
 import { siGithub } from "simple-icons";
 
+const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
+
+/**
+ * Decide between direct GitHub OAuth and the relay-through-production flow.
+ *
+ * GitHub's OAuth App stores exactly one callback URL — so we register only
+ * production. Every other origin (localhost, LAN IPs, preview deployments)
+ * relays through production via /auth/relay → /auth/claim.
+ *
+ * Zcanon/OutlastSite use Google, which allows multiple callbacks AND has a
+ * special localhost-port-agnostic mode, so they can exempt localhost from
+ * the relay. GitHub has neither, so the museum's relay gate is simpler:
+ * if you're not on production, you relay.
+ *
+ * For automated tests / Chrome MCP / network-free local dev, use PAT
+ * instead — see auth.md §PAT.
+ *
+ * Returns:
+ *  - null for direct flow (call authClient.signIn.social) — production only
+ *  - a production URL to redirect to (`<prod>/auth/relay?callback=...`)
+ *    for relay flow — everywhere else
+ */
+function relayOriginIfNeeded(): string | null {
+  if (typeof window === "undefined") return null;
+  const host = window.location.hostname;
+  if (host === PRODUCTION_HOST) return null;
+  return `https://${PRODUCTION_HOST}`;
+}
+
 // The Better Auth `User` type doesn't include our custom `verified` field
 // (it's a column we added to the schema, not a plugin field), so narrow it
 // at the boundary instead of fighting the type at every read site.
@@ -77,6 +106,19 @@ export function SignInChip() {
         disabled={signingIn}
         onClick={async () => {
           setSigningIn(true);
+          const relayOrigin = relayOriginIfNeeded();
+          if (relayOrigin) {
+            // Non-canonical origin (preview / LAN) — relay through prod.
+            // /auth/claim on this origin reads ?callbackURL to return the
+            // user to where they were after claiming.
+            const claimReturn = new URL("/auth/claim", window.location.origin);
+            claimReturn.searchParams.set("callbackURL", window.location.href);
+            const relayUrl = new URL("/auth/relay", relayOrigin);
+            relayUrl.searchParams.set("callback", claimReturn.toString());
+            window.location.assign(relayUrl.toString());
+            return;
+          }
+          // Localhost or production — direct OAuth.
           await authClient.signIn.social({
             provider: "github",
             callbackURL: window.location.href,
