@@ -429,14 +429,16 @@ export function LandingView() {
         radial gradient backing softens the mesh behind it so the dot
         colors stay legible. Collapses to just the chevron when dismissed.
       */}
-      <div
-        className={styles.floatingLegend}
-        data-legend-open={legendOpen}
-        // Mesh dodge so the breathing dots avoid the legend backing.
-        data-mesh-dodge=""
-      >
+      <div className={styles.floatingLegend} data-legend-open={legendOpen}>
         <div
           className={styles.legendBody}
+          // No data-mesh-dodge here: the radial gradient + 2px blur
+          // already give the legend enough legibility on top of the
+          // mesh, and tagging it would (a) push mesh dots out of the
+          // legend's bbox even when collapsed, and (b) leave a
+          // card-shaped hole in the mesh under the panel that drew
+          // the eye more than the panel itself.
+          //
           // Inline backdrop-filter (Lightning CSS strips it from CSS
           // modules in this project). Applied on the body — not the
           // outer wrapper — because the wrapper is pointer-events:none
