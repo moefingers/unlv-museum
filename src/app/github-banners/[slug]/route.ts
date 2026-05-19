@@ -17,6 +17,7 @@ import {
   type BannerInput,
   type TierState,
 } from "@/lib/banner-svg";
+import { renderBanner as renderBannerSingle } from "@/lib/banner-svg-single";
 import { PROJECTS, getSourceRef, formatProjectDate } from "@/lib/projects";
 
 const OWNER_USERNAME = "moefingers";
@@ -223,9 +224,14 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const themeParam = new URL(req.url).searchParams.get("theme");
+  const url = new URL(req.url);
+  const themeParam = url.searchParams.get("theme");
   const theme: "light" | "dark" | undefined =
     themeParam === "light" || themeParam === "dark" ? themeParam : undefined;
+  // `?variant=single` pins the one-orbit-per-language renderer; default is
+  // the multi-orbit variant in banner-svg.ts. Kept for visual A/B.
+  const variant =
+    url.searchParams.get("variant") === "single" ? "single" : "multi";
 
   const project = PROJECTS.find((p) => p.slug === slug);
   if (!project) {
@@ -282,7 +288,8 @@ export async function GET(
     theme,
   };
 
-  const svg = renderBanner(input);
+  const svg =
+    variant === "single" ? renderBannerSingle(input) : renderBanner(input);
 
   return new Response(svg, {
     headers: {

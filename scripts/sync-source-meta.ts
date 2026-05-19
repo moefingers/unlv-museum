@@ -27,6 +27,9 @@
  * Usage:
  *   pnpm sync:source-meta              # all converted slugs
  *   pnpm sync:source-meta <slug>       # one slug
+ *   pnpm sync:source-meta --force-bust # rewrite the bustHash on every README
+ *                                      # even when source content hasn't moved
+ *                                      # (use after banner renderer changes)
  *
  * Requires: gh CLI authenticated as the owner of each source repo.
  */
@@ -67,8 +70,14 @@ const sources = JSON.parse(readFileSync(sourcesPath, "utf8")) as Record<
   SourceRef
 >;
 
-const slugArg = process.argv[2];
+const args = process.argv.slice(2);
+const forceBust = args.includes("--force-bust");
+const slugArg = args.find((a) => !a.startsWith("--"));
 const slugs = slugArg ? [slugArg] : Object.keys(sources);
+// When --force-bust is set, mix a per-run nonce into every bustHash so the
+// resulting README URLs differ from whatever camo has cached. The same nonce
+// is reused for the whole run so all updated slugs share a coherent run id.
+const forceBustNonce = forceBust ? new Date().toISOString() : null;
 
 if (slugs.length === 0) {
   console.log(
@@ -431,6 +440,7 @@ function applyReadmeBanner(
         year: project?.year ?? "",
         plannedTiers: project?.plannedTiers ?? null,
         techOriginal: project?.techOriginal ?? null,
+        forceBust: forceBustNonce,
       }),
     )
     .digest("hex")

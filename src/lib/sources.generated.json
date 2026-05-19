@@ -2,8 +2,8 @@
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready/original",
-    "commit": "f89365530582dd8b3a47526f6c3cb85459fff94b",
-    "lockHash": "sha256:6571ffdae17e623ac761ced2e65467722692b1456b03725262ff1e773a01fef0",
+    "commit": "7306a195e5afeaa59ff75dbfe5691781323458c9",
+    "lockHash": "sha256:bad390ca311290de56fb9642c998eaf746c1c1b53a63fb01d481db2a1c72e59b",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"
@@ -11,7 +11,7 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "5b2d0b9e9175f0f779cf91e861d5a6a7f9f66d97",
+    "commit": "ddbeff31b2efb5dda222c039419d078deced4a7d",
     "lockHash": "sha256:92fa3c0148a074e3443d05b6e9322cdd0f2905e4bf2b5c150a55bdde93940845",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -20,7 +20,7 @@
   "shared-counter": {
     "repo": "moefingers/JS-Building-a-Shared-Counter-Part-1",
     "branch": "museum-ready/original",
-    "commit": "516af31a13157629ccaf2b2007bec4f361fb4f5d",
+    "commit": "1146e1d4f9b461888c3e1d424198d6ce9d00fc92",
     "lockHash": "sha256:4e34cc43160b2a95e452f403b38ae8b9658f1f22b6f8d46560832d3e126ae5c4",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,

@@ -1,14 +1,14 @@
 /**
- * Museum-header banner renderer. Pure functions — no fs, no fetch, no
- * runtime side effects. Consumed by both the gen script (for gallery
- * preview SVGs) and the /github-banners/[slug] route (for live banners).
+ * Single-orbit variant of the museum-header banner renderer. Kept as a
+ * frozen comparison point against banner-svg.ts (which gives high-pct
+ * languages multiple orbits). Each language contributes exactly one
+ * orbit, sized by percentage between SIZE_FLOOR and SIZE_CEILING.
+ *
+ * Selected via `?variant=single` on /github-banners/<slug>.
  *
  * Layout: 1280×360 transparent banner. Eyebrow + tech chips + title +
  * synopsis on the left, KNN mesh with orbiting colored points anchored
  * on the right, tier indicators + stat strip across the lower-left.
- *
- * Theme-responsive via prefers-color-scheme media query inside the SVG —
- * works through <img> embedding (GitHub camo respects it).
  */
 
 // Brand icons sourced from simple-icons (CC0). Each icon is a 24×24 path
@@ -249,43 +249,34 @@ function prng(seed: number): () => number {
   };
 }
 
-// Each language gets `count = clamp(round(pct / 15), 1, 4)` orbits, all the
-// same size — so higher-percentage languages contribute *both* a larger
-// glyph (via SIZE_FLOOR/CEILING) and more orbits. The PRNG is seeded per
-// language and drawn from once per orbit, so the same repo produces the
-// same fan-out across renders.
+// One orbit per language — size scales with percentage. The "multi" variant
+// in banner-svg.ts adds quantity-as-importance on top of this.
 function generateOrbits(languages: BannerLanguage[]): Orbit[] {
-  const out: Orbit[] = [];
-  for (const lang of languages) {
+  return languages.map((lang) => {
     const rnd = prng(hashString(lang.name));
-    const count = Math.max(1, Math.min(4, Math.round(lang.pct / 15)));
+    const ax = rnd() * 1.6 - 0.8;
+    const ay = 0.2 + rnd() * 0.7; // bias positive so orbits aren't all flat
+    const az = rnd() * 1.6 - 0.8;
+    const axis = unit([ax, ay, az]);
+    const radius = RX * (1.2 + rnd() * 0.4);
+    const phase = rnd();
+    const durSec = 9 + rnd() * 8;
+    const dur = `${durSec.toFixed(0)}s`;
     const size = SIZE_FLOOR + (lang.pct / 100) * (SIZE_CEILING - SIZE_FLOOR);
-    const slug = lang.name.replace(/[^a-z0-9]/gi, "");
-    for (let i = 0; i < count; i++) {
-      const ax = rnd() * 1.6 - 0.8;
-      const ay = 0.2 + rnd() * 0.7; // bias positive so orbits aren't all flat
-      const az = rnd() * 1.6 - 0.8;
-      const axis = unit([ax, ay, az]);
-      const radius = RX * (1.2 + rnd() * 0.4);
-      const phase = rnd();
-      const durSec = 9 + rnd() * 8;
-      const dur = `${durSec.toFixed(0)}s`;
-      out.push({
-        lang: lang.name,
-        color: lang.color,
-        glowId: `orbGlow-${slug}-${i}`,
-        icon: LANG_ICONS[lang.name] ?? null,
-        label: shortCode(lang.name),
-        labelColor: contrastText(lang.color),
-        radius,
-        axis,
-        phase,
-        dur,
-        size,
-      });
-    }
-  }
-  return out;
+    return {
+      lang: lang.name,
+      color: lang.color,
+      glowId: `orbGlow-${lang.name.replace(/[^a-z0-9]/gi, "")}`,
+      icon: LANG_ICONS[lang.name] ?? null,
+      label: shortCode(lang.name),
+      labelColor: contrastText(lang.color),
+      radius,
+      axis,
+      phase,
+      dur,
+      size,
+    };
+  });
 }
 
 function buildSphereElems(languages: BannerLanguage[]): string {
