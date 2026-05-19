@@ -742,8 +742,8 @@ function ApiClient() {
                 {APIS.map((api, i) => (
                   <div key={api.id} className="flex items-baseline">
                     {i > 0 && (
-                      <span className="mr-2 text-zinc-300 dark:text-zinc-700">
-                        ·
+                      <span className="mr-2 text-xl text-zinc-300 dark:text-zinc-700">
+                        •
                       </span>
                     )}
                     <button
@@ -775,7 +775,7 @@ function ApiClient() {
                   <div key={api.id} className="flex items-baseline">
                     {i > 0 && (
                       <span className="mr-2 text-zinc-300 dark:text-zinc-700">
-                        ·
+                        •
                       </span>
                     )}
                     <button
