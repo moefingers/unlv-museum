@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 
-type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPEN";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface Endpoint {
   label: string;
@@ -133,16 +133,16 @@ const APIS: ApiProject[] = [
     endpoints: [
       {
         label: "Open admin UI",
-        method: "OPEN",
+        method: "GET",
         path: "/",
-        description: "Frontend (admin UI)",
+        description: "Frontend (HTML admin UI)",
         navigateTo: "/originals/admin-portal/admin.html",
       },
       {
         label: "Open book list",
-        method: "OPEN",
+        method: "GET",
         path: "/index.html",
-        description: "Frontend (read-only book list)",
+        description: "Frontend (HTML read-only book list)",
         navigateTo: "/originals/admin-portal/index.html",
       },
       {
@@ -434,7 +434,6 @@ const METHOD_COLORS: Record<Method, string> = {
   PUT: "bg-amber-600",
   PATCH: "bg-amber-600",
   DELETE: "bg-red-600",
-  OPEN: "bg-violet-600",
 };
 
 const METHOD_TEXT: Record<Method, string> = {
@@ -443,7 +442,6 @@ const METHOD_TEXT: Record<Method, string> = {
   PUT: "text-amber-600 dark:text-amber-400",
   PATCH: "text-amber-600 dark:text-amber-400",
   DELETE: "text-red-600 dark:text-red-400",
-  OPEN: "text-violet-600 dark:text-violet-400",
 };
 
 export default function ApiClientPage() {
@@ -507,10 +505,9 @@ function ApiClient() {
 
   const send = async () => {
     // Frontend pseudo-endpoint: open the URL in a new tab rather than fetch.
-    // Method check guards against stale navigateTo state if the user tweaked
-    // the request after loading an OPEN endpoint (we also clear navigateTo
-    // on manual edits, but the method check is the load-bearing condition).
-    if (method === "OPEN" && navigateTo) {
+    // navigateTo is cleared whenever the user manually edits method, path,
+    // or body, so this only fires for an unmodified frontend endpoint.
+    if (navigateTo) {
       window.open(navigateTo, "_blank", "noopener");
       setHistory((prev) => [
         {
@@ -812,13 +809,11 @@ function ApiClient() {
               }}
               className={`rounded-md px-3 py-2 text-sm font-bold text-white ${METHOD_COLORS[method]}`}
             >
-              {(["GET", "POST", "PUT", "PATCH", "DELETE", "OPEN"] as const).map(
-                (m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ),
-              )}
+              {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
             {/*
               baseUrl prefix is a per-API segment glued to the path input.
@@ -860,7 +855,7 @@ function ApiClient() {
             </button>
           </div>
 
-          {method !== "GET" && method !== "OPEN" && (
+          {method !== "GET" && !navigateTo && (
             <div className="mb-4">
               <label className="mb-1 block text-xs font-medium text-zinc-500">
                 Request Body
