@@ -1,0 +1,278 @@
+/* ─── LandingView shell ──────────────────────────── */
+
+.shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--space-12) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.portfolioLink {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: var(--muted-foreground);
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.portfolioLink:hover {
+  color: var(--foreground);
+}
+
+/* Hero heading — clamp to mid-mobile then jump to display-size on >= sm. */
+.heroTitle {
+  font-size: calc(
+    var(--font-size-4xl) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  letter-spacing: var(--tracking-tight);
+}
+@media (min-width: 640px) {
+  .heroTitle {
+    font-size: calc(
+      var(--font-size-5xl) * var(--app-size, 1) * var(--room-size, 1)
+    );
+  }
+}
+
+.heroLede {
+  margin-top: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  max-width: 32rem;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+/* View toggle — segmented pill group, same vocabulary as the tier picker
+   in ProjectChrome. Active button gets a card-surface fill; inactive
+   button stays muted-on-muted. */
+.viewToggle {
+  margin-top: calc(
+    var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: inline-flex;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  border-radius: var(--radius-md);
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.viewButtonActive {
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+.viewButtonIdle {
+  color: var(--muted-foreground);
+}
+
+/* ─── Globe view ─────────────────────────────────── */
+
+.globeWrap {
+  margin-top: calc(
+    var(--space-8) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.globeLegend {
+  margin-top: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  color: var(--muted-foreground);
+}
+
+/* Category dot. data-category attribute selects which --category-* token
+   to consume. Same idiom as ApiExplorer's .methodDot[data-method]. */
+.categoryDot {
+  display: inline-block;
+  height: 0.625rem;
+  width: 0.625rem;
+  border-radius: var(--radius-full);
+}
+.categoryDot[data-category="games"] {
+  background: var(--category-games);
+}
+.categoryDot[data-category="full-stack"] {
+  background: var(--category-fullstack);
+}
+.categoryDot[data-category="frontend"] {
+  background: var(--category-frontend);
+}
+.categoryDot[data-category="api"] {
+  background: var(--category-apis);
+}
+.categoryDot[data-category="python"] {
+  background: var(--category-python);
+}
+.categoryDot[data-category="exercises"] {
+  background: var(--category-exercises);
+}
+
+.globeHint {
+  margin-top: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  text-align: center;
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+/* ─── Project card (globe) ──────────────────────── */
+
+/* Globe cards are 3D-projected so the inside surface stays a fixed
+   readable white-ish gradient regardless of museum dark mode — the
+   surrounding globe rotation makes a token-themed card unreadable.
+   The category accent shows through as a faint tint via linear-gradient
+   blend, with deeper-color backing layers behind for depth. */
+.projectCard {
+  display: block;
+  width: 11rem;
+  transform-style: preserve-3d;
+}
+
+.projectCardLayer {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.projectFront {
+  position: relative;
+  border-radius: var(--radius-lg);
+  /* Gradient set inline because it pulls per-card hex strings, not tokens
+     — that's load-bearing (each card must read identically on dark vs light
+     globe). Switching to oklch tokens here would break the readability of
+     the white card surface. */
+}
+
+.projectFrontBody {
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.projectTitle {
+  /* Globe card titles are forced dark-on-white for legibility against the
+     bright card surface — they don't follow the museum's --foreground. */
+  color: oklch(0.21 0.006 286);
+}
+
+.projectYear {
+  margin-top: 0.125rem;
+  color: oklch(0.4 0.01 286);
+}
+
+.projectBackingLayer {
+  position: absolute;
+  border-radius: var(--radius-lg);
+}
+
+/* ─── List view ─────────────────────────────────── */
+
+.listShell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 64rem;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-12) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.listSection {
+  display: block;
+}
+
+.listSectionTitle {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.listGrid {
+  display: grid;
+  gap: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+@media (min-width: 640px) {
+  .listGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .listGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.listCardLink {
+  display: block;
+  padding: calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  transition:
+    border-color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default);
+}
+.listCardLink:hover {
+  border-color: oklch(from var(--border) calc(l * 0.85) c h);
+  background: oklch(from var(--card) calc(l * 0.98) c h);
+}
+.listCardLink:hover .listCardTitle {
+  text-decoration: underline;
+}
+
+.listCardTitle {
+  font-weight: var(--font-weight-semibold);
+}
+
+.listCardDescription {
+  margin-top: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: var(--muted-foreground);
+}
+
+.listCardTech {
+  margin-top: calc(
+    var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.techChip {
+  padding: 0.125rem calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.listCardYear {
+  margin-top: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}

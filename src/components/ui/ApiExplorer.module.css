@@ -1,0 +1,243 @@
+.shell {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.title {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.baseUrl {
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  font-family: var(--font-mono);
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+.intro {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.siblings {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.siblingsLabel {
+  margin-right: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  align-self: center;
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+/* Sibling tab — semibold pill. Current sibling is filled (primary
+   surface), others use the muted surface and brighten on hover. */
+.siblingTab {
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(0.625rem * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.siblingTab:hover {
+  background: oklch(from var(--muted) calc(l * 0.94) c h);
+}
+
+.siblingTabCurrent {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.presetList {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.preset {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(0.625rem * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  background: var(--muted);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.preset:hover {
+  background: oklch(from var(--muted) calc(l * 0.94) c h);
+}
+
+/* Tiny color dot signifying HTTP method. The data-method attribute
+   pulls the matching --method-* token. Kept generic so it can be
+   reused outside ApiExplorer if needed. */
+.methodDot {
+  display: inline-block;
+  height: 0.375rem;
+  width: 0.375rem;
+  border-radius: var(--radius-full);
+}
+.methodDot[data-method="GET"] {
+  background: var(--method-get);
+}
+.methodDot[data-method="POST"] {
+  background: var(--method-post);
+}
+.methodDot[data-method="PUT"] {
+  background: var(--method-put);
+}
+.methodDot[data-method="PATCH"] {
+  background: var(--method-patch);
+}
+.methodDot[data-method="DELETE"] {
+  background: var(--method-delete);
+}
+
+.requestRow {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+/* Method <select>: full method-colored pill. Inherits .method-button
+   color tokens via data-method, overrides the @layer base form-control
+   defaults (which would render a generic border). */
+.methodSelect {
+  width: auto;
+  flex: none;
+  border: none;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  /* The .method-button[data-method=...] global rule supplies bg + color. */
+}
+
+.pathInput {
+  flex: 1;
+  font-family: var(--font-mono);
+}
+
+.sendButton {
+  flex: none;
+}
+
+.bodyEditor {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.bodyTextarea {
+  font-family: var(--font-mono);
+}
+
+.response {
+  flex: 1;
+}
+
+.responseHeader {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.responseLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-foreground);
+}
+
+/* Status badge. Three states: 2xx success, 4xx-5xx error, other warning.
+   Uses the existing semantic tokens via relative-color tinting. */
+.statusBadge {
+  padding: calc(0.125rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-bold);
+}
+.statusSuccess {
+  color: var(--success);
+  background: oklch(from var(--success) l c h / 0.15);
+}
+.statusError {
+  color: var(--destructive);
+  background: oklch(from var(--destructive) l c h / 0.15);
+}
+.statusWarning {
+  color: var(--warning);
+  background: oklch(from var(--warning) l c h / 0.15);
+}
+
+.responseBody {
+  max-height: 20rem;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: oklch(0.141 0.005 286);
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--success);
+  white-space: pre-wrap;
+}
+
+.history {
+  margin-top: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.historyLabel {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-foreground);
+}
+
+.historyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.historyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(0.125rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+}
+
+.historyMeta {
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}

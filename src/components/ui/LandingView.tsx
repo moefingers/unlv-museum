@@ -10,7 +10,19 @@ import {
   type Project,
 } from "@/lib/projects";
 import { Globe as GlobeIcon, List } from "lucide-react";
+import styles from "./LandingView.module.css";
 
+/**
+ * Globe-card hex pairs. Kept as literal hex (not zcanon tokens) because
+ * the globe cards force a white-ish surface for legibility regardless of
+ * museum theme — the category accent only shows through as a faint
+ * gradient tint blended over a white front face. Token-based oklch
+ * mixing would break that contrast guarantee on dark backgrounds.
+ *
+ * The category-color identity for non-globe surfaces (list cards, legend
+ * dots, etc.) uses the `--category-*` tokens in globals.css instead,
+ * accessed via the `.categoryDot[data-category=...]` CSS Module rule.
+ */
 const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
   games: { light: "#22c55e", dark: "#15803d" },
   "full-stack": { light: "#3b82f6", dark: "#1d4ed8" },
@@ -18,15 +30,6 @@ const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
   api: { light: "#f59e0b", dark: "#b45309" },
   python: { light: "#06b6d4", dark: "#0e7490" },
   exercises: { light: "#ec4899", dark: "#be185d" },
-};
-
-const CATEGORY_BG: Record<Category, string> = {
-  games: "bg-green-500",
-  "full-stack": "bg-blue-500",
-  frontend: "bg-purple-500",
-  api: "bg-amber-500",
-  python: "bg-cyan-500",
-  exercises: "bg-pink-500",
 };
 
 const DEPTH_LAYERS = 5;
@@ -38,28 +41,27 @@ function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={project.href ?? `/${project.slug}`}
-      className="group block w-44"
+      className={styles.projectCard}
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
-      style={{ transformStyle: "preserve-3d" }}
     >
-      <div className="relative" style={{ transformStyle: "preserve-3d" }}>
-        {/* Front face with subtle category gradient */}
+      <div className={styles.projectCardLayer}>
         <div
-          className="relative rounded-lg"
+          className={styles.projectFront}
           style={{
             background: `linear-gradient(315deg, rgba(255,255,255,0.97), rgba(255,255,255,0.78)), linear-gradient(315deg, ${hex.light}22, ${hex.dark}66)`,
           }}
         >
-          <div className="p-3">
-            <h3 className="truncate text-sm font-semibold text-zinc-900 group-hover:underline">
+          <div className={styles.projectFrontBody}>
+            <h3
+              className={`text-sm font-semibold truncate ${styles.projectTitle}`}
+            >
               {project.title}
             </h3>
-            <p className="mt-0.5 text-xs text-zinc-600">{project.year}</p>
+            <p className={`text-xs ${styles.projectYear}`}>{project.year}</p>
           </div>
         </div>
 
-        {/* Backing layers with gradient */}
         {Array.from({ length: DEPTH_LAYERS }, (_, i) => {
           const t = (i + 1) / DEPTH_LAYERS;
           const z = -(i + 1) * LAYER_STEP;
@@ -67,7 +69,7 @@ function ProjectCard({ project }: { project: Project }) {
           return (
             <div
               key={i}
-              className="absolute rounded-lg"
+              className={styles.projectBackingLayer}
               style={{
                 inset: `${-grow}px`,
                 transform: `translateZ(${z}px)`,
@@ -86,45 +88,40 @@ function ListView() {
   const categories = Object.keys(CATEGORY_LABELS) as Category[];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-12">
+    <div className={styles.listShell}>
       {categories.map((category) => {
         const projects = PROJECTS.filter((p) => p.category === category);
         if (projects.length === 0) return null;
 
         return (
-          <section key={category}>
-            <h2 className="mb-4 text-xl font-semibold text-zinc-800 dark:text-zinc-200">
+          <section key={category} className={styles.listSection}>
+            <h2 className={`text-xl font-semibold ${styles.listSectionTitle}`}>
               {CATEGORY_LABELS[category]}
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={styles.listGrid}>
               {projects.map((project) => (
                 <Link
                   key={project.slug}
                   href={project.href ?? `/${project.slug}`}
-                  className="group rounded-lg border border-zinc-200 p-5 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
+                  className={styles.listCardLink}
                 >
-                  <h3 className="font-semibold group-hover:underline">
-                    {project.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  <h3 className={styles.listCardTitle}>{project.title}</h3>
+                  <p className={`text-sm ${styles.listCardDescription}`}>
                     {project.description}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-1">
+                  <div className={styles.listCardTech}>
                     {(
                       project.techOriginal ??
                       project.techEnhanced ??
                       project.techReimagined ??
                       []
                     ).map((tech) => (
-                      <span
-                        key={tech}
-                        className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                      >
+                      <span key={tech} className={`text-xs ${styles.techChip}`}>
                         {tech}
                       </span>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className={`text-xs ${styles.listCardYear}`}>
                     {project.year}
                   </p>
                 </Link>
@@ -151,32 +148,34 @@ export function LandingView() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col items-center px-6 py-12">
+    <div className={styles.shell}>
       <a
         href="https://software.infinite-syndicate.com"
-        className="mb-4 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+        className={`text-sm ${styles.portfolioLink}`}
       >
         ← Software Portfolio
       </a>
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-        UNLV Museum
-      </h1>
-      <p className="mt-4 max-w-lg text-center text-zinc-600 dark:text-zinc-400">
+      <h1 className={`font-bold ${styles.heroTitle}`}>UNLV Museum</h1>
+      <p className={styles.heroLede}>
         Projects from UNLV&apos;s software development course, rebuilt across
         three tiers: original, enhanced, and reimagined.
       </p>
 
-      <div className="mt-6 inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+      <div className={styles.viewToggle}>
         <button
           onClick={() => setView("globe")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${view === "globe" ? "bg-white shadow-sm dark:bg-zinc-700" : "text-zinc-600 dark:text-zinc-400"}`}
+          className={`${styles.viewButton} ${
+            view === "globe" ? styles.viewButtonActive : styles.viewButtonIdle
+          }`}
         >
           <GlobeIcon size={14} />
           Globe
         </button>
         <button
           onClick={() => setView("list")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${view === "list" ? "bg-white shadow-sm dark:bg-zinc-700" : "text-zinc-600 dark:text-zinc-400"}`}
+          className={`${styles.viewButton} ${
+            view === "list" ? styles.viewButtonActive : styles.viewButtonIdle
+          }`}
         >
           <List size={14} />
           List
@@ -184,27 +183,22 @@ export function LandingView() {
       </div>
 
       {view === "globe" ? (
-        <div className="mt-8">
+        <div className={styles.globeWrap}>
           <Globe items={globeItems} />
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
+          <div className={styles.globeLegend}>
             {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
-              <span
-                key={cat}
-                className="flex items-center gap-1.5 text-xs text-zinc-500"
-              >
-                <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full ${CATEGORY_BG[cat]}`}
-                />
+              <span key={cat} className={`text-xs ${styles.legendItem}`}>
+                <span className={styles.categoryDot} data-category={cat} />
                 {CATEGORY_LABELS[cat]}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-center text-xs text-zinc-400">
+          <p className={`text-xs ${styles.globeHint}`}>
             Drag to rotate. Click a card to explore.
           </p>
         </div>
       ) : (
-        <div className="mt-12 w-full">
+        <div style={{ marginTop: "3rem", width: "100%" }}>
           <ListView />
         </div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styles from "./ApiExplorer.module.css";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -90,27 +91,31 @@ export function ApiExplorer({
     setBody(preset.body ?? "");
   };
 
-  const METHOD_COLORS: Record<Method, string> = {
-    GET: "bg-green-600",
-    POST: "bg-blue-600",
-    PUT: "bg-amber-600",
-    DELETE: "bg-red-600",
-  };
+  const statusClass =
+    status === null
+      ? ""
+      : status >= 200 && status < 300
+        ? styles.statusSuccess
+        : status >= 400
+          ? styles.statusError
+          : styles.statusWarning;
 
   return (
-    <div className="flex min-h-[60vh] flex-col p-6">
-      <h2 className="mb-1 text-2xl font-bold">{title}</h2>
-      <p className="mb-2 text-xs font-mono text-zinc-400">{baseUrl}</p>
-      <p className="mb-4 rounded bg-zinc-100 px-3 py-2 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+    <div className={styles.shell}>
+      <h2 className={`text-2xl font-bold ${styles.title}`}>{title}</h2>
+      <p className={`text-xs ${styles.baseUrl}`}>{baseUrl}</p>
+      <p className={`text-xs ${styles.intro}`}>
         This project was originally backend-only — no UI was built. The explorer
         below is provided so you can interact with the live API. The endpoints
         are also accessible via Postman, curl, or any HTTP client.
       </p>
 
       {siblings && siblings.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1">
-          <span className="mr-1 self-center text-xs text-zinc-400">APIs:</span>
-          <span className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900">
+        <div className={styles.siblings}>
+          <span className={`text-xs ${styles.siblingsLabel}`}>APIs:</span>
+          <span
+            className={`text-xs ${styles.siblingTab} ${styles.siblingTabCurrent}`}
+          >
             {title}
           </span>
           {siblings
@@ -119,7 +124,7 @@ export function ApiExplorer({
               <button
                 key={s.baseUrl}
                 onClick={() => onSwitch?.(s)}
-                className="rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                className={`text-xs ${styles.siblingTab}`}
               >
                 {s.title}
               </button>
@@ -127,28 +132,26 @@ export function ApiExplorer({
         </div>
       )}
 
-      {/* Presets */}
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      <div className={styles.presetList}>
         {presets.map((preset, i) => (
           <button
             key={i}
             onClick={() => applyPreset(preset)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            className={`text-xs ${styles.preset}`}
           >
-            <span
-              className={`inline-block h-1.5 w-1.5 rounded-full ${METHOD_COLORS[preset.method]}`}
-            />
+            <span className={styles.methodDot} data-method={preset.method} />
             {preset.label}
           </button>
         ))}
       </div>
 
-      {/* Request builder */}
-      <div className="mb-4 flex gap-2">
+      <div className={styles.requestRow}>
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value as Method)}
-          className={`rounded-md px-3 py-2 text-sm font-bold text-white ${METHOD_COLORS[method]}`}
+          className={`method-button ${styles.methodSelect}`}
+          data-method={method}
+          aria-label="HTTP method"
         >
           {(["GET", "POST", "PUT", "DELETE"] as const).map((m) => (
             <option key={m} value={m}>
@@ -159,72 +162,54 @@ export function ApiExplorer({
         <input
           value={path}
           onChange={(e) => setPath(e.target.value)}
-          className="flex-1 rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
+          className={styles.pathInput}
           placeholder="/endpoint"
         />
         <button
           onClick={send}
           disabled={loading}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className={`btn btn-primary ${styles.sendButton}`}
         >
           {loading ? "..." : "Send"}
         </button>
       </div>
 
-      {/* Body editor (for POST/PUT/DELETE) */}
       {method !== "GET" && (
-        <div className="mb-4">
-          <label className="mb-1 block text-xs font-medium text-zinc-500">
-            Request Body (JSON)
-          </label>
+        <div className={styles.bodyEditor}>
+          <label>Request Body (JSON)</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
+            className={styles.bodyTextarea}
             placeholder='{"key": "value"}'
           />
         </div>
       )}
 
-      {/* Response */}
-      <div className="flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500">Response</span>
+      <div className={styles.response}>
+        <div className={styles.responseHeader}>
+          <span className={`text-xs ${styles.responseLabel}`}>Response</span>
           {status !== null && (
-            <span
-              className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-                status >= 200 && status < 300
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                  : status >= 400
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-              }`}
-            >
+            <span className={`text-xs ${styles.statusBadge} ${statusClass}`}>
               {status}
             </span>
           )}
         </div>
-        <pre className="max-h-80 overflow-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-green-400">
+        <pre className={styles.responseBody}>
           {response ?? "Click Send to make a request"}
         </pre>
       </div>
 
-      {/* Request history */}
       {history.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-1 text-xs font-medium text-zinc-500">History</p>
-          <div className="flex flex-wrap gap-1">
+        <div className={styles.history}>
+          <p className={`text-xs ${styles.historyLabel}`}>History</p>
+          <div className={styles.historyList}>
             {history.map((h, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800"
-              >
-                <span
-                  className={`inline-block h-1.5 w-1.5 rounded-full ${METHOD_COLORS[h.method]}`}
-                />
+              <span key={i} className={`text-xs ${styles.historyItem}`}>
+                <span className={styles.methodDot} data-method={h.method} />
                 {h.method} {h.path}{" "}
-                <span className="text-zinc-400">
+                <span className={styles.historyMeta}>
                   {h.status} · {h.time}ms
                 </span>
               </span>

@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
+import { SignInChip } from "@/components/auth/SignInChip";
+import styles from "./ApiClient.module.css";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -419,21 +421,10 @@ const APIS_REIMAGINED: ApiProject[] = [
   },
 ];
 
-const METHOD_COLORS: Record<Method, string> = {
-  GET: "bg-green-600",
-  POST: "bg-blue-600",
-  PUT: "bg-amber-600",
-  PATCH: "bg-amber-600",
-  DELETE: "bg-red-600",
-};
-
-const METHOD_TEXT: Record<Method, string> = {
-  GET: "text-green-600 dark:text-green-400",
-  POST: "text-blue-600 dark:text-blue-400",
-  PUT: "text-amber-600 dark:text-amber-400",
-  PATCH: "text-amber-600 dark:text-amber-400",
-  DELETE: "text-red-600 dark:text-red-400",
-};
+/* Per-method colors and the small dot indicator are driven by --method-*
+   tokens in globals.css. JSX consumers set data-method="GET|POST|..." on
+   .methodDot / .methodLabel / .method-button elements and the right
+   color cascades automatically — no JS lookup table needed. */
 
 export type Tier = "original" | "reimagined";
 
@@ -549,20 +540,29 @@ function ApiClientInner({ tier }: { tier: Tier }) {
     }
   };
 
+  const statusClass =
+    status === null
+      ? ""
+      : status >= 200 && status < 300
+        ? styles.statusSuccess
+        : status >= 400
+          ? styles.statusError
+          : styles.statusWarning;
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white/80 px-6 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="flex items-center gap-3">
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <div className={styles.headerLead}>
           <Link
             href="/"
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            className={styles.backLink}
             aria-label="Back to museum"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="text-lg font-semibold">API Client</h1>
-            <p className="text-xs text-zinc-400">
+            <p className={`text-xs ${styles.headerSubtitle}`}>
               Backend-only UNLV projects — live endpoints, interactive explorer
             </p>
           </div>
@@ -574,17 +574,12 @@ function ApiClientInner({ tier }: { tier: Tier }) {
           Each segment is a <Link> to its own route, so switching tiers is a
           real navigation that participates in the museum's view transitions.
         */}
-        <nav
-          className="inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800"
-          aria-label="Tier"
-        >
+        <nav className={styles.tierPicker} aria-label="Tier">
           <Link
             href="/api-client"
             aria-current={tier === "original" ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              tier === "original"
-                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className={`${styles.tier} ${
+              tier === "original" ? styles.tierCurrent : styles.tierIdle
             }`}
           >
             Original
@@ -592,60 +587,62 @@ function ApiClientInner({ tier }: { tier: Tier }) {
           <Link
             href="/api-client/reimagined"
             aria-current={tier === "reimagined" ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              tier === "reimagined"
-                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className={`${styles.tier} ${
+              tier === "reimagined" ? styles.tierCurrent : styles.tierIdle
             }`}
           >
             Reimagined
           </Link>
         </nav>
+
+        <SignInChip />
       </header>
 
-      <div className="flex flex-1">
+      <div className={styles.body}>
         {/* Left: Knowledge Base */}
-        <aside className="w-72 shrink-0 overflow-y-auto border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="p-4">
-            <p className="text-xs text-zinc-400">
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <p className={`text-xs ${styles.sidebarIntro}`}>
               Live endpoints backed by a real database.
             </p>
           </div>
           <div>
             {apis.map((api) => (
-              <div key={api.id}>
+              <div key={api.id} className={styles.kbEntry}>
                 <button
                   onClick={() => switchApi(api.id)}
-                  className={`w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors dark:border-zinc-800 ${
-                    activeApiId === api.id
-                      ? "bg-white dark:bg-zinc-800"
-                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                  className={`${styles.kbEntryButton} ${
+                    activeApiId === api.id ? styles.kbEntryButtonActive : ""
                   }`}
                 >
-                  <p className="text-sm font-semibold">{api.title}</p>
-                  <p className="mt-0.5 text-xs text-zinc-500">{api.tech}</p>
+                  <p className={`text-sm ${styles.kbEntryTitle}`}>
+                    {api.title}
+                  </p>
+                  <p className={`text-xs ${styles.kbEntryTech}`}>{api.tech}</p>
                 </button>
                 <Collapsible open={activeApiId === api.id}>
-                  <div className="border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-800">
-                    <p className="mb-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  <div className={styles.kbDetailsPanel}>
+                    <p className={`text-xs ${styles.kbDetailsDescription}`}>
                       {api.description}
                     </p>
-                    <div className="space-y-1">
+                    <div className={styles.kbEndpoints}>
                       {api.endpoints.map((ep, i) => (
                         <button
                           key={i}
                           onClick={() => loadEndpoint(ep)}
-                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          className={`text-xs ${styles.kbEndpoint}`}
                         >
                           <span
-                            className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${METHOD_COLORS[ep.method]}`}
+                            className={styles.methodDot}
+                            data-method={ep.method}
                           />
                           <span
-                            className={`font-mono font-bold ${METHOD_TEXT[ep.method]}`}
+                            className={styles.methodLabel}
+                            data-method={ep.method}
                           >
                             {ep.method}
                           </span>
-                          <span className="truncate text-zinc-600 dark:text-zinc-400">
+                          <span className={styles.kbEndpointDescription}>
                             {ep.description}
                           </span>
                         </button>
@@ -658,20 +655,17 @@ function ApiClientInner({ tier }: { tier: Tier }) {
           </div>
 
           {history.length > 0 && (
-            <div className="p-4">
-              <p className="mb-2 text-xs font-medium text-zinc-400">History</p>
-              <div className="space-y-1">
+            <div className={styles.history}>
+              <p className={`text-xs ${styles.historyLabel}`}>History</p>
+              <div className={styles.historyList}>
                 {history.map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-1.5 text-xs text-zinc-500"
-                  >
-                    <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${METHOD_COLORS[h.method]}`}
-                    />
-                    <span className="font-mono">{h.method}</span>
-                    <span className="truncate">{h.api}</span>
-                    <span className="ml-auto text-zinc-400">
+                  <div key={i} className={`text-xs ${styles.historyItem}`}>
+                    <span className={styles.methodDot} data-method={h.method} />
+                    <span style={{ fontFamily: "var(--font-mono)" }}>
+                      {h.method}
+                    </span>
+                    <span className={styles.historyApi}>{h.api}</span>
+                    <span className={styles.historyMeta}>
                       {h.status} · {h.time}ms
                     </span>
                   </div>
@@ -682,21 +676,15 @@ function ApiClientInner({ tier }: { tier: Tier }) {
         </aside>
 
         {/* Right: Client */}
-        <main className="flex flex-1 flex-col p-6">
-          <div className="mb-1 flex flex-wrap items-baseline gap-1">
+        <main className={styles.client}>
+          <div className={styles.apiSwitchRow}>
             {apis.map((api, i) => (
-              <div key={api.id} className="flex items-baseline">
-                {i > 0 && (
-                  <span className="mr-2 text-xl text-zinc-300 dark:text-zinc-700">
-                    •
-                  </span>
-                )}
+              <div key={api.id} className={styles.apiSwitchGroup}>
+                {i > 0 && <span className={styles.apiSwitchSeparator}>•</span>}
                 <button
                   onClick={() => switchApi(api.id)}
-                  className={`shrink-0 text-xl font-bold whitespace-nowrap transition-colors ${
-                    activeApiId === api.id
-                      ? ""
-                      : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400"
+                  className={`${styles.apiSwitchButton} ${
+                    activeApiId === api.id ? "" : styles.apiSwitchInactive
                   }`}
                 >
                   {api.title}
@@ -706,7 +694,7 @@ function ApiClientInner({ tier }: { tier: Tier }) {
                   direction="horizontal"
                   duration={200}
                 >
-                  <span className="ml-2 whitespace-nowrap font-mono text-xs text-zinc-400">
+                  <span className={`text-xs ${styles.apiSwitchBaseUrl}`}>
                     {api.baseUrl}
                   </span>
                 </Collapsible>
@@ -714,11 +702,13 @@ function ApiClientInner({ tier }: { tier: Tier }) {
             ))}
           </div>
 
-          <div className="mb-4 flex gap-2">
+          <div className={styles.requestRow}>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as Method)}
-              className={`rounded-md px-3 py-2 text-sm font-bold text-white ${METHOD_COLORS[method]}`}
+              className={`method-button ${styles.methodSelect}`}
+              data-method={method}
+              aria-label="HTTP method"
             >
               {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
                 <option key={m} value={m}>
@@ -734,7 +724,7 @@ function ApiClientInner({ tier }: { tier: Tier }) {
               while the new one slides open in the same row — rather than
               swap text in place.
             */}
-            <div className="flex flex-1 items-stretch overflow-hidden rounded-md border border-zinc-300 focus-within:border-zinc-500 dark:border-zinc-600 dark:focus-within:border-zinc-400">
+            <div className={styles.pathGroup}>
               {apis.map((api) => (
                 <Collapsible
                   key={api.id}
@@ -742,7 +732,7 @@ function ApiClientInner({ tier }: { tier: Tier }) {
                   direction="horizontal"
                   duration={300}
                 >
-                  <span className="flex h-full items-center border-r border-zinc-300 bg-zinc-100 px-3 py-2 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                  <span className={`text-sm ${styles.baseUrlPrefix}`}>
                     {api.baseUrl}
                   </span>
                 </Collapsible>
@@ -750,54 +740,46 @@ function ApiClientInner({ tier }: { tier: Tier }) {
               <input
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent px-3 py-2 font-mono text-sm outline-none dark:bg-zinc-800"
+                className={`text-sm ${styles.pathInput}`}
                 placeholder="/endpoint"
               />
             </div>
             <button
               onClick={send}
               disabled={loading}
-              className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+              className={`btn btn-primary ${styles.sendButton}`}
             >
               {loading ? "..." : "Send"}
             </button>
           </div>
 
           {method !== "GET" && (
-            <div className="mb-4">
-              <label className="mb-1 block text-xs font-medium text-zinc-500">
-                Request Body
-              </label>
+            <div className={styles.bodyEditor}>
+              <label>Request Body</label>
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={5}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-800"
+                className={styles.bodyTextarea}
                 placeholder='{"key": "value"}'
               />
             </div>
           )}
 
-          <div className="flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-xs font-medium text-zinc-500">
+          <div className={styles.responsePane}>
+            <div className={styles.responseHeader}>
+              <span className={`text-xs ${styles.responseLabel}`}>
                 Response
               </span>
               {status !== null && (
                 <span
-                  className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-                    status >= 200 && status < 300
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : status >= 400
-                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                  }`}
+                  className={`text-xs ${styles.statusBadge} ${statusClass}`}
                 >
                   {status}
                 </span>
               )}
               {responseContentType && (
-                <span className="font-mono text-xs text-zinc-400">
+                <span className={`text-xs ${styles.contentType}`}>
                   Content-Type: {responseContentType}
                 </span>
               )}
@@ -826,7 +808,7 @@ function ResponseBody({
 }) {
   if (text === null) {
     return (
-      <pre className="min-h-48 overflow-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-green-400">
+      <pre className={styles.responseText}>
         Select an endpoint from the left, then click Send
       </pre>
     );
@@ -835,20 +817,16 @@ function ResponseBody({
   const isHtml = contentType?.includes("text/html");
   if (isHtml) {
     return (
-      <div className="response-html-shimmer relative rounded-lg p-0.5">
+      <div className={`response-html-shimmer ${styles.responseHtmlShell}`}>
         <iframe
           title="Response (HTML)"
           srcDoc={text}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          className="min-h-150 w-full rounded-md bg-white"
+          className={styles.responseIframe}
         />
       </div>
     );
   }
 
-  return (
-    <pre className="min-h-48 overflow-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-green-400">
-      {text}
-    </pre>
-  );
+  return <pre className={styles.responseText}>{text}</pre>;
 }

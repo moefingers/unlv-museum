@@ -1,0 +1,480 @@
+/* ApiClient is the heaviest screen in the museum: sticky header with a
+   tier picker + sign-in chip, left sidebar with collapsible knowledge
+   base, right pane with a Postman-style request builder and a response
+   viewer that switches between <pre>-rendered text and a shimmer-bordered
+   iframe for HTML responses. Several pieces mirror ProjectChrome
+   (header, tier picker) — kept as a separate module rather than shared
+   because the surrounding layout is different (full-screen split-pane
+   vs. content card).
+
+   --chrome-* tokens are NOT set here because the page itself IS the
+   chrome — no nested "room" context. Downwash multipliers fall back
+   to 1 throughout, which gives the standard pixel sizes. */
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+/* Header — shared shape with ProjectChrome, slight differences in spacing
+   (tier picker not centered, sign-in chip at the trailing edge). */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: oklch(from var(--background) l c h / 0.8);
+  backdrop-filter: blur(8px);
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  view-transition-name: site-header;
+}
+
+.headerLead {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.backLink:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.headerSubtitle {
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+/* Tier picker — mirror of ProjectChrome's. */
+.tierPicker {
+  display: inline-flex;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.tier {
+  border-radius: var(--radius-md);
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--chrome-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+
+.tierCurrent {
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.tierIdle {
+  color: var(--muted-foreground);
+}
+.tierIdle:hover {
+  color: var(--foreground);
+}
+
+/* Body: two-pane split, knowledge base on left, request/response on right. */
+.body {
+  display: flex;
+  flex: 1;
+}
+
+.sidebar {
+  width: 18rem;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--muted);
+}
+
+.sidebarHeader {
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.sidebarIntro {
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+/* Each API knowledge-base entry: a button row that toggles, then a
+   collapsible details panel underneath. */
+.kbEntry {
+  display: flex;
+  flex-direction: column;
+}
+
+.kbEntryButton {
+  display: block;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  text-align: left;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.kbEntryButton:hover {
+  background: oklch(from var(--muted) calc(l * 0.96) c h);
+}
+.kbEntryButtonActive {
+  background: var(--card);
+}
+.kbEntryButtonActive:hover {
+  background: var(--card);
+}
+
+.kbEntryTitle {
+  font-weight: var(--font-weight-semibold);
+}
+
+.kbEntryTech {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+}
+
+.kbDetailsPanel {
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.kbDetailsDescription {
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: var(--muted-foreground);
+}
+
+.kbEndpoints {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.kbEndpoint {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  border-radius: var(--radius-sm);
+  padding: 0.25rem calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
+  text-align: left;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.kbEndpoint:hover {
+  background: var(--muted);
+}
+
+/* Tiny method indicator dot + method label. The dot inherits color from
+   var(--method-*) via data-method on the dot itself; the label gets the
+   same color via the .methodLabel rule below. */
+.methodDot {
+  display: inline-block;
+  height: 0.375rem;
+  width: 0.375rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+}
+.methodDot[data-method="GET"] {
+  background: var(--method-get);
+}
+.methodDot[data-method="POST"] {
+  background: var(--method-post);
+}
+.methodDot[data-method="PUT"] {
+  background: var(--method-put);
+}
+.methodDot[data-method="PATCH"] {
+  background: var(--method-patch);
+}
+.methodDot[data-method="DELETE"] {
+  background: var(--method-delete);
+}
+
+.methodLabel {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+}
+.methodLabel[data-method="GET"] {
+  color: var(--method-get);
+}
+.methodLabel[data-method="POST"] {
+  color: var(--method-post);
+}
+.methodLabel[data-method="PUT"] {
+  color: var(--method-put);
+}
+.methodLabel[data-method="PATCH"] {
+  color: var(--method-patch);
+}
+.methodLabel[data-method="DELETE"] {
+  color: var(--method-delete);
+}
+
+.kbEndpointDescription {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+
+/* History panel inside sidebar. */
+.history {
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.historyLabel {
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  color: var(--muted-foreground);
+}
+
+.historyApi {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyMeta {
+  margin-left: auto;
+  color: oklch(from var(--muted-foreground) l c h / 0.6);
+}
+
+/* Right pane: client. */
+.client {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+/* API switcher row — title + dot separators between switchable APIs. */
+.apiSwitchRow {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.apiSwitchGroup {
+  display: flex;
+  align-items: baseline;
+}
+
+.apiSwitchSeparator {
+  margin-right: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: oklch(from var(--muted-foreground) l c h / 0.5);
+}
+
+.apiSwitchButton {
+  flex-shrink: 0;
+  font-size: calc(
+    var(--font-size-xl) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  transition: color var(--duration-normal) var(--ease-default);
+}
+
+.apiSwitchInactive {
+  color: oklch(from var(--muted-foreground) l c h / 0.5);
+}
+.apiSwitchInactive:hover {
+  color: var(--muted-foreground);
+}
+
+.apiSwitchBaseUrl {
+  margin-left: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+}
+
+/* Request builder row: method <select>, baseUrl prefix + path input
+   (joined as one bordered group), Send button. */
+.requestRow {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.methodSelect {
+  width: auto;
+  flex: none;
+  border: none;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  /* Color from .method-button[data-method=...] in globals.css. */
+}
+
+.pathGroup {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--input);
+  transition: border-color var(--duration-normal) var(--ease-default);
+}
+.pathGroup:focus-within {
+  border-color: var(--ring);
+}
+
+.baseUrlPrefix {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  border-right: 1px solid var(--input);
+  background: var(--muted);
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  user-select: all;
+}
+
+.pathInput {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  outline: none;
+}
+.pathInput:focus {
+  border: none;
+}
+
+.sendButton {
+  flex: none;
+}
+
+.bodyEditor {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.bodyTextarea {
+  font-family: var(--font-mono);
+}
+
+.responsePane {
+  flex: 1;
+}
+
+.responseHeader {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.responseLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-foreground);
+}
+
+.statusBadge {
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-bold);
+}
+.statusSuccess {
+  color: var(--success);
+  background: oklch(from var(--success) l c h / 0.15);
+}
+.statusError {
+  color: var(--destructive);
+  background: oklch(from var(--destructive) l c h / 0.15);
+}
+.statusWarning {
+  color: var(--warning);
+  background: oklch(from var(--warning) l c h / 0.15);
+}
+
+.contentType {
+  font-family: var(--font-mono);
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+/* Response body — two flavors. */
+.responseText {
+  min-height: 12rem;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: oklch(0.141 0.005 286);
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--success);
+  white-space: pre-wrap;
+}
+
+.responseHtmlShell {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: 0.125rem;
+  /* .response-html-shimmer in globals.css supplies the conic-gradient
+     animation. We compose with that class via JSX, so this module's
+     local wrapper just controls the padding ring + rounded corners. */
+}
+
+.responseIframe {
+  min-height: 37.5rem;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}

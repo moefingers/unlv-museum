@@ -1,0 +1,137 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+  /* Translucent surface so content scrolls behind. The 80% alpha keeps
+     things readable while still signalling "this floats". */
+  background: oklch(from var(--background) l c h / 0.8);
+  backdrop-filter: blur(8px);
+  view-transition-name: site-header;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.leadGroup {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.backLink:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1));
+  color: var(--muted-foreground);
+}
+
+.notesToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.125rem * var(--app-margin, 1) * var(--chrome-margin, 1));
+  padding: calc(0.125rem * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  font-size: calc(
+    var(--font-size-xs) * var(--app-size, 1) * var(--chrome-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.notesToggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.notesChevron {
+  transition: rotate var(--duration-normal) var(--ease-default);
+}
+.notesChevronOpen {
+  rotate: 180deg;
+}
+
+.trailGroup {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+/* Tier picker — a segmented pill group. Hosts three states per tier:
+   current (filled card), available (muted hoverable), unavailable (faded). */
+.tierPicker {
+  display: inline-flex;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.tier {
+  border-radius: var(--radius-md);
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--chrome-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+
+.tierCurrent {
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.tierAvailable {
+  color: var(--muted-foreground);
+}
+.tierAvailable:hover {
+  color: var(--foreground);
+}
+
+.tierDisabled {
+  cursor: not-allowed;
+  color: oklch(from var(--muted-foreground) l c h / 0.5);
+}
+
+.notesPanel {
+  border-top: 1px solid var(--border);
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  color: var(--foreground);
+  /* Faint warning tint without screaming: 8% alpha of the warning token.
+     Reads as "annotation" in both light and dark mode. */
+  background: oklch(from var(--warning) l c h / 0.08);
+}

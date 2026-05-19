@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
+import { SignInChip } from "@/components/auth/SignInChip";
 import type { Project, ViewMode } from "@/lib/projects";
+import styles from "./ProjectChrome.module.css";
 
 const TIERS: { mode: ViewMode; label: string }[] = [
   { mode: "original", label: "Original" },
@@ -42,19 +44,19 @@ export function ProjectChrome({ project }: { project: Project }) {
         : project.techReimagined;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-3">
+    <header className={styles.header}>
+      <div className={styles.row}>
+        <div className={styles.leadGroup}>
           <Link
             href="/"
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            className={styles.backLink}
             aria-label="Back to museum"
           >
             <ArrowLeft size={18} />
           </Link>
-          <div>
+          <div className={styles.titleBlock}>
             <h1 className="text-lg font-semibold">{project.title}</h1>
-            <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className={`text-sm ${styles.meta}`}>
               <span>
                 {project.year}
                 {tierTech && tierTech.length > 0
@@ -64,11 +66,11 @@ export function ProjectChrome({ project }: { project: Project }) {
               {note && (
                 <button
                   onClick={() => setNotesOpen(!notesOpen)}
-                  className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  className={styles.notesToggle}
                 >
                   <ChevronDown
                     size={12}
-                    className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}
+                    className={`${styles.notesChevron} ${notesOpen ? styles.notesChevronOpen : ""}`}
                   />
                   Notes
                 </button>
@@ -77,54 +79,50 @@ export function ProjectChrome({ project }: { project: Project }) {
           </div>
         </div>
 
-        <nav
-          className="inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800"
-          aria-label="Tier"
-        >
-          {TIERS.map(({ mode, label }) => {
-            const isAvailable = available[mode];
-            const isCurrent = currentTier === mode;
-            const href =
-              mode === "original"
-                ? `/${project.slug}`
-                : `/${project.slug}/${mode}`;
-            const baseClass =
-              "rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors";
-            const stateClass = isCurrent
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-              : isAvailable
-                ? "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600";
-            if (!isAvailable) {
+        <div className={styles.trailGroup}>
+          <SignInChip />
+          <nav className={styles.tierPicker} aria-label="Tier">
+            {TIERS.map(({ mode, label }) => {
+              const isAvailable = available[mode];
+              const isCurrent = currentTier === mode;
+              const href =
+                mode === "original"
+                  ? `/${project.slug}`
+                  : `/${project.slug}/${mode}`;
+              const stateClass = isCurrent
+                ? styles.tierCurrent
+                : isAvailable
+                  ? styles.tierAvailable
+                  : styles.tierDisabled;
+              if (!isAvailable) {
+                return (
+                  <span
+                    key={mode}
+                    className={`${styles.tier} ${stateClass}`}
+                    aria-disabled="true"
+                    title={`${label} not available`}
+                  >
+                    {label}
+                  </span>
+                );
+              }
               return (
-                <span
+                <Link
                   key={mode}
-                  className={`${baseClass} ${stateClass}`}
-                  aria-disabled="true"
-                  title={`${label} not available`}
+                  href={href}
+                  className={`${styles.tier} ${stateClass}`}
+                  aria-current={isCurrent ? "page" : undefined}
                 >
                   {label}
-                </span>
+                </Link>
               );
-            }
-            return (
-              <Link
-                key={mode}
-                href={href}
-                className={`${baseClass} ${stateClass}`}
-                aria-current={isCurrent ? "page" : undefined}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+            })}
+          </nav>
+        </div>
       </div>
       {note && (
         <Collapsible open={notesOpen} duration={200}>
-          <p className="border-t border-zinc-200 bg-amber-50/40 px-6 py-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-amber-950/20 dark:text-zinc-300">
-            {note}
-          </p>
+          <p className={`text-sm ${styles.notesPanel}`}>{note}</p>
         </Collapsible>
       )}
     </header>

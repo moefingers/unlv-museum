@@ -1,0 +1,9 @@
+/* Museum root layout — the <body> defaults (background, color, min-height,
+   flex column) come from zcanon's @layer base. We only need:
+   - <main> stretches to fill the body's flex column. */
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}

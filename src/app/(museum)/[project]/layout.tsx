@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PROJECTS } from "@/lib/projects";
 import { ProjectChrome } from "@/components/ui/ProjectChrome";
+import styles from "./layout.module.css";
 
 export default async function ProjectLayout({
   children,
@@ -14,9 +15,9 @@ export default async function ProjectLayout({
   if (!project) notFound();
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className={styles.shell}>
       <ProjectChrome project={project} />
-      <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
+      <div className={styles.viewport}>{children}</div>
     </div>
   );
 }

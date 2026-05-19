@@ -1,0 +1,12 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+}
+
+.viewport {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { THEME_INIT_INTEGRITY } from "@/lib/theme-script";
 import "../globals.css";
+import styles from "./layout.module.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,7 +47,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -68,8 +69,8 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <main className="flex flex-1 flex-col">{children}</main>
+      <body>
+        <main className={styles.main}>{children}</main>
       </body>
     </html>
   );
