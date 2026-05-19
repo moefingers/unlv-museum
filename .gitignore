@@ -48,3 +48,7 @@ next-env.d.ts
 !.sources/JS-Building-a-Shared-Counter-Part-1
 
 dev.log
+.dev.log
+
+# Pre-refactor visual baseline (Tailwind → zcanon migration)
+.refactor-baseline/
