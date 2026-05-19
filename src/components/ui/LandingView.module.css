@@ -298,7 +298,19 @@
   padding: calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: var(--card);
+  /*
+   * Semi-transparent card with a blurred backing. The BreathingMesh sits
+   * at z-index -1 behind the page and would normally show through clearly;
+   * the backdrop-filter blurs whatever mesh dots/lines are behind the card
+   * so they read as ambient texture rather than visual noise. The card
+   * fill is `--card` at ~70% so the mesh still tints through faintly.
+   *
+   * `from var(--card) ...) / 0.7` keeps the token-driven color identity
+   * (works for light + dark) while opening up the alpha channel.
+   */
+  background: oklch(from var(--card) l c h / 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--card-foreground);
   transition:
     border-color var(--duration-normal) var(--ease-default),
@@ -306,7 +318,7 @@
 }
 .listCardLink:hover {
   border-color: oklch(from var(--border) calc(l * 0.85) c h);
-  background: oklch(from var(--card) calc(l * 0.98) c h);
+  background: oklch(from var(--card) calc(l * 0.98) c h / 0.85);
 }
 .listCardLink:hover .listCardTitle {
   text-decoration: underline;

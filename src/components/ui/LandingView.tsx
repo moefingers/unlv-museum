@@ -127,6 +127,10 @@ function ListCard({ project }: { project: Project }) {
       key={project.slug}
       href={project.href ?? `/${project.slug}`}
       className={styles.listCardLink}
+      // BreathingMesh queries this selector each frame and pushes dots
+      // out of the card's bbox (+18px padding). Tagging is opt-in so the
+      // mesh doesn't dodge arbitrary content.
+      data-mesh-dodge=""
     >
       <h3 className={styles.listCardTitle}>{project.title}</h3>
       <p className={`text-sm ${styles.listCardDescription}`}>

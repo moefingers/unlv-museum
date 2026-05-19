@@ -171,10 +171,51 @@ export function BreathingMesh({
     if (!ctx) return;
 
     let frame: number;
+    // `positions` is the RENDERED position per frame (what we draw).
+    // `targetPositions` is the computed target — lattice + drift + cutout
+    // + dodge. Each frame we ease `positions` toward `targetPositions` via
+    // a per-frame exponential decay so sudden target changes (a card
+    // scrolling past a dot, a dot transitioning between dodge regions)
+    // read as a smooth glide instead of a hard snap.
     const positions: number[] = []; // [x0, y0, x1, y1, ...]
+    const targetPositions: number[] = [];
+    let lastFrameTime = performance.now();
+    // Fraction of remaining distance to close per millisecond. Higher
+    // values = snappier glide. Tuned by feel: at 0.012/ms, ~80% of any
+    // delta closes in ~130ms — fast enough to feel responsive when
+    // scrolling, slow enough to mask the hard rect-edge snap.
+    const GLIDE_RATE = 0.012;
+    // Padded rects for any element tagged with [data-mesh-dodge]. Dots
+    // inside these rects get pushed to the nearest edge so the foreground
+    // breathes too — used by list cards. Refreshed once per frame so we
+    // pick up scroll, resize, and view-toggle transitions for free.
+    let dodgeRects: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    }[] = [];
+    const DODGE_PADDING = 18;
 
     const render = (now: number) => {
       const dpi = dpiRef.current;
+
+      // Collect dodge rects this frame. Selector cost: one querySelectorAll
+      // + N getBoundingClientRect calls. With ~28 list cards that's ~30
+      // calls — well under 1ms.
+      const dodgeEls = document.querySelectorAll("[data-mesh-dodge]");
+      dodgeRects = [];
+      for (const el of dodgeEls) {
+        const rect = (el as HTMLElement).getBoundingClientRect();
+        // Skip elements that are collapsed (height 0 from view toggle)
+        if (rect.width < 1 || rect.height < 1) continue;
+        dodgeRects.push({
+          left: rect.left - DODGE_PADDING,
+          top: rect.top - DODGE_PADDING,
+          right: rect.right + DODGE_PADDING,
+          bottom: rect.bottom + DODGE_PADDING,
+        });
+      }
 
       // Measure cutout target each frame. The target stays MOUNTED across
       // view changes — the consumer just transforms it (scale 0/1), so the
@@ -242,8 +283,50 @@ export function BreathingMesh({
             }
           }
         }
-        positions[i * 2] = x;
-        positions[i * 2 + 1] = y;
+        // Card dodge: for each dodge rect we contain, push the dot to the
+        // nearest edge of that rect. Multiple rects compound naturally —
+        // a dot pushed out of card A may still be inside card B and gets
+        // pushed again. With list spacing this is rare and visually fine.
+        for (let k = 0; k < dodgeRects.length; k++) {
+          const rc = dodgeRects[k]!;
+          if (x > rc.left && x < rc.right && y > rc.top && y < rc.bottom) {
+            // Pick the nearest edge (min penetration depth) and snap to it.
+            const dLeft = x - rc.left;
+            const dRight = rc.right - x;
+            const dTop = y - rc.top;
+            const dBottom = rc.bottom - y;
+            const m = Math.min(dLeft, dRight, dTop, dBottom);
+            if (m === dLeft) x = rc.left;
+            else if (m === dRight) x = rc.right;
+            else if (m === dTop) y = rc.top;
+            else y = rc.bottom;
+          }
+        }
+        targetPositions[i * 2] = x;
+        targetPositions[i * 2 + 1] = y;
+      }
+
+      // Pass 1.5: ease rendered positions toward targets. Frame-rate
+      // independent exponential decay — `factor` is the fraction of the
+      // remaining distance to close THIS frame, derived from elapsed ms
+      // and GLIDE_RATE.
+      const dt = Math.max(1, Math.min(100, now - lastFrameTime));
+      lastFrameTime = now;
+      const factor = 1 - Math.exp(-GLIDE_RATE * dt);
+      for (let i = 0; i < dots.length; i++) {
+        const tx = targetPositions[i * 2]!;
+        const ty = targetPositions[i * 2 + 1]!;
+        const cxr = positions[i * 2];
+        const cyr = positions[i * 2 + 1];
+        if (cxr === undefined || cyr === undefined) {
+          // First frame for this dot — start AT the target so we don't
+          // glide in from (0,0).
+          positions[i * 2] = tx;
+          positions[i * 2 + 1] = ty;
+        } else {
+          positions[i * 2] = cxr + (tx - cxr) * factor;
+          positions[i * 2 + 1] = cyr + (ty - cyr) * factor;
+        }
       }
 
       // Pass 2: edges (below dots so dots cap line joins).
