@@ -8,6 +8,17 @@
   margin-inline: auto;
   user-select: none;
   overflow: hidden;
+  /*
+   * Cursor hint: idle on the globe surface shows `grab` (this thing is
+   * drag-rotatable), while a mousedown anywhere on it switches to
+   * `grabbing` via :active. The cards inside override to the default
+   * link pointer (set on .item below) so hovering directly over a card
+   * shows clickability rather than draggability.
+   */
+  cursor: grab;
+}
+.stage:active {
+  cursor: grabbing;
 }
 
 .center {
@@ -20,6 +31,12 @@
 
 .item {
   position: absolute;
+  /*
+   * Override .stage's grab cursor when hovering on a card — cards are
+   * clickable links, not drag handles. The inner <a> sets the actual
+   * pointer; this just makes sure the box around it doesn't show grab.
+   */
+  cursor: pointer;
   /*
    * Cards' transform encodes their Fibonacci-sphere position
    * (rotateY(lon) rotateX(-lat) translateZ(radius)). When the parent
