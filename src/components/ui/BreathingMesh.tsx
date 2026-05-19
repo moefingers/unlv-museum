@@ -30,6 +30,12 @@ interface BreathingMeshProps {
 const SPACING = 68;
 const DOT_RADIUS = 1.6;
 const OFFSET_AMPLITUDE = 8;
+// Mild per-dot live drift on top of the static offset. Amplitude is in px,
+// period is in ms; each dot has its own randomized phase + period so the
+// mesh ripples instead of all dots moving in unison.
+const DRIFT_AMPLITUDE = 2.5;
+const DRIFT_PERIOD_MIN = 6000;
+const DRIFT_PERIOD_MAX = 11000;
 
 function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
@@ -47,6 +53,11 @@ interface Dot {
   ly: number;
   offsetX: number;
   offsetY: number;
+  // Per-dot drift parameters for the breathing animation.
+  phaseX: number; // 0..1, fraction of periodX
+  phaseY: number;
+  periodX: number; // ms
+  periodY: number;
 }
 
 interface Lattice {
@@ -73,6 +84,12 @@ function buildLattice(width: number, height: number): Lattice {
         ly: r * rowH,
         offsetX: (rnd() - 0.5) * 2 * OFFSET_AMPLITUDE,
         offsetY: (rnd() - 0.5) * 2 * OFFSET_AMPLITUDE,
+        phaseX: rnd(),
+        phaseY: rnd(),
+        periodX:
+          DRIFT_PERIOD_MIN + rnd() * (DRIFT_PERIOD_MAX - DRIFT_PERIOD_MIN),
+        periodY:
+          DRIFT_PERIOD_MIN + rnd() * (DRIFT_PERIOD_MAX - DRIFT_PERIOD_MIN),
       });
     }
     grid.push(row);
@@ -156,7 +173,7 @@ export function BreathingMesh({
     let frame: number;
     const positions: number[] = []; // [x0, y0, x1, y1, ...]
 
-    const render = () => {
+    const render = (now: number) => {
       const dpi = dpiRef.current;
 
       // Measure cutout target each frame. The target stays MOUNTED across
@@ -197,11 +214,20 @@ export function BreathingMesh({
       ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
 
       // Pass 1: compute final position for each dot
+      // Position = lattice + static offset + live sine drift + cutout push.
+      // Each dot has its own phase/period so the field ripples instead of
+      // moving in unison.
       const dots = dotsRef.current;
       for (let i = 0; i < dots.length; i++) {
         const dot = dots[i]!;
-        let x = dot.lx + dot.offsetX;
-        let y = dot.ly + dot.offsetY;
+        const driftX =
+          Math.sin((now / dot.periodX + dot.phaseX) * Math.PI * 2) *
+          DRIFT_AMPLITUDE;
+        const driftY =
+          Math.sin((now / dot.periodY + dot.phaseY) * Math.PI * 2) *
+          DRIFT_AMPLITUDE;
+        let x = dot.lx + dot.offsetX + driftX;
+        let y = dot.ly + dot.offsetY + driftY;
         if (r > 0) {
           const dx = x - cx;
           const dy = y - cy;
