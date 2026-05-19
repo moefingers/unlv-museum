@@ -10,7 +10,14 @@ import {
   type Category,
   type Project,
 } from "@/lib/projects";
-import { Globe as GlobeIcon, List, FolderTree, Clock } from "lucide-react";
+import {
+  Globe as GlobeIcon,
+  List,
+  FolderTree,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import styles from "./LandingView.module.css";
 
 /**
@@ -127,6 +134,18 @@ function ListCard({ project }: { project: Project }) {
       key={project.slug}
       href={project.href ?? `/${project.slug}`}
       className={styles.listCardLink}
+      // backdrop-filter is applied inline because Turbopack/Lightning CSS
+      // in this project strips it from CSS Modules (confirmed via
+      // computed-style inspection — the property was dropped from the
+      // served stylesheet). Inline survives the pipeline untouched.
+      style={{
+        backdropFilter: "blur(2px) saturate(1.4)",
+        WebkitBackdropFilter: "blur(2px) saturate(1.4)",
+      }}
+      // data-category drives a faint background tint (--category-* token at
+      // low alpha) so category identity is visible without section headers
+      // — see .listCardLink[data-category=...] in the module CSS.
+      data-category={project.category}
       // BreathingMesh queries this selector each frame and pushes dots
       // out of the card's bbox (+18px padding). Tagging is opt-in so the
       // mesh doesn't dodge arbitrary content.
@@ -153,42 +172,46 @@ function ListCard({ project }: { project: Project }) {
   );
 }
 
-function ListView({ sort }: { sort: "category" | "time" }) {
+/*
+ * Sort projects according to the active sort axis.
+ *  - "category" — group by category in the order CATEGORY_LABELS defines,
+ *    then by time (newest first) within each category.
+ *  - "time" — flat newest-first, ignoring category. Category identity is
+ *    still visible via per-card tint (no headers needed).
+ */
+const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as Category[];
+function sortProjects(
+  projects: readonly Project[],
+  sort: "category" | "time",
+): Project[] {
   if (sort === "time") {
-    // Flat newest-first stream; no section headers.
-    const projects = [...PROJECTS].sort((a, b) =>
+    return [...projects].sort((a, b) =>
       projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
     );
-    return (
-      <div className={styles.listShell}>
-        <div className={styles.listGrid}>
-          {projects.map((project) => (
-            <ListCard key={project.slug} project={project} />
-          ))}
-        </div>
-      </div>
-    );
   }
+  return [...projects].sort((a, b) => {
+    const ci = CATEGORY_ORDER.indexOf(a.category);
+    const cj = CATEGORY_ORDER.indexOf(b.category);
+    if (ci !== cj) return ci - cj;
+    return projectSortKey(b.year).localeCompare(projectSortKey(a.year));
+  });
+}
 
-  const categories = Object.keys(CATEGORY_LABELS) as Category[];
+/*
+ * Flat grid in both modes. The sort axis only changes the ordering; the
+ * DOM structure stays identical so a FLIP transition can morph each card
+ * from its old position to its new one. Category identity is rendered as
+ * a per-card background tint (no headers) — see ListCard.
+ */
+function ListView({ sort }: { sort: "category" | "time" }) {
+  const projects = sortProjects(PROJECTS, sort);
   return (
     <div className={styles.listShell}>
-      {categories.map((category) => {
-        const projects = PROJECTS.filter((p) => p.category === category);
-        if (projects.length === 0) return null;
-        return (
-          <section key={category} className={styles.listSection}>
-            <h2 className={`text-xl font-semibold ${styles.listSectionTitle}`}>
-              {CATEGORY_LABELS[category]}
-            </h2>
-            <div className={styles.listGrid}>
-              {projects.map((project) => (
-                <ListCard key={project.slug} project={project} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <div className={styles.listGrid}>
+        {projects.map((project) => (
+          <ListCard key={project.slug} project={project} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -198,6 +221,10 @@ export function LandingView() {
   // Sort axis is orthogonal to view. Globe ignores it (its spatial order is
   // fixed for stability); only List re-renders against it.
   const [sort, setSort] = useState<"category" | "time">("category");
+  // Legend is a floating fixed panel shown in both views. Collapsing
+  // dismisses the panel down to a single chevron toggle so the page
+  // breathes when the user wants it out of the way.
+  const [legendOpen, setLegendOpen] = useState(true);
 
   // Ref on the globe wrapper. BreathingMesh measures it each frame to align
   // its circular cutout to wherever the globe is rendered (centers, scrolls,
@@ -312,7 +339,35 @@ export function LandingView() {
         <div ref={globeWrapRef} className={styles.globeScaleHost}>
           <Globe items={globeItems} />
         </div>
-        <div className={styles.globeLegend}>
+        <p className={`text-xs ${styles.globeHint}`}>
+          Drag to rotate. Click a card to explore.
+        </p>
+      </div>
+      <div className={styles.listMount} data-view-active={view === "list"}>
+        <ListView sort={sort} />
+      </div>
+
+      {/*
+        Floating legend: position: fixed, persists across both views. The
+        panel itself is user-select: none (so dragging the globe doesn't
+        select its text); only the chevron toggle is interactive. A
+        radial gradient backing softens the mesh behind it so the dot
+        colors stay legible. Collapses to just the chevron when dismissed.
+      */}
+      <div
+        className={styles.floatingLegend}
+        data-legend-open={legendOpen}
+        // Mesh dodge so the breathing dots avoid the legend backing.
+        data-mesh-dodge=""
+        // Inline backdrop-filter (Lightning CSS strips it from modules
+        // in this project). Light blur softens the mesh under the legend
+        // backing without obscuring it.
+        style={{
+          backdropFilter: "blur(2px)",
+          WebkitBackdropFilter: "blur(2px)",
+        }}
+      >
+        <div className={styles.legendBody}>
           {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
             <span key={cat} className={`text-xs ${styles.legendItem}`}>
               <span className={styles.categoryDot} data-category={cat} />
@@ -320,12 +375,19 @@ export function LandingView() {
             </span>
           ))}
         </div>
-        <p className={`text-xs ${styles.globeHint}`}>
-          Drag to rotate. Click a card to explore.
-        </p>
-      </div>
-      <div className={styles.listMount} data-view-active={view === "list"}>
-        <ListView sort={sort} />
+        <button
+          type="button"
+          className={styles.legendToggle}
+          style={{
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+          onClick={() => setLegendOpen((v) => !v)}
+          aria-label={legendOpen ? "Hide legend" : "Show legend"}
+          aria-expanded={legendOpen}
+        >
+          {legendOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+        </button>
       </div>
     </div>
   );

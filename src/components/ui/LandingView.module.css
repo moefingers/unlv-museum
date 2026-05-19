@@ -158,21 +158,94 @@
   pointer-events: none;
 }
 
-.globeLegend {
-  margin-top: calc(
-    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
-}
-
 .legendItem {
   display: flex;
   align-items: center;
   gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
   color: var(--muted-foreground);
+}
+
+/* ─── Floating legend ────────────────────────────── */
+
+/*
+ * Persistent across Globe and List. Fixed at the bottom-center of the
+ * viewport, dismissable down to just the chevron toggle.
+ *
+ * The radial gradient backing softens the breathing mesh behind it so
+ * the category dots stay readable — same idea as a vignette, but local
+ * to the panel. The body is user-select: none so dragging the globe
+ * (or trying to drag-select the page) doesn't grab the legend text; the
+ * chevron button is the only interactive escape hatch.
+ */
+.floatingLegend {
+  position: fixed;
+  bottom: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.legendBody {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
+  max-width: min(92vw, 40rem);
+  user-select: none;
+  -webkit-user-select: none;
+  /*
+   * Radial gradient backing — peaks at center, fades to transparent at
+   * the edges. Sits on top of the card surface so the legend never reads
+   * against raw mesh. Pure CSS, no extra element.
+   */
+  background: radial-gradient(
+    ellipse at center,
+    oklch(from var(--background) l c h / 0.92) 0%,
+    oklch(from var(--background) l c h / 0.78) 55%,
+    oklch(from var(--background) l c h / 0) 100%
+  );
+  border-radius: var(--radius-full);
+  transition:
+    opacity var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+  transform-origin: bottom center;
+}
+.floatingLegend[data-legend-open="false"] .legendBody {
+  opacity: 0;
+  transform: scale(0.92) translateY(8px);
+  pointer-events: none;
+}
+
+.legendToggle {
+  pointer-events: auto;
+  margin-top: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: var(--radius-full);
+  background: oklch(from var(--card) l c h / 0.85);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  /* backdrop-filter applied inline in LandingView.tsx — Lightning CSS
+     strips it from CSS Modules in this project. */
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default);
+}
+.legendToggle:hover {
+  color: var(--foreground);
+  background: oklch(from var(--card) calc(l * 0.98) c h / 0.95);
 }
 
 /* Category dot. data-category attribute selects which --category-* token
@@ -302,23 +375,89 @@
    * Semi-transparent card with a blurred backing. The BreathingMesh sits
    * at z-index -1 behind the page and would normally show through clearly;
    * the backdrop-filter blurs whatever mesh dots/lines are behind the card
-   * so they read as ambient texture rather than visual noise. The card
-   * fill is `--card` at ~70% so the mesh still tints through faintly.
+   * so they read as ambient texture rather than visual noise.
    *
-   * `from var(--card) ...) / 0.7` keeps the token-driven color identity
-   * (works for light + dark) while opening up the alpha channel.
+   * Category identity is layered as a faint tint on top of the card fill:
+   * each [data-category=...] rule below sets --card-tint to the matching
+   * --category-* token, and the background composites tint over card.
+   * Default (no category attribute) leaves --card-tint as transparent so
+   * the card stays neutral.
+   *
+   * Hover state animates by changing --card-bg-alpha and --card-tint
+   * (both @property-registered as <number> / <color>) — that keeps the
+   * background image structure identical across states so the browser
+   * can interpolate the values smoothly. Animating the background
+   * shorthand directly only fades opacity (not color) and looked snappy.
    */
-  background: oklch(from var(--card) l c h / 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  --card-tint: transparent;
+  --card-bg-alpha: 0.25;
+  background:
+    linear-gradient(var(--card-tint), var(--card-tint)),
+    oklch(from var(--card) l c h / var(--card-bg-alpha));
+  /*
+   * backdrop-filter is applied inline in LandingView.tsx — Turbopack /
+   * Lightning CSS in this project strips it when it lives in a CSS
+   * Module (confirmed empirically via computed-style inspection).
+   *
+   * The frosted-glass effect depends on the inline blur landing AND on
+   * the card surface staying translucent enough for the mesh to show
+   * through. Keep --card-bg-alpha low; bump on hover to densify.
+   */
+  box-shadow:
+    inset 0 1px 0 oklch(from var(--background) l c h / 0.6),
+    0 1px 3px oklch(from var(--foreground) l c h / 0.08),
+    0 6px 16px oklch(from var(--foreground) l c h / 0.05);
   color: var(--card-foreground);
   transition:
     border-color var(--duration-normal) var(--ease-default),
-    background var(--duration-normal) var(--ease-default);
+    --card-tint var(--duration-normal) var(--ease-default),
+    --card-bg-alpha var(--duration-normal) var(--ease-default);
+}
+.listCardLink[data-category="games"] {
+  --card-tint: oklch(from var(--category-games) l c h / 0.14);
+}
+.listCardLink[data-category="full-stack"] {
+  --card-tint: oklch(from var(--category-fullstack) l c h / 0.14);
+}
+.listCardLink[data-category="frontend"] {
+  --card-tint: oklch(from var(--category-frontend) l c h / 0.14);
+}
+.listCardLink[data-category="api"] {
+  --card-tint: oklch(from var(--category-apis) l c h / 0.14);
+}
+.listCardLink[data-category="python"] {
+  --card-tint: oklch(from var(--category-python) l c h / 0.14);
+}
+.listCardLink[data-category="exercises"] {
+  --card-tint: oklch(from var(--category-exercises) l c h / 0.14);
 }
 .listCardLink:hover {
   border-color: oklch(from var(--border) calc(l * 0.85) c h);
-  background: oklch(from var(--card) calc(l * 0.98) c h / 0.85);
+  /*
+   * Bump the base alpha so the card feels slightly denser on hover, and
+   * deepen the category tint a touch so the identity reads stronger.
+   * Both values transition via @property registration above, so the
+   * darken eases in instead of snapping.
+   */
+  --card-bg-alpha: 0.65;
+}
+.listCardLink:hover[data-category="games"] {
+  --card-tint: oklch(from var(--category-games) l c h / 0.22);
+}
+.listCardLink:hover[data-category="full-stack"] {
+  --card-tint: oklch(from var(--category-fullstack) l c h / 0.22);
+}
+.listCardLink:hover[data-category="frontend"] {
+  --card-tint: oklch(from var(--category-frontend) l c h / 0.22);
+}
+.listCardLink:hover[data-category="api"] {
+  --card-tint: oklch(from var(--category-apis) l c h / 0.22);
+}
+.listCardLink:hover[data-category="python"] {
+  --card-tint: oklch(from var(--category-python) l c h / 0.22);
+}
+.listCardLink:hover[data-category="exercises"] {
+  --card-tint: oklch(from var(--category-exercises) l c h / 0.22);
 }
 .listCardLink:hover .listCardTitle {
   text-decoration: underline;

@@ -6,6 +6,27 @@
 
 @layer settings, base, components, utilities;
 
+/* ─── Registered custom properties ────────────────── */
+
+/*
+ * @property registrations must live outside @layer (they're a top-level
+ * at-rule). Registering these as <color> / <number> teaches the browser
+ * how to interpolate them, which is what lets the landing list cards
+ * smoothly transit their tint and base alpha on hover instead of
+ * snapping. Without registration, custom properties default to <*>
+ * (token-stream) and any transition between them is binary.
+ */
+@property --card-tint {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+@property --card-bg-alpha {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.25;
+}
+
 /* ─── Settings: Design Tokens ─────────────────────── */
 
 @layer settings {
