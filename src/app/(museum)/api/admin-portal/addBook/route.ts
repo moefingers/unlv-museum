@@ -68,5 +68,11 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  return NextResponse.json(book);
+  // Rename `imageUrl` → `imageURL` and fall back to a deterministic
+  // placeholder cover so the frontend always has an image to render.
+  const { imageUrl, ...rest } = book!;
+  return NextResponse.json({
+    ...rest,
+    imageURL: imageUrl ?? `/api/admin-portal/covers/${rest.id}`,
+  });
 }
