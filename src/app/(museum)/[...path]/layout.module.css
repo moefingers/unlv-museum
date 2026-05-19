@@ -1,0 +1,22 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+}
+
+/* Row containing the optional SiblingRail and the viewport body. The
+   rail is its own component (handles its own widths + responsive drawer
+   behavior); this row just gives it a flex parent to sit in. */
+.viewportRow {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewport {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}

@@ -31,6 +31,10 @@
   padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
   border-radius: var(--radius-md);
   color: var(--muted-foreground);
+  /* Shared across ProjectChrome + ApiClient so the back-arrow holds
+     position across all chrome-bearing routes. Safe because only one
+     chrome renders per route. */
+  view-transition-name: site-back-link;
   transition:
     background var(--duration-normal) var(--ease-default),
     color var(--duration-normal) var(--ease-default);
@@ -112,6 +116,10 @@
   background: var(--card);
   color: var(--card-foreground);
   box-shadow: var(--shadow-sm);
+  /* The pill is the only `.tierCurrent` on a page at a time. Naming it
+     lets the browser morph it between tier buttons across navigation —
+     the highlight slides instead of teleporting. */
+  view-transition-name: tier-pill-bg;
 }
 
 .tierAvailable {

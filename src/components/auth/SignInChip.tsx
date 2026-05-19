@@ -140,7 +140,7 @@ export function SignInChip() {
   const user = session.user;
 
   return (
-    <div style={{ position: "relative" }} ref={popoverRef}>
+    <div className={styles.signedInWrap} ref={popoverRef}>
       <button
         type="button"
         onClick={() => setPopoverOpen((v) => !v)}

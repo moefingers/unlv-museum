@@ -71,8 +71,45 @@ function formatDateRange(firstIso: string, lastIso: string): string {
   return `${first} – ${last}`;
 }
 
+/**
+ * Container registry — sibling groups for projects that share a series.
+ *
+ * A container is a navigation affordance, not a registry tier. Each
+ * containerized project still has its own slug, its own original/enhanced/
+ * reimagined tiers, and its own card on the landing page. The container
+ * shows up in two places only:
+ *   1. The URL — `/<container>/<slug>` instead of `/<slug>`
+ *   2. The project detail chrome — a SiblingRail listing the other leaves
+ *
+ * Containers do NOT have their own pages. `/<container>` redirects to a
+ * default leaf (declared in `next.config.ts`).
+ *
+ * Adding a container: declare it here, then set `container` on each member
+ * project. Leaf slug uniqueness is per-container — `bootstrap` under
+ * `react-exercises` and `bootstrap` under some other series wouldn't collide.
+ */
+export const CONTAINERS = {
+  "react-exercises": { title: "React Router Series" },
+} as const;
+
+export type ContainerId = keyof typeof CONTAINERS;
+
 export interface Project {
+  /**
+   * Leaf slug. Unique within a container, or globally when `container` is
+   * unset. URL composition goes through `projectPath()` — never concatenate
+   * container and slug by hand.
+   */
   slug: string;
+  /**
+   * Container ID for projects that belong to a sibling group (React Router
+   * exercises, web-game parts, python fundamentals, etc.). When set, the URL
+   * becomes `/<container>/<slug>` and the project detail chrome renders a
+   * SiblingRail with the other leaves. When unset, the project is a flat
+   * top-level entry at `/<slug>`. Containers themselves are declared in the
+   * `CONTAINERS` map below.
+   */
+  container?: ContainerId;
   title: string;
   description: string;
   /**
@@ -163,6 +200,43 @@ const COMING_SOON = <Placeholder label="Coming soon" />;
 export function getSourceRef(slug: string): SourceRef | undefined {
   const sources = sourcesGenerated as Record<string, SourceRef>;
   return sources[slug];
+}
+
+/**
+ * URL path for a project. `/<container>/<slug>` if the project belongs to
+ * a container, `/<slug>` otherwise. Single source of truth for URL
+ * composition — never concatenate the parts by hand at call sites.
+ */
+export function projectPath(p: Project): string {
+  return p.container ? `${p.container}/${p.slug}` : p.slug;
+}
+
+/**
+ * Reverse direction: given a URL path (with or without leading slash, with
+ * or without trailing tier segment like `/enhanced`), find the matching
+ * project. Container + leaf collisions are allowed by design — the lookup
+ * uses (container, slug) as a composite key.
+ *
+ * Returns undefined when no project matches.
+ */
+export function findByPath(path: string): Project | undefined {
+  const segments = path.replace(/^\/+|\/+$/g, "").split("/");
+  if (segments.length === 0 || !segments[0]) return undefined;
+
+  // Drop a trailing tier segment if present so /react-exercises/music-search/enhanced
+  // resolves to the same project as /react-exercises/music-search.
+  const TIER_SUFFIXES = new Set(["enhanced", "reimagined"]);
+  const tail = segments[segments.length - 1]!;
+  if (segments.length > 1 && TIER_SUFFIXES.has(tail)) segments.pop();
+
+  if (segments.length === 1) {
+    return PROJECTS.find((p) => !p.container && p.slug === segments[0]);
+  }
+  if (segments.length === 2) {
+    const [container, slug] = segments;
+    return PROJECTS.find((p) => p.container === container && p.slug === slug);
+  }
+  return undefined;
 }
 
 export const PROJECTS: Project[] = [
@@ -545,14 +619,73 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
   {
-    slug: "react-exercises",
-    title: "React Learning Path",
-    description: "Bootstrap, routing, music search, stylesheets.",
-    year: "Mar – Apr 2024",
+    slug: "music-search",
+    container: "react-exercises",
+    repo: "moefingers/RR-Music-Search",
+    title: "Music Search",
+    description: "iTunes search SPA — query, results grid, album detail.",
+    year: "Mar 2024",
     category: "exercises",
-    techOriginal: ["React", "React Router", "Bootstrap", "CRA"],
+    techOriginal: ["React", "React Router", "iTunes API", "CRA"],
     original: (
       <OriginalFrame src="/originals/react-exercises/music-search/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "montys-mineral-spa",
+    container: "react-exercises",
+    repo: "moefingers/RR-React-Router-Montys-Mineral-Spa",
+    title: "Monty's Mineral Spa",
+    description: "Multi-page React Router exercise.",
+    year: "Mar 2024",
+    category: "exercises",
+    techOriginal: ["React", "React Router", "CRA"],
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "bootstrap",
+    container: "react-exercises",
+    repo: "moefingers/RR-Getting-Started-With-Bootstrap",
+    title: "React + Bootstrap",
+    description: "Bootstrap components composed into a React app.",
+    year: "Mar 2024",
+    category: "exercises",
+    techOriginal: ["React", "Bootstrap", "CRA"],
+    original: (
+      <OriginalFrame src="/originals/react-exercises/bootstrap/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "stylesheets",
+    container: "react-exercises",
+    repo: "moefingers/RR-Stylesheets-React",
+    title: "Stylesheets in React",
+    description: "CSS modules vs global stylesheets vs inline styles.",
+    year: "Mar 2024",
+    category: "exercises",
+    techOriginal: ["React", "CSS Modules", "CRA"],
+    original: (
+      <OriginalFrame src="/originals/react-exercises/stylesheets/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "rainbow",
+    container: "react-exercises",
+    repo: "moefingers/rr-react-rainbow",
+    title: "React Rainbow",
+    description: "Color components and prop-driven rendering.",
+    year: "Mar 2024",
+    category: "exercises",
+    techOriginal: ["React", "CRA"],
+    original: (
+      <OriginalFrame src="/originals/react-exercises/rainbow/index.html" />
     ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,

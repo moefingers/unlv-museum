@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { SignInChip } from "@/components/auth/SignInChip";
-import type { Project, ViewMode } from "@/lib/projects";
+import { projectPath, type Project, type ViewMode } from "@/lib/projects";
 import styles from "./ProjectChrome.module.css";
 
 const TIERS: { mode: ViewMode; label: string }[] = [
@@ -25,7 +25,8 @@ export function ProjectChrome({ project }: { project: Project }) {
   const pathname = usePathname();
   const [notesOpen, setNotesOpen] = useState(true);
 
-  const currentTier = deriveTier(pathname, project.slug);
+  const path = projectPath(project);
+  const currentTier = deriveTier(pathname, path);
 
   const available: Record<ViewMode, boolean> = {
     original: project.original != null,
@@ -86,9 +87,7 @@ export function ProjectChrome({ project }: { project: Project }) {
               const isAvailable = available[mode];
               const isCurrent = currentTier === mode;
               const href =
-                mode === "original"
-                  ? `/${project.slug}`
-                  : `/${project.slug}/${mode}`;
+                mode === "original" ? `/${path}` : `/${path}/${mode}`;
               const stateClass = isCurrent
                 ? styles.tierCurrent
                 : isAvailable
@@ -129,13 +128,19 @@ export function ProjectChrome({ project }: { project: Project }) {
   );
 }
 
-function deriveTier(pathname: string, slug: string): ViewMode {
-  // /<slug>            → original
-  // /<slug>/enhanced   → enhanced
-  // /<slug>/reimagined → reimagined
+function deriveTier(pathname: string, path: string): ViewMode {
+  // /<path>            → original
+  // /<path>/enhanced   → enhanced
+  // /<path>/reimagined → reimagined
+  // <path> may be "<slug>" (flat) or "<container>/<slug>" (containerized).
   const segments = pathname.split("/").filter(Boolean);
-  if (segments[0] !== slug) return "original";
-  const tier = segments[1];
+  const pathSegments = path.split("/").filter(Boolean);
+  // The URL must start with the project's path segments; anything else means
+  // we're on an unrelated route and the chrome is being rendered for nothing.
+  for (let i = 0; i < pathSegments.length; i++) {
+    if (segments[i] !== pathSegments[i]) return "original";
+  }
+  const tier = segments[pathSegments.length];
   if (tier === "enhanced") return "enhanced";
   if (tier === "reimagined") return "reimagined";
   return "original";

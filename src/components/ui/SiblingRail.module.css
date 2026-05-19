@@ -1,0 +1,187 @@
+/* SiblingRail — vertical nav for containerized projects.
+   Pattern mirrors /api-client's sidebar:
+     - Wide viewports: permanent at the left edge, no toggle, no backdrop
+     - Narrow viewports: detached drawer that slides over the viewport;
+       toggle button rides the rail's right edge, backdrop catches taps
+   The wrapping div (`.host`) participates in the layout flex so above
+   the breakpoint the rail reserves real width; below it the rail goes
+   absolute so the viewport reclaims its space. */
+
+.host {
+  position: relative;
+  flex-shrink: 0;
+  /* Single source of truth for the rail's open width. Drives both the
+     rail's own size and the toggle button's left offset so they stay
+     glued together regardless of state. */
+  --rail-w: 16rem;
+  width: var(--rail-w);
+  /* Persists the rail across sibling-leaf navigations inside a container.
+     Only one SiblingRail renders per route (containerized projects only),
+     so this name is unique on any page that has it. */
+  view-transition-name: sibling-rail-host;
+}
+
+/* Backdrop — visible only when drawer is open on narrow viewports. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  display: none;
+  background: oklch(from var(--background) l c h / 0.5);
+  backdrop-filter: blur(4px);
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-snap);
+  cursor: pointer;
+}
+
+.rail {
+  display: flex;
+  height: 100%;
+  width: var(--rail-w);
+  flex-direction: column;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--muted);
+  /* Idle transform; only used at the narrow breakpoint where the rail
+     becomes absolutely positioned and slides on data-rail-open. */
+  transform: translateX(0);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+
+.railHeader {
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.containerLabel {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+}
+
+.containerTitle {
+  margin-top: 0.125rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  text-align: left;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.item:hover {
+  background: oklch(from var(--muted) calc(l * 0.96) c h);
+}
+
+.itemCurrent {
+  background: var(--card);
+  /* The current-item highlight is the only `.itemCurrent` rendered at
+     a time. Naming it lets the highlight slide between siblings across
+     navigation instead of teleporting. */
+  view-transition-name: sibling-current;
+}
+.itemCurrent:hover {
+  background: var(--card);
+}
+
+.itemTitle {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-semibold);
+}
+
+.itemDescription {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+
+/* Toggle button — pinned to the right edge of the rail's open position.
+   Hidden above the breakpoint. */
+.toggle {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--rail-w);
+  z-index: 41;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: -1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    left var(--duration-slow) var(--ease-snap),
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.toggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.toggleIcon {
+  /* Chevron points → when closed (pull rail out), ← when open (tuck back). */
+  transform: rotate(180deg);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+.host[data-rail-open="true"] .toggleIcon {
+  transform: rotate(0deg);
+}
+
+/* Narrow-viewport drawer behavior. */
+@media (max-width: 768px) {
+  .host {
+    /* Reclaim the row width — rail becomes absolutely positioned. */
+    width: 0;
+  }
+  .rail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+  }
+  .host[data-rail-open="true"] .rail {
+    transform: translateX(0);
+  }
+
+  .toggle {
+    display: inline-flex;
+    /* Closed: button sits at the viewport's left edge so it's reachable.
+       Open: button rides the rail's right edge. */
+    left: 0;
+  }
+  .host[data-rail-open="true"] .toggle {
+    left: var(--rail-w);
+  }
+
+  .backdrop {
+    display: block;
+  }
+  .host[data-rail-open="true"] .backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

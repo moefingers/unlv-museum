@@ -1,3 +1,19 @@
+/* Shared transition name across all three chip states (loading, signed-out,
+   signed-in) so the chip holds its position across route navigations. Safe
+   because only one variant renders at a time within a given route, and
+   state changes within a route happen via React (no view transition fires
+   unless the route itself changes). */
+.loadingChip,
+.signInButton,
+.signedInWrap {
+  view-transition-name: site-signin;
+}
+
+/* Signed-in wrapper — anchors the popover below the avatar trigger. */
+.signedInWrap {
+  position: relative;
+}
+
 .loadingChip {
   display: inline-flex;
   height: 2.25rem;

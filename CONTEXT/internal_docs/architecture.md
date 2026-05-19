@@ -55,6 +55,44 @@ All projects defined in `src/lib/projects.tsx`. Each project has: slug, title, d
 
 Categories: games, full-stack, frontend, api, python, exercises.
 
+## Route Shapes
+
+Every museum URL falls into one of three shapes. The distinction matters because it controls what the URL means — whether it identifies a project, contains projects, or is a shared viewer hosting them.
+
+### Project route — one URL, one project
+
+The default. A single project at a top-level slug, with its own `/[project]`, `/[project]/enhanced`, `/[project]/reimagined` pages rendered by `ProjectChrome`. The URL identifies the project.
+
+Examples: `/interactive-map`, `/food-truck`, `/milestown`, `/quirk-truck`.
+
+Each has a `PROJECTS` entry whose slug matches the URL segment 1:1. The slug is curatorial (chosen for the museum), not derived from the source repo name — see the convention discussion in [sources-conversions.md](sources-conversions.md).
+
+### Container route — shared prefix, distinct leaves
+
+A URL prefix groups several sibling projects, each of which has its own sub-route and its own tiers. The container has an optional landing page; the leaves are real project routes underneath it.
+
+Examples (planned, not yet implemented): `/react-exercises/music-search`, `/react-exercises/montys-mineral-spa`, `/react-exercises/bootstrap`, `/react-exercises/stylesheets`. The `/react-exercises` segment surfaces sibling discoverability via a side-nav (matching api-client's left rail pattern); each leaf is its own museum entry with its own original/enhanced/reimagined.
+
+Container routes exist when several projects share genuine lineage — a series of labs working through the same library, multiple parts of one game progression — and visitors benefit from seeing the siblings as siblings rather than scattered across the landing page. They are **not** rollups. Each leaf has its own `PROJECTS` entry, its own slug, its own tier work; the container is purely a navigation surface.
+
+The opposite of a container is a rollup: one `PROJECTS` entry standing in for many repos. Rollups are forbidden because they force the per-repo tier model into a single shared decision (see the slug-split rationale).
+
+### Viewer route — one URL, many projects, one shared frontend
+
+A single museum route renders many projects' data through a shared client. The viewer is **not a project** — it's a museum-level route that happens to host them. The hosted projects are query-param-selected sub-views of the same chrome.
+
+Example: `/api-client` (and `/api-client/reimagined`). Each backend project — `music-tour-api`, `jaskis`, `admin-portal-api`, `rest-rant` (API only), `sql-injection-demo` — has a `PROJECTS` entry whose `original` field is `<ApiOriginal startWith="…" />`, which redirects to `/api-client?api=<id>`. The api-client itself is one route, one component, one shared request-builder UI. The project entries are real museum entries; the viewer is shared infrastructure.
+
+The distinguishing test: **does the URL change when you switch between the projects it hosts?**
+
+- Project routes: yes — `/food-truck` ≠ `/interactive-map`.
+- Container routes: yes — `/react-exercises/music-search` ≠ `/react-exercises/bootstrap`.
+- Viewer routes: not as path, only as query param — `/api-client?api=music-tour` vs `/api-client?api=jaskis`. The hosting frontend doesn't re-mount.
+
+Viewer routes exist when the projects truly share a frontend by nature — they are different backends explored through the same Postman-style UI. A category of projects that all happen to be CRA apps does not warrant a viewer route, because their frontends are independent; they get project routes or a container route.
+
+`/api-client` is currently the only viewer route. If another arises (e.g. a shared Pyodide REPL hosting multiple Python projects under one viewer), it follows the same rules: viewer is not in `PROJECTS`, hosted projects are, viewer redirects bare URL to first hosted project's query param.
+
 ## Database
 
 Neon PostgreSQL with per-project schemas:

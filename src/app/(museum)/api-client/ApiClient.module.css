@@ -15,6 +15,10 @@
   display: flex;
   min-height: 100vh;
   flex-direction: column;
+  /* Single source of truth for the sidebar's open width. Drives both the
+     sidebar's own size and the toggle button's left offset so they stay
+     glued together regardless of state. */
+  --sidebar-w: 18rem;
 }
 
 /* Header — shared shape with ProjectChrome, slight differences in spacing
@@ -47,6 +51,9 @@
   padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
   border-radius: var(--radius-md);
   color: var(--muted-foreground);
+  /* Shared with ProjectChrome's .backLink — same name so the arrow holds
+     position across chrome-bearing route transitions. */
+  view-transition-name: site-back-link;
   transition:
     background var(--duration-normal) var(--ease-default),
     color var(--duration-normal) var(--ease-default);
@@ -85,6 +92,10 @@
   background: var(--card);
   color: var(--card-foreground);
   box-shadow: var(--shadow-sm);
+  /* Same name as ProjectChrome's pill — only one .tierCurrent ever
+     renders per route, so this morphs cleanly across tier nav AND
+     across api-client ↔ project transitions. */
+  view-transition-name: tier-pill-bg;
 }
 
 .tierIdle {
@@ -94,18 +105,108 @@
   color: var(--foreground);
 }
 
-/* Body: two-pane split, knowledge base on left, request/response on right. */
+/* Body hosts a single layout mode at all viewport widths: sidebar is
+   absolutely positioned, main pane is in normal flow with a left-padding
+   that gets out of the sidebar's way. The breakpoint switches the
+   sidebar between "always visible" (wide) and "drawer, slides on
+   data-sidebar-open" (narrow). Because the sidebar's positioning
+   mode and the main pane's padding-left are both freely transitionable,
+   crossing the breakpoint glides — no display-toggle pops. */
 .body {
+  position: relative;
   display: flex;
   flex: 1;
+  /* Indent the main pane out from under the sidebar. The @media block
+     drops this to 0 at the narrow breakpoint so the main pane reclaims
+     the full viewport width and the sidebar overlays it. */
+  padding-left: var(--sidebar-w);
+  transition: padding-left var(--duration-slow) var(--ease-snap);
 }
 
 .sidebar {
-  width: 18rem;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 40;
+  width: var(--sidebar-w);
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--muted);
+  /* Wide: always at translateX(0) regardless of data-sidebar-open.
+     Narrow: closed (translateX(-100%)) by default, open at translateX(0)
+     when .shell[data-sidebar-open="true"]. */
+  transform: translateX(0);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+
+/* Drawer toggle — pinned to the right edge of the sidebar's open position,
+   so it stays at the visible boundary whether the sidebar is in or out.
+   Faded out on wide viewports (sidebar is permanent there). Faded and
+   slid out, rather than display:none'd, so crossing the breakpoint
+   transitions instead of popping. */
+.sidebarToggle {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--sidebar-w);
+  z-index: 41;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: -1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  /* Wide-width state: invisible and unreachable. The @media block reveals
+     it at narrow widths. opacity + visibility-with-delay + translate
+     give a smooth fade across the breakpoint while preventing the
+     hidden button from catching keyboard focus on wide displays. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-0.5rem);
+  pointer-events: none;
+  transition:
+    left var(--duration-slow) var(--ease-snap),
+    opacity var(--duration-slow) var(--ease-snap),
+    transform var(--duration-slow) var(--ease-snap),
+    visibility 0s linear var(--duration-slow),
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.sidebarToggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.sidebarToggleIcon {
+  /* Chevron points → when closed (pull sidebar out), ← when open (tuck back).
+     Single icon, one rotation. */
+  transform: rotate(180deg);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+.shell[data-sidebar-open="true"] .sidebarToggleIcon {
+  transform: rotate(0deg);
+}
+
+/* Backdrop catches taps outside the drawer to dismiss it. Wide-width
+   state is fully transparent + non-interactive; the @media block enables
+   it only at narrow widths AND only when the drawer is open. */
+.sidebarBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  background: oklch(from var(--background) l c h / 0.5);
+  backdrop-filter: blur(4px);
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-snap);
+  cursor: pointer;
 }
 
 .sidebarHeader {
@@ -477,4 +578,52 @@
   border: 0;
   border-radius: var(--radius-md);
   background: #ffffff;
+}
+
+/* Narrow-viewport drawer behavior.
+   Same positioning model as wide (sidebar absolute, toggle absolute,
+   backdrop absolute) — only the resting visual state changes. The
+   main pane drops its left-padding so it reclaims the viewport edge.
+   The sidebar's translateX, the toggle's opacity/transform/visibility,
+   and the backdrop's opacity are all transition-driven. */
+@media (max-width: 768px) {
+  .body {
+    padding-left: 0;
+  }
+
+  .sidebar {
+    /* Closed by default — visible only when .shell[data-sidebar-open="true"]. */
+    transform: translateX(-100%);
+  }
+  .shell[data-sidebar-open="true"] .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebarToggle {
+    /* Visible and interactive at narrow widths. Visibility flips with
+       zero delay (entering visible state), matching the opacity rise. */
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+    transition:
+      left var(--duration-slow) var(--ease-snap),
+      opacity var(--duration-slow) var(--ease-snap),
+      transform var(--duration-slow) var(--ease-snap),
+      visibility 0s linear 0s,
+      background var(--duration-normal) var(--ease-default),
+      color var(--duration-normal) var(--ease-default);
+    /* Closed: button sits at the viewport's left edge so it's reachable.
+       Open: button rides the sidebar's right edge. The left transition
+       on the same easing keeps it traveling in lockstep with the sidebar. */
+    left: 0;
+  }
+  .shell[data-sidebar-open="true"] .sidebarToggle {
+    left: var(--sidebar-w);
+  }
+
+  .shell[data-sidebar-open="true"] .sidebarBackdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

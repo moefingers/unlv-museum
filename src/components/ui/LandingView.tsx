@@ -7,6 +7,7 @@ import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import {
   PROJECTS,
   CATEGORY_LABELS,
+  projectPath,
   type Category,
   type Project,
 } from "@/lib/projects";
@@ -84,7 +85,7 @@ function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link
-      href={project.href ?? `/${project.slug}`}
+      href={project.href ?? `/${projectPath(project)}`}
       className={styles.projectCard}
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
@@ -139,7 +140,7 @@ function ListCard({
     <Link
       key={project.slug}
       ref={(el) => registerRef(project.slug, el)}
-      href={project.href ?? `/${project.slug}`}
+      href={project.href ?? `/${projectPath(project)}`}
       className={styles.listCardLink}
       // backdrop-filter is applied inline because Turbopack/Lightning CSS
       // in this project strips it from CSS Modules (confirmed via
@@ -414,9 +415,6 @@ export function LandingView() {
         <div ref={globeWrapRef} className={styles.globeScaleHost}>
           <Globe items={globeItems} />
         </div>
-        <p className={`text-xs ${styles.globeHint}`}>
-          Drag to rotate. Click a card to explore.
-        </p>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>
         <ListView sort={sort} />
@@ -449,12 +447,31 @@ export function LandingView() {
             WebkitBackdropFilter: "blur(2px)",
           }}
         >
-          {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
-            <span key={cat} className={`text-xs ${styles.legendItem}`}>
-              <span className={styles.categoryDot} data-category={cat} />
-              {CATEGORY_LABELS[cat]}
-            </span>
-          ))}
+          {/*
+            Globe-only hint, conditionally revealed via the grid
+            0fr → 1fr trick: the wrapper is a single-row grid whose
+            track interpolates from 0fr (collapsed) to 1fr (expanded),
+            and the inner element has overflow:hidden + min-height:0
+            so it clips during the transition. Cleaner than max-height
+            because it animates to the content's natural size without
+            picking an arbitrary upper bound.
+          */}
+          <div
+            className={styles.legendHintRow}
+            data-globe-active={view === "globe"}
+          >
+            <p className={`text-xs ${styles.legendHint}`}>
+              Drag to rotate. Click a card to explore.
+            </p>
+          </div>
+          <div className={styles.legendDots}>
+            {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
+              <span key={cat} className={`text-xs ${styles.legendItem}`}>
+                <span className={styles.categoryDot} data-category={cat} />
+                {CATEGORY_LABELS[cat]}
+              </span>
+            ))}
+          </div>
         </div>
         <button
           type="button"
