@@ -5,6 +5,7 @@ import {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
   type ReactNode,
 } from "react";
 import styles from "./Globe.module.css";
@@ -63,7 +64,56 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
   const targetX = useRef(0);
   const latestRotation = useRef({ x: -15, y: 0 });
 
-  const points = fibonacci(items.length);
+  /*
+   * Position state, keyed by item.id. The card at id X always reads its
+   * transform from positionById[X] — never from its index in `items`.
+   *
+   * Why state and not inline compute: when transforms change inline within
+   * a single React render commit, the browser collapses old→new into one
+   * paint and the CSS transition has no two-value delta to interpolate.
+   * Splitting "DOM order change" from "transform value change" into two
+   * separate commits gives the browser two distinct paints to animate
+   * between.
+   *
+   * The signature (joined ids) detects ACTUAL order changes — referential
+   * `items` inequality alone would re-fire every parent render and loop.
+   * `points` is memoized on length for the same reason.
+   */
+  const points = useMemo(() => fibonacci(items.length), [items.length]);
+  const itemsSignature = items.map((it) => it.id).join("|");
+
+  const [positionById, setPositionById] = useState(() => {
+    const map: Record<string, { lon: number; lat: number }> = {};
+    items.forEach((item, i) => {
+      const p = points[i];
+      if (p) map[item.id] = p;
+    });
+    return map;
+  });
+
+  useEffect(() => {
+    // Two-phase paint to make the CSS transition fire:
+    //  - Phase 1 (this commit): the DOM tree reflects the new `items`
+    //    order, but each card still holds its OLD positionById transform.
+    //  - Phase 2 (next animation frame): we set the new positions; React
+    //    re-renders; the transform value delta is spread across two
+    //    paints and the browser interpolates via the transition.
+    //
+    // Scheduling the state update inside requestAnimationFrame instead of
+    // synchronously here keeps the linter happy (avoids the "setState in
+    // effect body" warning) AND is functionally identical for our needs.
+    // The itemsSignature dep gates the effect to ACTUAL order changes;
+    // referential items inequality alone would re-fire every parent
+    // render and infinite-loop.
+    const map: Record<string, { lon: number; lat: number }> = {};
+    items.forEach((item, i) => {
+      const p = points[i];
+      if (p) map[item.id] = p;
+    });
+    const frame = requestAnimationFrame(() => setPositionById(map));
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsSignature, points]);
 
   const applyRotation = useCallback((r: { x: number; y: number }) => {
     latestRotation.current = r;
@@ -208,8 +258,12 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
             transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
           }}
         >
-          {items.map((item, i) => {
-            const point = points[i];
+          {items.map((item) => {
+            // Read this card's position from state keyed by id, not from its
+            // index in `items`. The position state lags one render behind
+            // `items` (via the useEffect above) so transforms change in a
+            // separate paint and CSS transitions actually fire.
+            const point = positionById[item.id];
             if (!point) return null;
 
             return (
