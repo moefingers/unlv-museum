@@ -1,7 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Globe } from "@/components/ui/Globe";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import {
@@ -20,6 +21,37 @@ import {
   ChevronUp,
 } from "lucide-react";
 import styles from "./LandingView.module.css";
+
+type ViewMode = "globe" | "list";
+type SortMode = "category" | "time";
+
+const VIEW_DEFAULT: ViewMode = "globe";
+const SORT_DEFAULT: SortMode = "category";
+
+/**
+ * Mirror landing view + sort selections into the URL as `?view=` and
+ * `?sort=` so the page is shareable in any of its four configurations.
+ *
+ * Defaults are elided so the canonical entry point stays a bare `/`:
+ *  - view=globe and sort=category are omitted
+ *  - non-default values render
+ *
+ * Uses replaceState (not pushState) so back/forward isn't trapped by
+ * toggle clicks — same pattern as api-client's ?api= mirror.
+ */
+function syncUrlState(view: ViewMode, sort: SortMode) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (view === VIEW_DEFAULT) url.searchParams.delete("view");
+  else url.searchParams.set("view", view);
+  if (sort === SORT_DEFAULT) url.searchParams.delete("sort");
+  else url.searchParams.set("sort", sort);
+  // Preserve the path; rebuild only the search portion. Avoid emitting
+  // a trailing "?" when both params are at defaults.
+  const search = url.searchParams.toString();
+  const next = `${url.pathname}${search ? `?${search}` : ""}${url.hash}`;
+  window.history.replaceState({}, "", next);
+}
 
 /**
  * Parse a project's freeform `year` string ("Jan 2024", "Dec 2023 – Jan 2024",
@@ -188,10 +220,7 @@ function ListCard({
  *    still visible via per-card tint (no headers needed).
  */
 const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as Category[];
-function sortProjects(
-  projects: readonly Project[],
-  sort: "category" | "time",
-): Project[] {
+function sortProjects(projects: readonly Project[], sort: SortMode): Project[] {
   if (sort === "time") {
     return [...projects].sort((a, b) =>
       projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
@@ -228,7 +257,7 @@ function sortProjects(
 const FLIP_DURATION_MS = 500;
 const FLIP_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
-function ListView({ sort }: { sort: "category" | "time" }) {
+function ListView({ sort }: { sort: SortMode }) {
   const projects = sortProjects(PROJECTS, sort);
 
   // Live element refs keyed by slug. ListCard registers/unregisters itself.
@@ -292,14 +321,55 @@ function ListView({ sort }: { sort: "category" | "time" }) {
   );
 }
 
+/**
+ * Outer LandingView wraps the inner reader in <Suspense> because
+ * useSearchParams() triggers a Suspense boundary on the static-rendered
+ * landing route. Same pattern as api-client's ApiClient → ApiClientInner.
+ */
 export function LandingView() {
-  const [view, setView] = useState<"globe" | "list">("globe");
+  return (
+    <Suspense
+      fallback={
+        <div className={styles.shell}>
+          <h1 className={`font-bold ${styles.heroTitle}`}>UNLV Museum</h1>
+        </div>
+      }
+    >
+      <LandingViewInner />
+    </Suspense>
+  );
+}
+
+function LandingViewInner() {
+  const searchParams = useSearchParams();
+  // Seed view + sort from URL on first render so a deep-link to e.g.
+  // `/?view=list&sort=time` lands with the right surface already active.
+  // Unknown values silently fall back to the default — defensive against
+  // hand-edited URLs.
+  const [view, setViewState] = useState<ViewMode>(() => {
+    const raw = searchParams.get("view");
+    return raw === "list" ? "list" : VIEW_DEFAULT;
+  });
   // Sort axis is orthogonal to view. Globe ignores it (its spatial order is
   // fixed for stability); only List re-renders against it.
-  const [sort, setSort] = useState<"category" | "time">("category");
+  const [sort, setSortState] = useState<SortMode>(() => {
+    const raw = searchParams.get("sort");
+    return raw === "time" ? "time" : SORT_DEFAULT;
+  });
+  // Setters update local state AND mirror to URL. State is authoritative
+  // for rendering; URL is the shareable derived form.
+  const setView = (next: ViewMode) => {
+    setViewState(next);
+    syncUrlState(next, sort);
+  };
+  const setSort = (next: SortMode) => {
+    setSortState(next);
+    syncUrlState(view, next);
+  };
   // Legend is a floating fixed panel shown in both views. Collapsing
   // dismisses the panel down to a single chevron toggle so the page
-  // breathes when the user wants it out of the way.
+  // breathes when the user wants it out of the way. Not URL-backed —
+  // private chrome behavior, not a shareable view dimension.
   const [legendOpen, setLegendOpen] = useState(true);
 
   // Ref on the globe wrapper. BreathingMesh measures it each frame to align
