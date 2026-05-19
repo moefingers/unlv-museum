@@ -1,0 +1,23 @@
+.unavailable {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.unavailableText {
+  text-align: center;
+  /* A softer muted than --muted-foreground — this is "absent content" not
+     "secondary text", so it should recede further than a regular caption. */
+  color: oklch(from var(--muted-foreground) l c h / 0.6);
+}
+
+.external {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+}

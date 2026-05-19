@@ -1,0 +1,151 @@
+.shell {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.header {
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+/* Status text variants — three discrete states for the Pyodide load lifecycle:
+   idle (muted), loading (warning, pulsing), ready (success). Distinct
+   colors carry the affordance, not the icon or position. */
+.statusIdle {
+  color: var(--muted-foreground);
+}
+.statusLoading {
+  color: var(--warning);
+  animation: pyodide-status-pulse 1.5s ease-in-out infinite;
+}
+.statusReady {
+  color: var(--success);
+}
+
+@keyframes pyodide-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.fileTabs {
+  margin-bottom: calc(
+    var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.fileTab {
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  font-size: calc(
+    var(--font-size-xs) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.fileTab:hover {
+  background: oklch(from var(--muted) calc(l * 0.95) c h);
+}
+.fileTabActive {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.fileTabActive:hover {
+  background: oklch(from var(--primary) calc(l * 1.15) c h);
+}
+
+.panes {
+  display: grid;
+  flex: 1;
+  gap: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+@media (min-width: 1024px) {
+  .panes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.paneHeader {
+  margin-bottom: calc(
+    var(--space-1) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.paneLabel {
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-foreground);
+}
+
+/* Run button: success-flavored CTA. Compose with .btn for sizing + focus
+   ring, then this overrides the color. Stays usable when disabled. */
+.runButton {
+  background: var(--success);
+  color: var(--success-foreground);
+}
+.runButton:hover {
+  background: oklch(from var(--success) calc(l * 1.1) c h);
+}
+
+/* Terminal-styled <pre> blocks. We override the @layer base defaults
+   for <pre> here because the pyodide runner is a code-execution surface
+   that intentionally looks like a console (dark bg always, monospace
+   green/muted output) — not a regular inline code snippet. */
+.codeBlock {
+  flex: 1;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: oklch(0.141 0.005 286); /* zcanon dark --background */
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--success);
+  white-space: pre;
+}
+
+.outputBlock {
+  flex: 1;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: oklch(0.141 0.005 286);
+  padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: oklch(0.85 0.005 286); /* light zinc text — readable on console */
+  white-space: pre-wrap;
+}

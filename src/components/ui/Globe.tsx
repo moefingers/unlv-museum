@@ -7,6 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import styles from "./Globe.module.css";
 
 interface GlobeProps {
   items: { id: string; node: ReactNode }[];
@@ -179,7 +180,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
 
   return (
     <div
-      className="relative mx-auto select-none overflow-hidden"
+      className={styles.stage}
       style={{
         width: radius * 2 + 200,
         height: radius * 2 + 200,
@@ -194,14 +195,14 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
       }}
     >
       <div
-        className="absolute inset-0 flex items-center justify-center"
+        className={styles.center}
         style={{
           transformStyle: "preserve-3d",
           transform: "rotateZ(-18deg)",
         }}
       >
         <div
-          className="absolute inset-0 flex items-center justify-center"
+          className={styles.center}
           style={{
             transformStyle: "preserve-3d",
             transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
@@ -214,7 +215,7 @@ export function Globe({ items, radius = 340 }: GlobeProps) {
             return (
               <div
                 key={item.id}
-                className="absolute"
+                className={styles.item}
                 style={{
                   transformStyle: "preserve-3d",
                   transform: `rotateY(${point.lon}deg) rotateX(${-point.lat}deg) translateZ(${radius}px)`,

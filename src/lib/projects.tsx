@@ -135,8 +135,20 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 
 function Placeholder({ label }: { label: string }) {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <p className="text-zinc-400 dark:text-zinc-600">{label}</p>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "60vh",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <p
+        className="text-muted"
+        style={{ color: "oklch(from var(--muted-foreground) l c h / 0.6)" }}
+      >
+        {label}
+      </p>
     </div>
   );
 }

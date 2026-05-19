@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import styles from "./PyodideRunner.module.css";
 
 interface PyodideRunnerProps {
   files: { name: string; code: string }[];
@@ -75,27 +76,29 @@ export function PyodideRunner({ files }: PyodideRunnerProps) {
   };
 
   return (
-    <div className="flex min-h-[60vh] flex-col p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className={styles.shell}>
+      <div className={styles.header}>
         <h3 className="text-lg font-semibold">Python Fundamentals</h3>
-        <div className="flex items-center gap-2">
+        <div className={styles.status}>
           {!ready && !loading && (
-            <span className="text-xs text-zinc-400">
+            <span className={`text-xs ${styles.statusIdle}`}>
               Pyodide loads on first run (~10MB)
             </span>
           )}
           {loading && (
-            <span className="text-xs text-amber-500 animate-pulse">
+            <span className={`text-xs ${styles.statusLoading}`}>
               Loading Python runtime...
             </span>
           )}
           {ready && (
-            <span className="text-xs text-green-500">Python ready</span>
+            <span className={`text-xs ${styles.statusReady}`}>
+              Python ready
+            </span>
           )}
         </div>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1">
+      <div className={styles.fileTabs}>
         {files.map((file, i) => (
           <button
             key={file.name}
@@ -103,10 +106,8 @@ export function PyodideRunner({ files }: PyodideRunnerProps) {
               setActiveFile(i);
               setOutput("");
             }}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              activeFile === i
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            className={`${styles.fileTab} ${
+              activeFile === i ? styles.fileTabActive : ""
             }`}
           >
             {file.name}
@@ -114,28 +115,28 @@ export function PyodideRunner({ files }: PyodideRunnerProps) {
         ))}
       </div>
 
-      <div className="grid flex-1 gap-4 lg:grid-cols-2">
-        <div className="flex flex-col">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">
+      <div className={styles.panes}>
+        <div className={styles.pane}>
+          <div className={styles.paneHeader}>
+            <span className={`text-xs ${styles.paneLabel}`}>
               {files[activeFile]?.name}
             </span>
             <button
               onClick={run}
               disabled={running}
-              className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              className={`btn btn-sm ${styles.runButton}`}
             >
               {running ? "Running..." : "Run ▶"}
             </button>
           </div>
-          <pre className="flex-1 overflow-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-green-400">
+          <pre className={styles.codeBlock}>
             <code>{files[activeFile]?.code}</code>
           </pre>
         </div>
 
-        <div className="flex flex-col">
-          <span className="mb-1 text-xs font-medium text-zinc-500">Output</span>
-          <pre className="flex-1 overflow-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-zinc-300">
+        <div className={styles.pane}>
+          <span className={`text-xs ${styles.paneLabel}`}>Output</span>
+          <pre className={styles.outputBlock}>
             {output || "Click Run to execute the Python code"}
           </pre>
         </div>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { THEME_INIT_INTEGRITY } from "@/lib/theme-script";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -37,18 +38,6 @@ export const viewport: Viewport = {
   ],
 };
 
-const themeScript = `
-(function() {
-  try {
-    var stored = localStorage.getItem('museum-theme');
-    var theme = stored === 'dark' || stored === 'light'
-      ? stored
-      : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-  } catch (e) {}
-})();
-`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -61,7 +50,23 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Layer-1 FOUC bootstrap. Static file loaded synchronously before
+            paint, integrity-verified via SRI. See CONTEXT/internal_docs/
+            theme.md (zcanon) "FOUC Prevention" for why this beats the
+            previous inline dangerouslySetInnerHTML script under React 19.
+
+            The sync attribute is intentional and load-bearing: this script
+            must run before paint to apply the .dark class. next/script with
+            strategy="beforeInteractive" hydrates AFTER mount, defeating
+            FOUC prevention; <link rel="preload"> doesn't execute; deferred
+            scripts run after parse but after style computation. Sync is
+            the only option, hence the eslint disable. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
+          src="/theme-init.js"
+          integrity={THEME_INIT_INTEGRITY}
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <main className="flex flex-1 flex-col">{children}</main>

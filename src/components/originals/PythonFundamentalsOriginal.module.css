@@ -1,0 +1,10 @@
+.emptyState {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyStateText {
+  color: oklch(from var(--muted-foreground) l c h / 0.6);
+}

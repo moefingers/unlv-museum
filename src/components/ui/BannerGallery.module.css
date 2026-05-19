@@ -1,0 +1,87 @@
+.shell {
+  min-height: 100vh;
+  background: var(--muted);
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.backLink {
+  display: block;
+  margin-bottom: calc(
+    var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.backLinkAnchor {
+  color: var(--muted-foreground);
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.backLinkAnchor:hover {
+  color: var(--foreground);
+}
+
+.title {
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.count {
+  margin-bottom: calc(
+    var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: var(--muted-foreground);
+}
+
+/* The grid sizing rule is the only thing that *can't* come from globals
+   — it's content-specific (360px is the comfortable SVG preview width). */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.preview {
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  /* Subtle checkerboard so transparent SVGs are readable on light + dark.
+     Theme-agnostic — rgba neutral grey works against both --card surfaces. */
+  background: repeating-conic-gradient(
+      rgba(127, 127, 127, 0.08) 0% 25%,
+      transparent 0% 50%
+    )
+    50% / 16px 16px;
+}
+
+.previewImage {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.caption {
+  border-top: 1px solid var(--border);
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.captionAnchor {
+  color: var(--muted-foreground);
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.captionAnchor:hover {
+  color: var(--foreground);
+}

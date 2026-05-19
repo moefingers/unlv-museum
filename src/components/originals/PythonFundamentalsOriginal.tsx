@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PyodideRunner } from "@/components/ui/PyodideRunner";
+import styles from "./PythonFundamentalsOriginal.module.css";
 
 const FILE_NAMES = [
   "ppp-3-basic-oop.py",
@@ -46,16 +47,16 @@ export function PythonFundamentalsOriginal() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-zinc-400">Loading Python files...</p>
+      <div className={styles.emptyState}>
+        <p className={styles.emptyStateText}>Loading Python files...</p>
       </div>
     );
   }
 
   if (files.length === 0) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-zinc-400">No Python files found</p>
+      <div className={styles.emptyState}>
+        <p className={styles.emptyStateText}>No Python files found</p>
       </div>
     );
   }

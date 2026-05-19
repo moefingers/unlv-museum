@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import styles from "./BannerGallery.module.css";
 
 /**
  * Renders a banner experiment gallery: a grid of <figure> cards, each
@@ -19,20 +20,20 @@ export function BannerGallery({
   files: string[];
 }) {
   return (
-    <div className="min-h-screen bg-zinc-50 px-6 py-6 dark:bg-zinc-950 dark:text-zinc-100">
-      <div className="mb-3">
+    <div className={styles.shell}>
+      <div className={styles.backLink}>
         <Link
           href="/experiments"
-          className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          className={`text-xs ${styles.backLinkAnchor}`}
         >
           ← back to experiments
         </Link>
       </div>
-      <h1 className="mb-2 text-base font-semibold">{title}</h1>
-      <p className="mb-6 text-xs text-zinc-500">
+      <h1 className={`text-base font-semibold ${styles.title}`}>{title}</h1>
+      <p className={`text-xs ${styles.count}`}>
         {files.length} SVGs — only mounted while visible
       </p>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-4">
+      <div className={styles.grid}>
         {files.map((name) => (
           <GalleryCard key={name} name={name} basePath={basePath} />
         ))}
@@ -61,17 +62,8 @@ function GalleryCard({ name, basePath }: { name: string; basePath: string }) {
   const href = `${basePath}/${encodeURI(name)}`;
 
   return (
-    <figure
-      ref={ref}
-      className="m-0 flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-    >
-      <div
-        className="grid min-h-[160px] place-items-center p-3"
-        style={{
-          background:
-            "repeating-conic-gradient(rgba(127,127,127,0.08) 0% 25%, transparent 0% 50%) 50% / 16px 16px",
-        }}
-      >
+    <figure ref={ref} className={styles.card}>
+      <div className={styles.preview}>
         {mounted && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -79,16 +71,16 @@ function GalleryCard({ name, basePath }: { name: string; basePath: string }) {
             alt={name}
             loading="lazy"
             decoding="async"
-            className="block h-auto max-w-full"
+            className={styles.previewImage}
           />
         )}
       </div>
-      <figcaption className="border-t border-zinc-200 px-3 py-2 font-mono text-xs break-all text-zinc-500 dark:border-zinc-800">
+      <figcaption className={`text-xs ${styles.caption}`}>
         <a
           href={href}
           target="_blank"
           rel="noopener"
-          className="hover:text-zinc-900 dark:hover:text-zinc-100"
+          className={styles.captionAnchor}
         >
           {name}
         </a>

@@ -1,0 +1,23 @@
+/* The Globe is a fixed-size interactive 3D stage. All dimensions and 3D
+   transforms come from inline style props (radius, perspective, rotation
+   matrices set per-frame), so the module here only handles the static
+   positioning/flex shell. */
+
+.stage {
+  position: relative;
+  margin-inline: auto;
+  user-select: none;
+  overflow: hidden;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item {
+  position: absolute;
+}

@@ -1,0 +1,39 @@
+.frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Sandbox iframe for "Original" tier projects gets a white surface so the
+   embedded site sees the same background it was designed against, even when
+   the museum chrome is in dark mode. ExternalFrame omits this — external
+   sites are responsible for their own background. */
+.frameOriginal {
+  background: #ffffff;
+}
+
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.sourceFileName {
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  font-family: var(--font-mono);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-foreground);
+}
+
+/* The <pre> already gets element defaults from globals.css base layer
+   (font-mono, muted bg, rounded). We only override layout-y here. */
+.sourceCodeBlock {
+  overflow-x: auto;
+}
