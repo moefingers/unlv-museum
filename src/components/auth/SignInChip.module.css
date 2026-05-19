@@ -1,0 +1,142 @@
+.loadingChip {
+  display: inline-flex;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  padding: 0 calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  color: var(--muted-foreground);
+}
+
+.loadingSpinner {
+  animation: signin-spin 0.9s linear infinite;
+}
+
+@keyframes signin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Sign-in CTA: primary-color filled button. Composes with .btn for
+   shape + downwash sizing. Overrides .btn-primary's hover only to
+   keep the explicit signed-out CTA visually grouped with the chip
+   when disabled (loading). */
+.signInButton {
+  height: 2.25rem;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+/* Avatar trigger — invisible button shell around the avatar image. */
+.avatarButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1));
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-lg);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.avatarButton:hover {
+  background: var(--accent);
+}
+
+.avatarWrap {
+  position: relative;
+}
+
+.avatarImg {
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: var(--radius-full);
+  /* 1px ring around the avatar to lift it off whatever surface it sits on. */
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.avatarFallback {
+  display: flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: var(--font-weight-medium);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* Verified-badge dot, bottom-right of the avatar. The icon itself is
+   colored --success; we frame it in --background so the dot reads as
+   a sticker pasted on top of the avatar. */
+.verifiedBadge {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.25rem;
+  border-radius: var(--radius-full);
+  background: var(--background);
+  color: var(--success);
+}
+
+/* Popover — anchored bottom-right of the trigger, floats above the
+   sticky header (z-index 50). Uses --card surface so it sits on top
+   of --background cleanly in both light and dark mode. */
+.popover {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  margin-top: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1)
+  );
+  width: 14rem;
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-lg);
+}
+
+.popoverHeader {
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.popoverName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-medium);
+}
+
+.popoverEmail {
+  display: flex;
+  align-items: center;
+  gap: calc(0.25rem * var(--app-margin, 1) * var(--chrome-margin, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+
+.popoverEmailBadge {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.popoverAction {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1));
+  border-radius: var(--radius-md);
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  color: var(--foreground);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.popoverAction:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}

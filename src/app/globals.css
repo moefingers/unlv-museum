@@ -2,24 +2,9 @@
    UNLV Museum Design System
    Adopted from zcanon (canonical reference).
    No frameworks. CSS custom properties + modern CSS.
-
-   Tailwind is being phased out — `@import "tailwindcss"`
-   stays at the top during the migration window so files
-   that haven't been refactored yet keep working. Remove
-   it (and the @tailwindcss/postcss devDep + postcss.config.mjs)
-   in Phase 3 once every component has flipped to the
-   zcanon system. See plan: sadly-this-project-uses-fuzzy-rossum.md.
    ═══════════════════════════════════════════════════ */
 
-@import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Tailwind v4 registers its own layer order via @import "tailwindcss":
-   `theme, base, components, utilities`. We add `settings` for our tokens.
-   Don't restate the full order — Tailwind's order wins, and a redeclaration
-   here causes Lightning CSS to silently drop our base/components/utilities
-   layer contents during PostCSS processing. After Phase 3 (Tailwind out),
-   restore the full zcanon order: `@layer settings, base, components, utilities;` */
+@layer settings, base, components, utilities;
 
 /* ─── Settings: Design Tokens ─────────────────────── */
 
@@ -322,14 +307,90 @@
     cursor: pointer;
   }
 
-  /* Force readable options on browsers without base-select. zcanon's
-     `@supports (appearance: base-select)` block is omitted here because
-     Lightning CSS (Tailwind v4's parser) rejects experimental pseudo-elements
-     like ::picker/::picker-icon/::checkmark and silently drops the file.
-     Re-add that progressive enhancement in Phase 3 after Tailwind is gone. */
+  /* Fallback: force readable options on browsers without base-select. */
   select option {
     color: #1a1a1a;
     background: #ffffff;
+  }
+
+  /* Fully styleable select (Chrome 135+, progressive enhancement). */
+  @supports (appearance: base-select) {
+    select,
+    ::picker(select) {
+      appearance: base-select;
+    }
+
+    select {
+      display: inline-flex;
+      align-items: center;
+      width: auto;
+    }
+
+    ::picker(select) {
+      background: var(--card);
+      color: var(--card-foreground);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: calc(var(--space-1) * var(--app-pad, 1) * var(--room-pad, 1));
+      box-shadow: var(--shadow-md);
+      top: anchor(center);
+      translate: 0 -50%;
+      scale: 0;
+      transition:
+        opacity var(--duration-normal) var(--ease-out),
+        scale var(--duration-normal) var(--ease-out),
+        display var(--duration-normal) allow-discrete,
+        overlay var(--duration-normal) allow-discrete;
+    }
+
+    select:open::picker(select) {
+      scale: 1;
+    }
+
+    @starting-style {
+      select:open::picker(select) {
+        scale: 0;
+      }
+    }
+
+    select option {
+      padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
+        calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: transparent;
+      color: inherit;
+    }
+
+    select option:hover {
+      background: var(--accent);
+      color: var(--accent-foreground);
+    }
+
+    select option:checked {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+
+    select::checkmark {
+      display: none;
+    }
+
+    select::picker-icon {
+      opacity: 0.5;
+      transition:
+        opacity var(--duration-normal) var(--ease-default),
+        rotate var(--duration-normal) var(--ease-default);
+    }
+
+    select:hover::picker-icon {
+      opacity: 1;
+    }
+
+    select:open::picker-icon {
+      opacity: 1;
+      rotate: 60deg;
+    }
   }
 
   button {
@@ -914,26 +975,6 @@
 }
 
 @keyframes vt-slide-y {
-  from {
-    transform: translateY(10px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-/* Legacy keyframe aliases for any unmigrated consumers — remove in Phase 3. */
-@keyframes fade {
-  from {
-    filter: blur(3px);
-    opacity: 0;
-  }
-  to {
-    filter: blur(0);
-    opacity: 1;
-  }
-}
-@keyframes slide-y {
   from {
     transform: translateY(10px);
   }

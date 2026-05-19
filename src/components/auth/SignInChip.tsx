@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from "react";
 import { authClient, useSession } from "@/lib/auth-client";
 import { BadgeCheck, LogOut, Loader2 } from "lucide-react";
 import { siGithub } from "simple-icons";
+import styles from "./SignInChip.module.css";
 
 const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
 
@@ -93,8 +94,8 @@ export function SignInChip() {
 
   if (isPending) {
     return (
-      <div className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-zinc-400">
-        <Loader2 size={16} className="animate-spin" />
+      <div className={styles.loadingChip}>
+        <Loader2 size={16} className={styles.loadingSpinner} />
       </div>
     );
   }
@@ -124,10 +125,10 @@ export function SignInChip() {
             callbackURL: window.location.href,
           });
         }}
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        className={`btn btn-primary ${styles.signInButton}`}
       >
         {signingIn ? (
-          <Loader2 size={14} className="animate-spin" />
+          <Loader2 size={14} className={styles.loadingSpinner} />
         ) : (
           <GithubMark size={14} />
         )}
@@ -139,34 +140,30 @@ export function SignInChip() {
   const user = session.user;
 
   return (
-    <div className="relative" ref={popoverRef}>
+    <div style={{ position: "relative" }} ref={popoverRef}>
       <button
         type="button"
         onClick={() => setPopoverOpen((v) => !v)}
-        className="group inline-flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        className={styles.avatarButton}
         aria-label="Account menu"
       >
-        <div className="relative">
+        <div className={styles.avatarWrap}>
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.image}
-              alt=""
-              className="h-7 w-7 rounded-full ring-1 ring-zinc-200 dark:ring-zinc-700"
-            />
+            <img src={user.image} alt="" className={styles.avatarImg} />
           ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-700 ring-1 ring-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:ring-zinc-600">
+            <div className={`text-xs ${styles.avatarFallback}`}>
               {user.name?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
           {/*
-            Verified dot — bottom-right corner of the avatar. Reuses the
-            zcanon-canonical green for verified-state signals.
+            Verified dot — bottom-right corner of the avatar. Reuses zcanon's
+            --success token for verified-state signaling.
           */}
           {isVerified(user) ? (
             <BadgeCheck
               size={14}
-              className="absolute -right-1 -bottom-1 rounded-full bg-white text-emerald-600 dark:bg-zinc-900 dark:text-emerald-400"
+              className={styles.verifiedBadge}
               strokeWidth={2.5}
               aria-label="Verified"
             />
@@ -175,15 +172,15 @@ export function SignInChip() {
       </button>
 
       {popoverOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
-            <p className="truncate text-sm font-medium">{user.name}</p>
-            <p className="flex items-center gap-1 truncate text-xs text-zinc-500">
+        <div className={styles.popover}>
+          <div className={styles.popoverHeader}>
+            <p className={`text-sm ${styles.popoverName}`}>{user.name}</p>
+            <p className={`text-xs ${styles.popoverEmail}`}>
               {user.email}
               {isVerified(user) && (
                 <BadgeCheck
                   size={11}
-                  className="text-emerald-600 dark:text-emerald-400"
+                  className={styles.popoverEmailBadge}
                   strokeWidth={2.5}
                 />
               )}
@@ -196,7 +193,7 @@ export function SignInChip() {
               await authClient.signOut();
               window.location.reload();
             }}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className={`text-sm ${styles.popoverAction}`}
           >
             <LogOut size={14} />
             Sign out
