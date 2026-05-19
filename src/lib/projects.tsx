@@ -446,6 +446,23 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
   {
+    slug: "admin-portal-api",
+    href: "/api-client?api=admin-portal",
+    title: "Admin Portal API",
+    description:
+      "Book inventory REST API. JSON CRUD + HTML routes for admin and customer UIs.",
+    year: "Dec 2023",
+    category: "api",
+    techOriginal: ["Express", "JSON file store"],
+    original: <ApiOriginal startWith="Admin Portal" />,
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    notes: {
+      original:
+        "Backend half of the Admin Portal pair — the original Express server served both JSON endpoints (listBooks/addBook/updateBook/removeBook) and HTML at /  and /index.html. The frontend lives at /admin-portal as a separate entry; this one is the API itself, browsable via the api-client.",
+    },
+  },
+  {
     slug: "jaskis",
     href: "/api-client?api=jaskis",
     title: "JASKIS",
