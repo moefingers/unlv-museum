@@ -16,11 +16,7 @@
     "db:push": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs studio",
     "vercel:env": "tsx scripts/vercel-env.ts",
-    "verify:locks": "tsx scripts/verify-locks.ts",
-    "banners:update-index": "tsx scripts/banner-experiments/update-index.mts",
-    "banners:update-index-v2": "tsx scripts/banner-experiments-v2/update-index.mts",
-    "banners:update-index-v3": "tsx scripts/banner-experiments-v3/update-index.mts",
-    "banners:update-index-verified": "tsx scripts/verified-banner-experiments/update-index.mts"
+    "verify:locks": "tsx scripts/verify-locks.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
