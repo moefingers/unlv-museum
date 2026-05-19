@@ -739,8 +739,13 @@ function ApiClient() {
           <div className="mb-1">
             <Collapsible open={!v2} duration={300}>
               <div className="flex flex-wrap items-baseline gap-1">
-                {APIS.map((api) => (
+                {APIS.map((api, i) => (
                   <div key={api.id} className="flex items-baseline">
+                    {i > 0 && (
+                      <span className="mr-2 text-zinc-300 dark:text-zinc-700">
+                        ·
+                      </span>
+                    )}
                     <button
                       onClick={() => switchApi(api.id)}
                       className={`shrink-0 text-xl font-bold whitespace-nowrap transition-colors ${
@@ -766,8 +771,13 @@ function ApiClient() {
             </Collapsible>
             <Collapsible open={v2} duration={300}>
               <div className="flex flex-wrap items-baseline gap-1">
-                {APIS_V2.map((api) => (
+                {APIS_V2.map((api, i) => (
                   <div key={api.id} className="flex items-baseline">
+                    {i > 0 && (
+                      <span className="mr-2 text-zinc-300 dark:text-zinc-700">
+                        ·
+                      </span>
+                    )}
                     <button
                       onClick={() => switchApi(api.id)}
                       className={`shrink-0 text-xl font-bold whitespace-nowrap transition-colors ${
@@ -811,14 +821,26 @@ function ApiClient() {
               )}
             </select>
             {/*
-              baseUrl prefix sits left-adjacent as a read-only-styled segment
-              so the substitution stays honest at a glance — what the user
-              types is appended to that prefix when Send fires.
+              baseUrl prefix is a per-API segment glued to the path input.
+              Rendering ALL candidates side-by-side (each wrapped in a
+              horizontal Collapsible, only the active one open) makes
+              switching APIs cross-fade the prefix — old one slides closed
+              while the new one slides open in the same row — rather than
+              swap text in place.
             */}
             <div className="flex flex-1 items-stretch overflow-hidden rounded-md border border-zinc-300 focus-within:border-zinc-500 dark:border-zinc-600 dark:focus-within:border-zinc-400">
-              <span className="flex items-center border-r border-zinc-300 bg-zinc-100 px-3 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
-                {activeApi.baseUrl}
-              </span>
+              {(v2 ? APIS_V2 : APIS).map((api) => (
+                <Collapsible
+                  key={api.id}
+                  open={api.id === activeApiId}
+                  direction="horizontal"
+                  duration={300}
+                >
+                  <span className="flex h-full items-center border-r border-zinc-300 bg-zinc-100 px-3 py-2 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                    {api.baseUrl}
+                  </span>
+                </Collapsible>
+              ))}
               <input
                 value={path}
                 onChange={(e) => {
