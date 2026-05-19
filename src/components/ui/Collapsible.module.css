@@ -11,7 +11,7 @@
 
 .vertical {
   height: 0;
-  overflow: clip;
+  overflow: hidden;
   transition: height var(--collapsible-duration, 300ms) ease-out;
 }
 
@@ -21,7 +21,7 @@
 
 .horizontal {
   width: 0;
-  overflow: clip;
+  overflow: hidden;
   transition: width var(--collapsible-duration, 300ms) ease-out;
 }
 
