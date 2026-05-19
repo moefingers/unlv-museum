@@ -466,8 +466,6 @@ function ApiClient() {
   // When the loaded endpoint has `navigateTo`, Send opens that URL instead
   // of fetching. Reset to null whenever a regular endpoint is loaded.
   const [navigateTo, setNavigateTo] = useState<string | null>(null);
-  // baseUrl prefix can fold away so the path input gets full width.
-  const [prefixOpen, setPrefixOpen] = useState(true);
   const [response, setResponse] = useState<string | null>(null);
   const [status, setStatus] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -813,32 +811,14 @@ function ApiClient() {
               )}
             </select>
             {/*
-              baseUrl prefix is a read-only-styled segment glued to the path
-              input so the substitution stays honest. Wrapped in a horizontal
-              Collapsible so the user can fold it away when they need the full
-              input width; a chevron toggle on the left always stays visible.
+              baseUrl prefix sits left-adjacent as a read-only-styled segment
+              so the substitution stays honest at a glance — what the user
+              types is appended to that prefix when Send fires.
             */}
             <div className="flex flex-1 items-stretch overflow-hidden rounded-md border border-zinc-300 focus-within:border-zinc-500 dark:border-zinc-600 dark:focus-within:border-zinc-400">
-              <button
-                type="button"
-                onClick={() => setPrefixOpen((v) => !v)}
-                aria-label={
-                  prefixOpen ? "Hide baseUrl prefix" : "Show baseUrl prefix"
-                }
-                title={prefixOpen ? "Hide prefix" : `Show ${activeApi.baseUrl}`}
-                className="flex w-7 shrink-0 items-center justify-center border-r border-zinc-300 bg-zinc-100 font-mono text-xs text-zinc-500 transition-colors hover:bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                {prefixOpen ? "‹" : "›"}
-              </button>
-              <Collapsible
-                open={prefixOpen}
-                direction="horizontal"
-                duration={180}
-              >
-                <span className="flex h-full items-center border-r border-zinc-300 bg-zinc-100 px-3 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
-                  {activeApi.baseUrl}
-                </span>
-              </Collapsible>
+              <span className="flex items-center border-r border-zinc-300 bg-zinc-100 px-3 font-mono text-sm whitespace-nowrap text-zinc-500 select-all dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                {activeApi.baseUrl}
+              </span>
               <input
                 value={path}
                 onChange={(e) => {

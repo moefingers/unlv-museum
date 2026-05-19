@@ -1,3 +1,14 @@
+/*
+ * Animates a single element — the outer container width/height — and lets
+ * the inner content sit at its natural size, clipped by overflow: clip.
+ * Solves the "double-animation" perception that grid 0fr/1fr produces
+ * (where the resolved track size desyncs visibly from the content as the
+ * fr interpolates).
+ *
+ * Requires `interpolate-size: allow-keywords` on a parent (set on :root in
+ * globals.css) so width/height can animate to/from `auto`.
+ */
+
 .vertical {
   height: 0;
   overflow: clip;
