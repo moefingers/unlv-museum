@@ -91,9 +91,17 @@ export const auth = betterAuth({
     return origins;
   },
 
-  // Single-domain cookie. No `.infinite-syndicate.com` parent-domain
-  // cookie — sibling projects under that domain run their own auth.
-  // See auth.md §Cookie Domain.
+  // Single-domain cookie scoped to the museum host only. Sibling projects
+  // under *.infinite-syndicate.com run their own auth.
+  //
+  // The `museum.` cookie prefix is defensive: even if a sibling project
+  // (mistakenly) sets `better-auth.session_token` with domain=.infinite-
+  // syndicate.com, our cookies won't collide. The browser keeps both
+  // (different names) and Better Auth never tries to read theirs. See
+  // auth.md §Cookie Domain.
+  advanced: {
+    cookiePrefix: "museum",
+  },
 
   account: {
     accountLinking: {

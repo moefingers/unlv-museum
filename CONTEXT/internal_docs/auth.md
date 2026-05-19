@@ -273,6 +273,18 @@ emitUserAudit({
 
 Single-domain only. The museum cookie is set on `unlv-museum.infinite-syndicate.com` (production) or `localhost:3000` (dev). **No `.infinite-syndicate.com` parent-domain cookie** — sibling projects under that subdomain don't share auth with the museum. Each project that wants its own auth runs its own Better Auth.
 
+### Defense: `cookiePrefix: "museum"`
+
+`advanced.cookiePrefix` in `src/lib/auth.ts` prefixes every Better Auth cookie with `museum.` — so the session cookie is `museum.session_token` instead of the default `better-auth.session_token`. This is **defensive against sibling-project cookie leak**: if another project on `*.infinite-syndicate.com` (mistakenly) sets `better-auth.session_token` with `domain=.infinite-syndicate.com`, the browser will deliver that cookie to the museum too. Better Auth would then read a cookie signed with a foreign secret, fail to validate it, and behave erratically.
+
+The prefix makes our cookies un-collidable with any unprefixed Better Auth installation. If a sibling project also adopts a unique prefix (`zcanon.`, `outlast.`, etc.), the defense is symmetric.
+
+### Symptom of collision
+
+User signs in successfully (OAuth callback runs, server creates session row), but the SignInChip continues to show "Sign in" instead of the avatar. `/api/auth/get-session` returns `null` despite the database having a valid session. Clearing all cookies for `infinite-syndicate.com` in the browser restores the sign-in.
+
+If you see this, audit sibling projects for parent-domain cookies (`domain=.infinite-syndicate.com`). The museum's cookies are already scoped correctly; the leak is from _into_ us, not _out of_ us.
+
 ## Files
 
 | File                                            | Purpose                                                                    |
