@@ -16,7 +16,9 @@ Read the CONTEXT docs for decisions already made:
 - [Sources conversion status](CONTEXT/internal_docs/sources-conversions.md) — per-project tracking and agent-ready conversion specs
 - [Globe](CONTEXT/internal_docs/globe.md) — 3D CSS sphere, preserve-3d chain, momentum physics
 - [Originals](CONTEXT/internal_docs/originals.md) — fix-only philosophy, common fixes, backend-dependent projects
-- [Security](CONTEXT/internal_docs/security.md) — auth plan, rate limiting, API access
+- [Auth](CONTEXT/internal_docs/auth.md) — **REQUIRED before touching any mutation route.** Better Auth + GitHub OAuth, session model, verified flag, audit log.
+- [Rate limiting](CONTEXT/internal_docs/rate-limiting.md) — Vercel WAF + Better Auth built-in, per-path windows, when to add Upstash
+- [Security overview](CONTEXT/internal_docs/security.md) — cross-cutting principles + pointers to auth + rate-limiting
 - [Database](CONTEXT/internal_docs/database.md) — Neon, Drizzle, per-project schemas
 
 ## Quick Reference
