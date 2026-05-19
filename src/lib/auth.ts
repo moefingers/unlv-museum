@@ -54,7 +54,13 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // refresh daily
-    cookieCache: { enabled: false },
+    // Cookie-cached sessions: signed snapshot of the session in the cookie
+    // itself, valid for 5 min, so /get-session doesn't DB-query every nav.
+    // Critical for keeping the chip's useSession() under the rate limit
+    // when a user navigates the museum — without this, every page mount
+    // triggers a fresh /get-session DB hit and a moderate visit floods
+    // the 30-req/min limit.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
 
   // Trust the museum's canonical origin in prod, plus any localhost port or
@@ -97,12 +103,25 @@ export const auth = betterAuth({
   },
 
   // Database-backed rate limiting. CRITICAL: storage "memory" (the default)
-  // resets on every cold start in serverless and is useless. Window/max are
-  // global defaults; per-path overrides happen in rate-limiting.md.
+  // resets on every cold start in serverless and is useless.
+  //
+  // Per-path windows below match the spec in
+  // CONTEXT/internal_docs/rate-limiting.md §Layer-2. /get-session is the
+  // chip's heartbeat — even with cookieCache enabled, useSession() refetches
+  // on mount, so a museum visit with multiple navigations easily exceeds a
+  // low limit. 200/min/IP is the canonical "read-but-don't-pin-the-DB" tier.
   rateLimit: {
     window: 60,
     max: 30,
     storage: "database",
+    customRules: {
+      "/get-session": { window: 60, max: 200 },
+      "/sign-out": { window: 60, max: 30 },
+      "/sign-in/social": { window: 60, max: 20 },
+      "/callback/github": { window: 60, max: 20 },
+      "/pat/session": { window: 60, max: 10 },
+      "/claim/session": { window: 60, max: 10 },
+    },
   },
 
   // patAuth: exposes /api/auth/pat/session (token → cookie session) for
