@@ -284,7 +284,9 @@ function buildSphereElems(languages: BannerLanguage[]): string {
       (o) =>
         `<radialGradient id="${o.glowId}" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="${o.color}" stop-opacity="1"/>
-      <stop offset="0.45" stop-color="${o.color}" stop-opacity="0.5"/>
+      <stop offset="0.5" stop-color="${o.color}" stop-opacity="1"/>
+      <stop offset="0.78" stop-color="${o.color}" stop-opacity="0.55"/>
+      <stop offset="0.92" stop-color="${o.color}" stop-opacity="0.15"/>
       <stop offset="1" stop-color="${o.color}" stop-opacity="0"/>
     </radialGradient>`,
     )
@@ -356,11 +358,11 @@ function buildSphereInner(orbits: Orbit[]): string {
     // halo blends softly into the background instead of presenting a hard
     // disk edge. r is enlarged ~3.4x and opacity tracks the depth-fade.
     elems.push(
-      `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 3.4).toFixed(2)}" fill="url(#${orb.glowId})" opacity="${(parseFloat(ops[0]!) * 0.55).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 3.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.55).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
+      `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${(parseFloat(rs[0]!) * 3.4).toFixed(2)}" fill="url(#${orb.glowId})" opacity="${(parseFloat(ops[0]!) * 1).toFixed(3)}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.map((r) => (parseFloat(r) * 3.4).toFixed(2)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.map((o) => (parseFloat(o) * 0.55).toFixed(3)).join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
     );
-    elems.push(
-      `<circle cx="${cxs[0]}" cy="${cys[0]}" r="${rs[0]}" fill="${orb.color}" opacity="${ops[0]}"><animate attributeName="cx" values="${cxs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="cy" values="${cys.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="r" values="${rs.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="${ops.join("; ")}" keyTimes="${keyTimes}" dur="${orb.dur}" repeatCount="indefinite"/></circle>`,
-    );
+    // No separate solid dot — the glow's gradient now has a fully opaque
+    // center (0-50% radius) that serves as the icon's backdrop, then
+    // dithers aggressively at the rim. One element, no hard edge.
 
     // Glyph at the dot's center: prefer a brand icon from simple-icons,
     // fall back to a short letter label. The icon's nested <svg> uses
