@@ -435,7 +435,18 @@ export function LandingView() {
         // Mesh dodge so the breathing dots avoid the legend backing.
         data-mesh-dodge=""
       >
-        <div className={styles.legendBody}>
+        <div
+          className={styles.legendBody}
+          // Inline backdrop-filter (Lightning CSS strips it from CSS
+          // modules in this project). Applied on the body — not the
+          // outer wrapper — because the wrapper is pointer-events:none
+          // and isn't the painted surface; .legendBody is the visible
+          // pill.
+          style={{
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        >
           {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
             <span key={cat} className={`text-xs ${styles.legendItem}`}>
               <span className={styles.categoryDot} data-category={cat} />
