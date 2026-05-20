@@ -113,7 +113,10 @@ export function PolyhedronGlobe({
     return map;
   }, [assignments]);
 
-  const [rotation, setRotation] = useState({ x: -15, y: 0 });
+  // Initial X is positive: tips the top of the sphere toward the camera
+  // by ~15°, exposing a touch more of the northern hemisphere on first
+  // render. Composed with the 18° axial-tilt Z rotation downstream.
+  const [rotation, setRotation] = useState({ x: 15, y: 0 });
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const lastTime = useRef(0);
@@ -125,7 +128,7 @@ export function PolyhedronGlobe({
   const amplitudeX = useRef(0);
   const targetY = useRef(0);
   const targetX = useRef(0);
-  const latestRotation = useRef({ x: -15, y: 0 });
+  const latestRotation = useRef({ x: 15, y: 0 });
 
   const applyRotation = useCallback((r: { x: number; y: number }) => {
     latestRotation.current = r;
@@ -219,7 +222,7 @@ export function PolyhedronGlobe({
       velocityX.current = 0.8 * vyNow + 0.2 * velocityX.current;
 
       const r = latestRotation.current;
-      const { x: bx } = bounceX(r.x - dy * 0.3);
+      const { x: bx } = bounceX(r.x + dy * 0.3);
       applyRotation({ x: bx, y: r.y + dx * 0.3 });
     },
     [applyRotation],
@@ -236,7 +239,7 @@ export function PolyhedronGlobe({
 
     const r = latestRotation.current;
     amplitudeY.current = (velocityY.current * TIME_CONSTANT) / 1000;
-    amplitudeX.current = (-velocityX.current * TIME_CONSTANT) / 1000;
+    amplitudeX.current = (velocityX.current * TIME_CONSTANT) / 1000;
     targetY.current = r.y + amplitudeY.current;
     targetX.current = r.x + amplitudeX.current;
     releaseTime.current = performance.now();
@@ -257,12 +260,14 @@ export function PolyhedronGlobe({
   // Convert rotation degrees to radians; combine Y (mouse-x), X (mouse-y),
   // and the axial Z tilt into one set of trig values.
   //
-  // angleY is negated so the math-matrix Y-rotation matches CSS rotateY's
-  // sign convention — the drag handler is a direct port from the
-  // CSS-based Globe whose `r.y + dx * 0.3` formula was tuned against
-  // CSS's sign. angleX is NOT negated: the math-matrix X-rotation
-  // already matches the old Globe's `r.x - dy * 0.3` direction.
-  const angleY = -(rotation.y * Math.PI) / 180;
+  // Direct conversion — both axes share the same sign convention.
+  // The drag handler stores rotation.x and rotation.y in this same
+  // convention (positive rotation.x tips the top toward the camera;
+  // positive rotation.y spins the right side toward the back). No
+  // sign mismatches between input space and matrix space; whatever
+  // visual flips the original CSS-Globe ported with are absorbed
+  // at the drag-handler boundary instead.
+  const angleY = (rotation.y * Math.PI) / 180;
   const angleX = (rotation.x * Math.PI) / 180;
   const angleZ = (AXIAL_TILT_DEG * Math.PI) / 180;
   const cosY = Math.cos(angleY);
@@ -387,17 +392,22 @@ export function PolyhedronGlobe({
       const b = projected[face[1]!]!;
       const c = projected[face[2]!]!;
 
-      // Face normal in screen-projected coordinates. We can do this
-      // cheaply because for triangle culling we only need the sign of the
-      // z-component of the screen-space cross product (which determines
-      // CCW vs CW orientation in screen space).
+      // Backface cull via screen-space winding. The mesh stores faces
+      // CCW when viewed from OUTSIDE the sphere. The screen's y-axis is
+      // flipped relative to math y (sy = -y · ...), so a CCW-from-outside
+      // face that's front-facing for the camera projects to the screen
+      // as CW. CW on screen → the z-component of the 2D cross product
+      // (ex*fy - ey*fx) is negative. So front-facing → screenZ < 0;
+      // back-facing → screenZ > 0. Cull when screenZ >= 0.
+      //
+      // (Earlier this rule was inverted, which kept back faces and
+      // culled fronts — the sphere was rendered inside-out.)
       const ex = b.sx - a.sx;
       const ey = b.sy - a.sy;
       const fx = c.sx - a.sx;
       const fy = c.sy - a.sy;
-      // Screen-space cross product's z-component.
       const screenZ = ex * fy - ey * fx;
-      if (screenZ <= 0) continue; // back-facing
+      if (screenZ >= 0) continue; // back-facing
 
       // For sorting + tint depth, use camera-space centroid Z.
       const cz = (a.z + b.z + c.z) / 3;
@@ -577,8 +587,12 @@ interface FaceTextLayout {
  *   2. Compute the tangent-plane "north" axis: world_up minus its
  *      component along the normal, normalized. Lies in the tangent
  *      plane, points toward the north pole.
- *   3. Compute the tangent-plane "east" axis: normal × north, normalized.
- *      Also in the tangent plane, perpendicular to north.
+ *   3. Compute the tangent-plane "east" axis: north × normal, normalized.
+ *      (Not normal × north — that gives west! With the outward normal
+ *      pointing toward the viewer and north pointing up, right-hand-rule
+ *      curl from normal toward north points to the viewer's LEFT. Swap
+ *      operands to get the viewer's right, which is geographic east.)
+ *      Also lies in the tangent plane, perpendicular to north.
  *   4. The text band lives in (east, north) coordinates centered on
  *      the face centroid, with extent ±bandHalfWidth east and
  *      [-bandHalfHeight, +bandHalfHeight] north.
@@ -621,11 +635,13 @@ function computeFaceTextLayout(
   // (i.e., it IS the north or south pole face). Skip text for these.
   if (nlen < 1e-4) return null;
   const north = { x: nx / nlen, y: ny / nlen, z: nz / nlen };
-  // East = normal × north, automatically unit-length since |normal|=|north|=1.
+  // East = north × normal (NOT normal × north — that points west when
+  // the normal faces the viewer and north points up). Unit-length
+  // automatically since |normal|=|north|=1 and they're orthogonal.
   const east = {
-    x: normal3D.y * north.z - normal3D.z * north.y,
-    y: normal3D.z * north.x - normal3D.x * north.z,
-    z: normal3D.x * north.y - normal3D.y * north.x,
+    x: north.y * normal3D.z - north.z * normal3D.y,
+    y: north.z * normal3D.x - north.x * normal3D.z,
+    z: north.x * normal3D.y - north.y * normal3D.x,
   };
 
   // Three reference points in 3D (rotated-world space).
