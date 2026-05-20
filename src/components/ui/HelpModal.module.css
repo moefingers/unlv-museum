@@ -1,14 +1,30 @@
 /*
  * Help modal — single morphing element. Closed state is a small
  * circular button at the top-right of the viewport; open state is a
- * centered rounded card. CSS transitions on width, height, position,
- * border-radius, and the inner content's opacity carry the morph.
+ * centered rounded card. CSS transitions on max-width / max-height /
+ * position / border-radius / transform carry the morph; content
+ * inside is mounted at full intrinsic size always and revealed
+ * through the expanding clip.
  *
- * The element's natural CSS position is its CLOSED state (the help
- * button at top-right) — so the JSX always renders it; when not
- * open, the help button is what's visible. Opening flips data-open
- * which transitions the whole element to the centered-card geometry.
+ * --help-morph-duration is local to this module because the morph
+ * traverses much more distance (corner to center) than the project's
+ * --duration-slow token is tuned for (300ms — right for a button
+ * hover or a small slide, too fast to read as a deliberate morph
+ * across half the viewport). Single knob; tune here.
  */
+.backdrop,
+.morph {
+  --help-morph-duration: 900ms;
+  /* ease-in-out: slow at the start AND slow at the end, fast in the
+     middle. The project's --ease-snap is fast-launch + slow-settle,
+     which makes the morph's start feel sudden — the eye doesn't get
+     a chance to register "the box is about to do something" before
+     the box is already most of the way moved. Symmetric bookend
+     easing reads as deliberate at both ends. cubic-bezier(0.65, 0,
+     0.35, 1) is a slightly more dramatic ease-in-out than CSS's
+     default, with a perceptible "wind up" + "land softly". */
+  --help-morph-easing: cubic-bezier(0.65, 0, 0.35, 1);
+}
 
 /* Backdrop: dimmed + blurred page wash, click-to-close. Fades in
    alongside the morph. Pointer-events only enabled when open so
@@ -24,7 +40,7 @@
   -webkit-backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration-slow) var(--ease-snap);
+  transition: opacity var(--help-morph-duration) var(--help-morph-easing);
 }
 .backdrop[data-open="true"] {
   opacity: 1;
@@ -44,11 +60,17 @@
  */
 .morph {
   position: fixed;
-  /* Closed geometry. */
+  /* Width transitions directly so the content wraps to whatever
+     width the box currently has at every frame of the morph —
+     title reflows across more lines at narrow widths, collapses
+     to fewer as the box widens, etc. Height stays auto and the
+     vertical clip is driven by max-height (which transitions
+     length-to-length cleanly, unlike height-auto). */
   top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
   right: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
   width: 2rem;
-  height: 2rem;
+  height: auto;
+  max-height: 2rem;
   border-radius: 50%;
   /* Open transform — default identity in closed state. */
   transform: none;
@@ -61,46 +83,62 @@
   z-index: 21;
   overflow: hidden;
   transition:
-    top var(--duration-slow) var(--ease-snap),
-    right var(--duration-slow) var(--ease-snap),
-    left var(--duration-slow) var(--ease-snap),
-    width var(--duration-slow) var(--ease-snap),
-    height var(--duration-slow) var(--ease-snap),
-    transform var(--duration-slow) var(--ease-snap),
-    border-radius var(--duration-slow) var(--ease-snap),
-    box-shadow var(--duration-slow) var(--ease-snap),
+    top var(--help-morph-duration) var(--help-morph-easing),
+    right var(--help-morph-duration) var(--help-morph-easing),
+    width var(--help-morph-duration) var(--help-morph-easing),
+    max-height var(--help-morph-duration) var(--help-morph-easing),
+    transform var(--help-morph-duration) var(--help-morph-easing),
+    border-radius var(--help-morph-duration) var(--help-morph-easing),
+    box-shadow var(--help-morph-duration) var(--help-morph-easing),
     background var(--duration-normal) var(--ease-default);
 }
 
 /*
- * Open geometry. Top-right anchor releases (right: auto, top: 50%
- * instead) so the element can re-anchor to viewport center via
- * translate(-50%, -50%). max-height is used instead of a fixed
- * height so the content can determine the card's natural size;
- * the transition still animates because the element's content
- * grows in opacity rather than dimension.
+ * Open geometry. Lifting the max-width/max-height caps lets the
+ * already-mounted content drive the box's visible size up to its
+ * intrinsic dimensions. The transition crosses content-size at
+ * some point during the morph and the rendered size stops
+ * growing — visible motion ends there but the property values
+ * keep ramping until the timer elapses, which is harmless.
  */
 .morph[data-open="true"] {
   top: 50%;
-  right: auto;
-  left: 50%;
+  right: 50%;
   width: min(92vw, 28rem);
-  height: auto;
+  max-height: 100vh;
   /* Card-ish radius — softer than the page-toggle 0.5rem but well
      short of the 50% circle. */
   border-radius: 1rem;
-  transform: translate(-50%, -50%);
+  transform: translate(50%, -50%);
   box-shadow: var(--shadow-lg);
 }
 
 /*
- * Help icon inside the morph. Fills the closed circle when small;
- * fades out fast when the morph starts to open so we don't have
- * an icon visible inside the open card.
+ * Help icon. Its position relative to the morph element INVERTS as
+ * the box morphs:
+ *   - Closed (2rem button): icon centered inside the button.
+ *   - Open (28rem card):    icon at the top-right corner of the card.
+ *
+ * Centering when closed = `top: 50%; right: 50%; translate(50%, -50%)`
+ * (anchor at center of the parent, self-center on it). Top-right when
+ * open = `top: 0.5rem; right: 0.5rem; translate(0, 0)`.
+ *
+ * Both states use the same anchor system (`top` + `right` + `translate`),
+ * so every transitioning property interpolates length-to-length —
+ * no anchor swap. The transitions run on the morph duration + easing
+ * so icon and box travel in lockstep.
+ *
+ * The icon is the same DOM element across both states and acts as
+ * the toggle: clicking opens (when closed) or closes (when open).
  */
 .iconButton {
   position: absolute;
-  inset: 0;
+  /* Closed: centered in the parent. */
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  width: 1.25rem;
+  height: 1.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -109,37 +147,46 @@
   border: 0;
   cursor: pointer;
   transition:
-    opacity var(--duration-fast) var(--ease-default),
+    top var(--help-morph-duration) var(--help-morph-easing),
+    right var(--help-morph-duration) var(--help-morph-easing),
+    transform var(--help-morph-duration) var(--help-morph-easing),
     color var(--duration-normal) var(--ease-default);
 }
 .iconButton:hover {
   color: var(--foreground);
 }
 .morph[data-open="true"] .iconButton {
-  opacity: 0;
-  pointer-events: none;
+  /* Open: top-right corner with a comfortable inset. */
+  top: 0.625rem;
+  right: 0.625rem;
+  transform: translate(0, 0);
 }
 
 /*
- * Open-state content. Hidden + non-interactive while the morph is
- * closed; fades in with a delay so the morph mostly completes
- * before the content appears (otherwise the small closed circle
- * would briefly show the full content text as it expands).
+ * Open-state content. Mounted at all times; fades in alongside the
+ * box's geometric morph rather than after it. Duration matches the
+ * morph so the fade reads as part of the same gesture; delayed by
+ * ~25% so the box has visibly started opening before the content
+ * starts revealing (without this, the content would already be
+ * appearing while the box is still essentially the closed circle).
+ *
+ * On close, the same opacity transition runs in reverse — but with
+ * zero delay so the content fades out FIRST, then the box collapses.
+ * Reverse delay would leave content visible during the collapse,
+ * which reads worse than a clean fade-then-shrink.
  */
 .content {
   padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
   color: var(--card-foreground);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration-normal) var(--ease-default);
+  transition: opacity var(--help-morph-duration) var(--help-morph-easing);
   transition-delay: 0s;
 }
 .morph[data-open="true"] .content {
   opacity: 1;
   pointer-events: auto;
-  /* Wait until the morph has mostly settled before the content
-     fades in. */
-  transition-delay: calc(var(--duration-slow) * 0.6);
+  transition-delay: calc(var(--help-morph-duration) * 0.25);
 }
 
 .title {

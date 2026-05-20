@@ -71,16 +71,17 @@ export function HelpModal({
         aria-modal={open ? true : undefined}
         aria-labelledby={open ? "help-modal-title" : undefined}
       >
-        {/* Closed state: the icon sits at the center of the small circle.
-            Fades + scales out when opening. */}
+        {/* Icon button. Centered inside the closed circle; migrates
+            to the top-right corner when the morph opens. Same element
+            across both states: clicking opens (when closed) or
+            closes (when open). */}
         <button
           type="button"
           className={styles.iconButton}
-          onClick={onOpen}
-          aria-label="Show help"
-          tabIndex={open ? -1 : 0}
+          onClick={open ? onClose : onOpen}
+          aria-label={open ? "Close help" : "Show help"}
         >
-          <HelpCircle size={18} />
+          <HelpCircle size={16} />
         </button>
 
         {/* Open state: full panel content. Fades in once the morph has
