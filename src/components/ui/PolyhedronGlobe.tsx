@@ -38,6 +38,14 @@ const VELOCITY_THRESHOLD = 0.5;
 const POLE_LIMIT = 60;
 const AXIAL_TILT_DEG = 18;
 
+// ─── Glow toggles ─────────────────────────────────────────────
+// Flip these constants to A/B individual visual effects in isolation
+// without touching the render code. polyhedron-glow branch ships with
+// all three on so you see the maximalist version first.
+const ENABLE_RADIAL_BG = true;
+const ENABLE_EDGE_GLOW = true;
+const ENABLE_VERTEX_GLOW = true;
+
 function bounceX(x: number): { x: number; flipped: boolean } {
   let flipped = false;
   while (x > POLE_LIMIT || x < -POLE_LIMIT) {
@@ -266,13 +274,16 @@ export function PolyhedronGlobe({
   ]);
 
   // Per-face processing: cull backfaces, compute centroid Z for sort.
-  const faceRecords = useMemo(() => {
+  // Also collects the union of vertex indices touched by visible (front-
+  // facing) faces, for vertex-glow rendering downstream.
+  const { faceRecords, visibleVertices } = useMemo(() => {
     const records: {
       faceIdx: number;
       points: string;
       centroidZ: number;
       facingCamera: number;
     }[] = [];
+    const visibleSet = new Set<number>();
 
     for (let i = 0; i < mesh.faces.length; i++) {
       const face = mesh.faces[i]!;
@@ -300,11 +311,29 @@ export function PolyhedronGlobe({
       const points = `${a.sx.toFixed(1)},${a.sy.toFixed(1)} ${b.sx.toFixed(1)},${b.sy.toFixed(1)} ${c.sx.toFixed(1)},${c.sy.toFixed(1)}`;
 
       records.push({ faceIdx: i, points, centroidZ: cz, facingCamera });
+      for (const vi of face) visibleSet.add(vi);
     }
 
     // Painter: back first, front last.
     records.sort((a, b) => a.centroidZ - b.centroidZ);
-    return records;
+
+    // Project each visible vertex once, keep its sphere-space z for tint
+    // strength (vertices facing the camera glow brighter than vertices
+    // near the silhouette). Sort back-to-front to match the face painter
+    // order so silhouette vertices land last and read as crisp.
+    const vertices = Array.from(visibleSet).map((vi) => {
+      const p = projected[vi]!;
+      return {
+        vi,
+        sx: p.sx,
+        sy: p.sy,
+        z: p.z,
+        facingCamera: Math.max(0, Math.min(1, p.z)),
+      };
+    });
+    vertices.sort((u, v) => u.z - v.z);
+
+    return { faceRecords: records, visibleVertices: vertices };
   }, [mesh.faces, projected]);
 
   return (
@@ -324,22 +353,124 @@ export function PolyhedronGlobe({
         className={styles.svg}
         aria-label="Museum sphere"
       >
-        {faceRecords.map((face) => (
-          // Bare-geometry rendering: every face is a uniform muted-fill
-          // polygon with a faint edge. Front-facing faces get a slight
-          // brightness lift (facingCamera ∈ [0, 1]) so the visible
-          // hemisphere reads as a 3D surface rather than a flat
-          // silhouette.
-          <polygon
-            key={face.faceIdx}
-            points={face.points}
-            fill={`oklch(from var(--foreground) l c h / ${0.04 + face.facingCamera * 0.1})`}
-            stroke={`oklch(from var(--foreground) l c h / ${0.25 + face.facingCamera * 0.3})`}
-            strokeWidth={0.8}
-            strokeLinejoin="round"
+        <defs>
+          {/* Radial gradient for the background halo. Centered on the
+              sphere, fades from a soft tint at center to fully transparent
+              by the corners. Read on a dark theme as a faint atmospheric
+              glow; on a light theme as a barely-perceptible cool wash. */}
+          <radialGradient
+            id="ph-bg-halo"
+            cx="50%"
+            cy="50%"
+            r="50%"
+            fx="50%"
+            fy="50%"
+          >
+            <stop
+              offset="0%"
+              stopColor="oklch(from var(--foreground) l c h / 0.18)"
+            />
+            <stop
+              offset="55%"
+              stopColor="oklch(from var(--foreground) l c h / 0.06)"
+            />
+            <stop
+              offset="100%"
+              stopColor="oklch(from var(--foreground) l c h / 0)"
+            />
+          </radialGradient>
+
+          {/* Radial gradient for each vertex glow — bright pinpoint at
+              center, soft falloff. Used as the fill of vertex circles. */}
+          <radialGradient id="ph-vertex-glow" cx="50%" cy="50%" r="50%">
+            <stop
+              offset="0%"
+              stopColor="oklch(from var(--foreground) l c h / 0.95)"
+            />
+            <stop
+              offset="35%"
+              stopColor="oklch(from var(--foreground) l c h / 0.45)"
+            />
+            <stop
+              offset="100%"
+              stopColor="oklch(from var(--foreground) l c h / 0)"
+            />
+          </radialGradient>
+
+          {/* Gaussian-blur filter for edge glow. The blurred-stroke pass
+              uses this filter on a thicker, semi-transparent stroke so
+              edges read as having a halo. stdDeviation in viewBox units
+              — keep small relative to sphere radius. */}
+          <filter
+            id="ph-edge-glow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
+          >
+            <feGaussianBlur stdDeviation="2.5" />
+          </filter>
+        </defs>
+
+        {ENABLE_RADIAL_BG && (
+          <rect
+            x={0}
+            y={0}
+            width={stageSize}
+            height={stageSize}
+            fill="url(#ph-bg-halo)"
             pointerEvents="none"
           />
+        )}
+
+        {faceRecords.map((face) => (
+          <g key={face.faceIdx}>
+            {/* Edge-glow pass: thick, semi-transparent stroke run through
+                the gaussian-blur filter sits underneath the crisp
+                stroke. Visible only where the silhouette of the polygon
+                is, since the fill itself is no-fill on the glow pass. */}
+            {ENABLE_EDGE_GLOW && (
+              <polygon
+                points={face.points}
+                fill="none"
+                stroke={`oklch(from var(--foreground) l c h / ${0.25 + face.facingCamera * 0.35})`}
+                strokeWidth={3.2}
+                strokeLinejoin="round"
+                filter="url(#ph-edge-glow)"
+                pointerEvents="none"
+              />
+            )}
+            {/* Crisp face on top: same fill + edge as the bare branch. */}
+            <polygon
+              points={face.points}
+              fill={`oklch(from var(--foreground) l c h / ${0.04 + face.facingCamera * 0.1})`}
+              stroke={`oklch(from var(--foreground) l c h / ${0.25 + face.facingCamera * 0.3})`}
+              strokeWidth={0.8}
+              strokeLinejoin="round"
+              pointerEvents="none"
+            />
+          </g>
         ))}
+
+        {ENABLE_VERTEX_GLOW &&
+          visibleVertices.map((v) => {
+            // Glow radius and opacity ramp gently with facingCamera so
+            // vertices on the silhouette stay small while center-facing
+            // vertices read as little stars. Radius in viewBox units.
+            const r = 4 + v.facingCamera * 4;
+            const opacity = 0.4 + v.facingCamera * 0.5;
+            return (
+              <circle
+                key={v.vi}
+                cx={v.sx}
+                cy={v.sy}
+                r={r}
+                fill="url(#ph-vertex-glow)"
+                opacity={opacity}
+                pointerEvents="none"
+              />
+            );
+          })}
       </svg>
     </div>
   );
