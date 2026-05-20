@@ -632,17 +632,41 @@ export const PROJECTS: Project[] = [
   {
     slug: "sql-injection-demo",
     repo: "moefingers/iam-2-sql-injection-demo",
-    href: "/api-client?api=sql-demo",
     title: "SQL Injection Demo",
-    description: "Educational SQL injection demonstration.",
+    description: "Login form with vulnerable + safe SQL — see injection live.",
     synopsis:
       "Educational demo from UNLV's Information Assurance coursework — a login form runs both a vulnerable (string-interpolated) and a safe (parameterized) query against an in-memory SQLite user table, so students see firsthand that `' OR '1'='1' --` bypasses one and is neutralized by the other.",
     year: "May 2024",
     category: "api",
     techOriginal: ["Express", "SQLite", "HTML"],
+    // SPA-style card: the visitor-facing form is iframed at /api/sql-demo/
+    // (the route handler serves index.html with a <base> injection so the
+    // form-submit posts to /api/sql-demo/login-html). The api-client lab
+    // surface lives at the sibling `sql-injection-demo-api` entry below.
+    original: <OriginalFrame src="/api/sql-demo/" />,
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    notes: {
+      original:
+        "Frontend preserved as-is. The form action was rewritten from `/login` to `/api/sql-demo/login-html` on museum-ready/original so the form-submit flow reaches the museum's route handler instead of the dead `/login` of the original Express server. Vulnerability surface is unchanged: try `' OR '1'='1' --` in the username field.",
+    },
+  },
+  {
+    slug: "sql-injection-demo-api",
+    href: "/api-client?api=sql-demo",
+    title: "SQL Injection Demo API",
+    description:
+      "Same vulnerability surface, JSON-shaped for structured inspection in /api-client.",
+    year: "May 2024",
+    category: "api",
+    techOriginal: ["Express", "SQLite"],
     original: <ApiOriginal startWith="SQL Injection Demo" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "Backend half of the SQL Demo pair — the original Express server returned an HTML success page or a hash-redirect; this card exposes the same vulnerable + safe queries with structured JSON responses (parsed rows, the raw SQL string, an `injected` flag) so visitors can dissect what the queries actually do. The visitor-facing form lives at /sql-injection-demo.",
+    },
   },
   {
     slug: "admin-portal-api",

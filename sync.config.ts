@@ -17,6 +17,16 @@ export interface StaticCopyRecipe {
   from: string;
   /** Destination in public/originals/. */
   to: string;
+  /**
+   * Optional allowlist of files (relative to `from`) to copy. When set,
+   * only these exact paths are copied — everything else (server code,
+   * package.json, README, etc.) is skipped. Use for source repos that
+   * don't already split frontend assets into their own subdir.
+   *
+   * Glob patterns aren't supported; list exact files. For a directory,
+   * list the dir name itself (e.g. "assets" copies the whole subtree).
+   */
+  include?: string[];
   /** Optional postPatch scripts to run after copy. */
   postPatch?: string[];
 }
@@ -148,8 +158,17 @@ export const recipes: Record<string, Recipe> = {
   },
 
   "sql-injection-demo": {
-    type: "backend-only",
+    type: "static-copy",
     from: ".sources/iam-2-sql-injection-demo",
+    to: "public/originals/sql-demo",
+    // Original repo has app.js / package.json at the root next to the
+    // frontend assets — explicit allowlist so only the static files
+    // visitors actually see in the iframe get copied. The form action
+    // in index.html was rewritten on museum-ready/original to point at
+    // /api/sql-demo/login-html so the form-submit flow reaches the
+    // museum's route handler instead of the dead /login of the original
+    // Express server.
+    include: ["index.html", "style.css"],
   },
 
   // SSR original: the museum doesn't run the Express/MongoDB server; the

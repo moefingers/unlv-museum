@@ -196,10 +196,13 @@
 .kbEndpoint {
   display: flex;
   width: 100%;
-  align-items: center;
+  /* Use flex-start so a wrapping multi-line description hangs cleanly off
+     the top of the row instead of dropping the method dot to the middle
+     of the block. */
+  align-items: flex-start;
   gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
   border-radius: var(--radius-sm);
-  padding: 0.25rem calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
+  padding: 0.35rem calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
   text-align: left;
   transition: background var(--duration-normal) var(--ease-default);
 }
@@ -254,10 +257,17 @@
 }
 
 .kbEndpointDescription {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Allow wrapping so long endpoint blurbs (e.g. SQL-injection blurbs that
+     reference the literal `' OR '1'='1' --` payload, or rest-rant's "the
+     same monorepo backs both the SPA card..." line) stay legible instead
+     of truncating with ellipsis. The sidebar column is narrow but the
+     descriptions are part of the project's pedagogical story. */
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--muted-foreground);
+  /* Slightly tighter line-height for the wrapped lines so the row doesn't
+     tower over single-line entries. */
+  line-height: 1.35;
 }
 
 /* History panel inside sidebar. */

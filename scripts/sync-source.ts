@@ -248,9 +248,32 @@ function syncStaticCopy(recipe: StaticCopy) {
     );
     process.exit(1);
   }
+  if (!dest) {
+    // Type-narrow: static-copy always has `to`. Unreachable.
+    throw new Error("static-copy recipe missing `to`");
+  }
   // Clear destination, then mirror.
   if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
+
+  if (recipe.include && recipe.include.length > 0) {
+    // Explicit allowlist — copy only the named files / directories. Use
+    // when the source repo doesn't isolate frontend assets in their own
+    // subdir (e.g. sql-injection-demo has app.js/package.json at root
+    // alongside index.html/style.css).
+    for (const rel of recipe.include) {
+      const src = resolve(from, rel);
+      const target = resolve(dest, rel);
+      if (!existsSync(src)) {
+        console.error(`[sync] include entry missing in source: ${rel}`);
+        process.exit(1);
+      }
+      mkdirSync(dirname(target), { recursive: true });
+      cpSync(src, target, { recursive: true });
+    }
+    return;
+  }
+
   cpSync(from, dest, {
     recursive: true,
     filter: (src) => !src.includes(".git") && !src.includes("node_modules"),

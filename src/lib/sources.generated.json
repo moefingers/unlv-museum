@@ -65,8 +65,8 @@
   "sql-injection-demo": {
     "repo": "moefingers/iam-2-sql-injection-demo",
     "branch": "museum-ready/original",
-    "commit": "bafaa5f25ab354c1a28fe68c8868e11406dba2f6",
-    "lockHash": "sha256:14ba7f165338665aa08b19dcf582ab05db006aa009403355e9194cee17c93cd7",
+    "commit": "135bcc0db437a16ad5996a89a2244f5a028d2397",
+    "lockHash": "sha256:4567d521d2f4640da4303a45f1c470b14c85d8ae834e0eff7660746fa086bc45",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-05-02"

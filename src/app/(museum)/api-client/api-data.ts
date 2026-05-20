@@ -235,9 +235,16 @@ export const APIS_ORIGINAL: ApiProject[] = [
     title: "SQL Injection Demo",
     baseUrl: "/api/sql-demo",
     description:
-      "Educational demo showing vulnerable vs safe SQL queries against a real database.",
+      "Educational demo showing vulnerable vs safe SQL queries against a real database. The visitor-facing form lives at /sql-injection-demo — this card is the structured-inspection lab.",
     tech: "Originally Express + SQLite",
     endpoints: [
+      {
+        label: "SQL Demo page",
+        method: "GET",
+        path: "/",
+        description:
+          "HTML — the login form (same page iframed at /sql-injection-demo)",
+      },
       {
         label: "Login (vulnerable)",
         method: "POST",
