@@ -7,7 +7,7 @@ export function OriginalFrame({ src }: { src: string }) {
     <iframe
       src={src}
       className={`${styles.frame} ${styles.frameOriginal}`}
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
       title="Original project"
     />
   );
@@ -18,7 +18,7 @@ export function ExternalFrame({ src }: { src: string }) {
     <iframe
       src={src}
       className={styles.frame}
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
       title="Original project (external)"
     />
   );

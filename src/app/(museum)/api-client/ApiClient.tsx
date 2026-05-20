@@ -448,7 +448,7 @@ function ResponseBody({
         <iframe
           title="Response (HTML)"
           srcDoc={text}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           className={styles.responseIframe}
         />
       </div>

@@ -52,7 +52,10 @@ if (!recipe) {
 }
 
 console.log(`[sync] ${slug} (type=${recipe.type})`);
-const dest = resolve(projectRoot, recipe.to);
+
+// Where the recipe's content lives in public/originals/ — undefined for
+// backend-only recipes that ship no public artifact.
+const dest = "to" in recipe ? resolve(projectRoot, recipe.to) : undefined;
 
 switch (recipe.type) {
   case "static-copy":
@@ -64,6 +67,11 @@ switch (recipe.type) {
     break;
   case "patch-only":
     // Nothing to copy — the patch script operates in-place on existing files.
+    break;
+  case "backend-only":
+    // Nothing to copy — the museum's Next.js port lives in src/app/(museum)/;
+    // the submodule only contributes its branch/commit + lockHash for drift
+    // detection and the meta script downstream.
     break;
 }
 
@@ -82,14 +90,18 @@ for (const script of postPatch ?? []) {
   });
 }
 
-// Compute lockHash + read submodule commit, write to sources.generated.json.
-const lockHash = hashDir(dest);
+// Compute lockHash. For artifact-producing recipes that's the destination
+// directory; for backend-only it's the submodule root so drift in the
+// source repo itself is detectable.
+const submoduleRoot =
+  recipe.type === "patch-only" ? null : findSubmoduleRootForRecipe(recipe);
+const lockHashTarget =
+  dest ?? (submoduleRoot ? submoduleRoot : null);
+const lockHash = lockHashTarget ? hashDir(lockHashTarget) : "";
 const commit = readSubmoduleCommit(recipe);
 const branch =
   recipe.type === "patch-only" ? null : readSubmoduleBranch(recipe);
 const repo = recipe.type === "patch-only" ? null : readSubmoduleRepo(recipe);
-const submoduleRoot =
-  recipe.type === "patch-only" ? null : findSubmoduleRootForRecipe(recipe);
 const ownerCommitRange = submoduleRoot
   ? readOwnerCommitRange(submoduleRoot)
   : null;
@@ -147,13 +159,30 @@ interface SourceRecord {
 type StaticCopy = Extract<Recipe, { type: "static-copy" }>;
 type BuildRecipe = Extract<Recipe, { type: "cra-build" | "vite-build" }>;
 
+/**
+ * Path inside (or pointing at) the submodule from which to derive its
+ * root, branch, commit, and remote. Each recipe type carries this in a
+ * different field — centralized here so submodule-reading helpers don't
+ * each duplicate the per-recipe selection.
+ *
+ * Returns null for recipe types without a submodule (patch-only).
+ */
+function submoduleStartPath(recipe: Recipe): string | null {
+  switch (recipe.type) {
+    case "static-copy":
+    case "backend-only":
+      return resolve(projectRoot, recipe.from);
+    case "cra-build":
+    case "vite-build":
+      return resolve(projectRoot, recipe.cwd);
+    case "patch-only":
+      return null;
+  }
+}
+
 function findSubmoduleRootForRecipe(recipe: Recipe): string | null {
-  if (recipe.type === "patch-only") return null;
-  const start =
-    recipe.type === "static-copy"
-      ? resolve(projectRoot, recipe.from)
-      : resolve(projectRoot, recipe.cwd);
-  return findSubmoduleRoot(start);
+  const start = submoduleStartPath(recipe);
+  return start ? findSubmoduleRoot(start) : null;
 }
 
 /**
@@ -251,14 +280,7 @@ function syncBuild(recipe: BuildRecipe) {
 }
 
 function readSubmoduleCommit(recipe: Recipe): string | null {
-  if (recipe.type === "patch-only") return null;
-  // Walk up from cwd (or from, for static-copy) until we find a directory
-  // whose parent is `.sources/`. That's the submodule root.
-  const start =
-    recipe.type === "static-copy"
-      ? resolve(projectRoot, recipe.from)
-      : resolve(projectRoot, recipe.cwd);
-  const submoduleRoot = findSubmoduleRoot(start);
+  const submoduleRoot = findSubmoduleRootForRecipe(recipe);
   if (!submoduleRoot) return null;
   try {
     return execSync("git rev-parse HEAD", {
@@ -271,12 +293,7 @@ function readSubmoduleCommit(recipe: Recipe): string | null {
 }
 
 function readSubmoduleBranch(recipe: Recipe): string | null {
-  if (recipe.type === "patch-only") return null;
-  const start =
-    recipe.type === "static-copy"
-      ? resolve(projectRoot, recipe.from)
-      : resolve(projectRoot, recipe.cwd);
-  const submoduleRoot = findSubmoduleRoot(start);
+  const submoduleRoot = findSubmoduleRootForRecipe(recipe);
   if (!submoduleRoot) return null;
   try {
     const headRef = execSync("git symbolic-ref --short HEAD", {
@@ -290,12 +307,7 @@ function readSubmoduleBranch(recipe: Recipe): string | null {
 }
 
 function readSubmoduleRepo(recipe: Recipe): string | null {
-  if (recipe.type === "patch-only") return null;
-  const start =
-    recipe.type === "static-copy"
-      ? resolve(projectRoot, recipe.from)
-      : resolve(projectRoot, recipe.cwd);
-  const submoduleRoot = findSubmoduleRoot(start);
+  const submoduleRoot = findSubmoduleRootForRecipe(recipe);
   if (!submoduleRoot) return null;
   try {
     const url = execSync("git remote get-url origin", {

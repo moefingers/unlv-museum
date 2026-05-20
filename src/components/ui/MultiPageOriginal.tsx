@@ -157,7 +157,7 @@ function MultiPageOriginalInner({ pages }: { pages: ProjectPage[] }) {
           key={active.src}
           src={active.src}
           className={styles.frame}
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
           title={`Original project — ${active.label}`}
         />
       </ViewTransition>

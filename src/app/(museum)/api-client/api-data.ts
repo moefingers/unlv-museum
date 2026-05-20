@@ -127,9 +127,15 @@ export const APIS_ORIGINAL: ApiProject[] = [
     title: "Rest-Rant API",
     baseUrl: "/api/rest-rant",
     description:
-      "Restaurant review backend. CRUD on places, threaded comments, signup/login auth.",
+      "Restaurant review backend. CRUD on places, threaded comments, signup/login auth. Same monorepo as the Rest-Rant SPA card on the landing globe — the original Express server packaged the frontend + the API together.",
     tech: "Originally Express + PostgreSQL + Sequelize + bcrypt",
     endpoints: [
+      {
+        label: "Rest-Rant page",
+        method: "GET",
+        path: "/",
+        description: "HTML — the SPA's index.html",
+      },
       {
         label: "List places",
         method: "GET",

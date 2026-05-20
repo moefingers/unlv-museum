@@ -35,12 +35,23 @@ for (const [slug, info] of Object.entries(sources)) {
     );
     continue;
   }
-  const dest = resolve(projectRoot, recipe.to);
-  if (!existsSync(dest)) {
-    failures.push(`${slug}: public/originals/${slug}/ is missing`);
+
+  // Pick the directory whose hash backs this slug's lockHash. Artifact-
+  // producing recipes (static-copy / cra-build / vite-build / patch-only)
+  // hash public/originals/<slug>/. Backend-only recipes have no public
+  // artifact — sync-source.ts hashes the submodule root instead, so
+  // verify-locks must mirror that to compare apples to apples.
+  const target =
+    recipe.type === "backend-only"
+      ? resolve(projectRoot, recipe.from)
+      : resolve(projectRoot, recipe.to);
+  if (!existsSync(target)) {
+    failures.push(
+      `${slug}: ${target} is missing — did the submodule init? (\`git submodule update --init --recursive\`)`,
+    );
     continue;
   }
-  const actual = hashDir(dest);
+  const actual = hashDir(target);
   if (actual !== info.lockHash) {
     failures.push(
       `${slug}: lockHash mismatch.\n  expected: ${info.lockHash}\n  actual:   ${actual}\n  Run: pnpm sync:source ${slug}`,

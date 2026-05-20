@@ -65,11 +65,37 @@ export interface PatchOnlyRecipe {
   patchScript: string;
 }
 
+/**
+ * Backend-only sources: a submodule that ships no public frontend artifact.
+ * The museum's Next.js port (route handlers + Drizzle schema) lives in
+ * src/app/(museum)/; the submodule still gets a museum-ready/original
+ * branch on GitHub so the source repo carries the unlv-museum banner,
+ * description, topics, and a stable diff against the legacy default.
+ *
+ * No copy, no build. `pnpm sync:source <slug>` just records the
+ * submodule's branch / commit and hashes the submodule root so drift
+ * is detectable.
+ *
+ * Applies to: JASKIS (MongoDB shell, surfaced via /mongo-client),
+ * Music Tour API (Express, surfaced via /api-client?api=music-tour),
+ * SQL Injection Demo (Express + SQLite, /api-client?api=sql-demo).
+ */
+export interface BackendOnlyRecipe {
+  type: "backend-only";
+  /**
+   * Path to the submodule root (e.g. ".sources/API-JASKIS"). The hash for
+   * drift detection is computed over this directory; sync:source-meta
+   * derives the GitHub owner/repo from the submodule's remote URL.
+   */
+  from: string;
+}
+
 export type Recipe =
   | StaticCopyRecipe
   | CraBuildRecipe
   | ViteBuildRecipe
-  | PatchOnlyRecipe;
+  | PatchOnlyRecipe
+  | BackendOnlyRecipe;
 
 /**
  * Map of museum slug → recipe. Add entries as conversions land.
@@ -87,10 +113,53 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/admin-portal",
   },
 
+  "interactive-map": {
+    type: "static-copy",
+    from: ".sources/JS-Making-an-Interactive-Map",
+    to: "public/originals/interactive-map",
+  },
+
   "shared-counter": {
     type: "static-copy",
     from: ".sources/JS-Building-a-Shared-Counter-Part-1/public",
     to: "public/originals/shared-counter",
+  },
+
+  jaskis: {
+    type: "backend-only",
+    from: ".sources/API-JASKIS",
+  },
+
+  "music-tour-api": {
+    type: "backend-only",
+    from: ".sources/SQL-Music-Tour-API",
+  },
+
+  // TEMPORARY backend-only — rest-rant's CRA frontend has a roughed-out
+  // cra-build recipe in sources-conversions.md (🔴 unfinished) but the
+  // museum-side `/api/rest-rant/*` routes are working today, and we want
+  // the GitHub-side meta (banner, description, branches) to land now.
+  // When the CRA frontend build lands, swap this entry to a cra-build
+  // recipe (frontend) — the meta will continue working as long as the
+  // submodule still points at `.sources/rest-rant-monorepo`.
+  "rest-rant": {
+    type: "backend-only",
+    from: ".sources/rest-rant-monorepo",
+  },
+
+  "sql-injection-demo": {
+    type: "backend-only",
+    from: ".sources/iam-2-sql-injection-demo",
+  },
+
+  // SSR original: the museum doesn't run the Express/MongoDB server; the
+  // SSR character (server-rendered JSX views, form-driven mutations) is
+  // reimplemented in src/app/(museum)/originals/rest-rant-ssr/ using Next.js
+  // Server Components + Drizzle. The submodule is here purely so the source
+  // repo carries the unlv-museum banner / topics / branch promotion.
+  "rest-rant-ssr": {
+    type: "backend-only",
+    from: ".sources/UNLV-rest-rant",
   },
 
   // Conversions land here. See sources-conversions.md for the per-project

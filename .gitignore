@@ -46,6 +46,12 @@ next-env.d.ts
 !.sources/JS-Events-Demonstration
 !.sources/JS-Building-an-Admin-Portal
 !.sources/JS-Building-a-Shared-Counter-Part-1
+!.sources/JS-Making-an-Interactive-Map
+!.sources/API-JASKIS
+!.sources/SQL-Music-Tour-API
+!.sources/rest-rant-monorepo
+!.sources/iam-2-sql-injection-demo
+!.sources/UNLV-rest-rant
 
 dev.log
 .dev.log

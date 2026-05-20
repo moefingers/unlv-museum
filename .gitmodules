@@ -10,3 +10,27 @@
 	path = .sources/JS-Building-a-Shared-Counter-Part-1
 	url = https://github.com/moefingers/JS-Building-a-Shared-Counter-Part-1.git
 	branch = museum-ready/original
+[submodule ".sources/API-JASKIS"]
+	path = .sources/API-JASKIS
+	url = https://github.com/moefingers/API-JASKIS.git
+	branch = museum-ready/original
+[submodule ".sources/SQL-Music-Tour-API"]
+	path = .sources/SQL-Music-Tour-API
+	url = https://github.com/moefingers/SQL-Music-Tour-API.git
+	branch = museum-ready/original
+[submodule ".sources/rest-rant-monorepo"]
+	path = .sources/rest-rant-monorepo
+	url = https://github.com/moefingers/rest-rant-monorepo.git
+	branch = museum-ready/original
+[submodule ".sources/JS-Making-an-Interactive-Map"]
+	path = .sources/JS-Making-an-Interactive-Map
+	url = https://github.com/moefingers/JS-Making-an-Interactive-Map.git
+	branch = museum-ready/original
+[submodule ".sources/iam-2-sql-injection-demo"]
+	path = .sources/iam-2-sql-injection-demo
+	url = https://github.com/moefingers/iam-2-sql-injection-demo.git
+	branch = museum-ready/original
+[submodule ".sources/UNLV-rest-rant"]
+	path = .sources/UNLV-rest-rant
+	url = https://github.com/moefingers/UNLV-rest-rant.git
+	branch = museum-ready/original

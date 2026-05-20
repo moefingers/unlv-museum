@@ -11,7 +11,7 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "65e1cf8fc07a4eb8cd19be7887b705a57936a560",
+    "commit": "e6f239e5ab8995f207bee4e76df5bb33c8534ddf",
     "lockHash": "sha256:92fa3c0148a074e3443d05b6e9322cdd0f2905e4bf2b5c150a55bdde93940845",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -25,5 +25,59 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-12-21"
+  },
+  "jaskis": {
+    "repo": "moefingers/API-JASKIS",
+    "branch": "museum-ready/original",
+    "commit": "cc58381ee6be4d6bea6353829fd4bf66941fa056",
+    "lockHash": "sha256:57d05f8a7ad9c096a904c0146d4ceba8382772c5daf61ed648654f681c1b2a9f",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-02-19"
+  },
+  "music-tour-api": {
+    "repo": "moefingers/SQL-Music-Tour-API",
+    "branch": "museum-ready/original",
+    "commit": "6c9e74bf62b3e2dc8689ddf250eb8027317b55e6",
+    "lockHash": "sha256:2d6b1bedf1376971f0381e1771b58c3bb93868fecd2031c42479c253c9415e83",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-04-02"
+  },
+  "rest-rant": {
+    "repo": "moefingers/rest-rant-monorepo",
+    "branch": "museum-ready/original",
+    "commit": "c04cb2163fbb520b4c984af8a919f3f6c7d0413c",
+    "lockHash": "sha256:a69a65dcc62684d2cbddaa838c3025a0785616df226fc8f78d03b18ed800bce5",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-05-04"
+  },
+  "interactive-map": {
+    "repo": "moefingers/JS-Making-an-Interactive-Map",
+    "branch": "museum-ready/original",
+    "commit": "b409ca822db921f201c00eddb6c80bec8c7c1f67",
+    "lockHash": "sha256:7277bc2e7b7eaddc883b5ecdcfef50cb586ddfbcfb136463cc19ebde37c25c1a",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-01-04"
+  },
+  "sql-injection-demo": {
+    "repo": "moefingers/iam-2-sql-injection-demo",
+    "branch": "museum-ready/original",
+    "commit": "bafaa5f25ab354c1a28fe68c8868e11406dba2f6",
+    "lockHash": "sha256:14ba7f165338665aa08b19dcf582ab05db006aa009403355e9194cee17c93cd7",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-05-02"
+  },
+  "rest-rant-ssr": {
+    "repo": "moefingers/UNLV-rest-rant",
+    "branch": "museum-ready/original",
+    "commit": "68bad1ab7f52fa2434dc1abe8075cf6458b530ab",
+    "lockHash": "sha256:16279e672f5a3d111ae73bb4dfd078a550d9e12c96b9bebbbfdd0a3f822c183e",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-02-03"
   }
 }

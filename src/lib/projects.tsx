@@ -389,9 +389,12 @@ export const PROJECTS: Project[] = [
   // FULL-STACK
   {
     slug: "rest-rant",
+    repo: "moefingers/rest-rant-monorepo",
     title: "Rest-Rant (SPA)",
     description:
       "Restaurant rating and review SPA. May 2024 — CRA frontend + separate Express/Postgres backend.",
+    synopsis:
+      "Restaurant rating and review monorepo from May 2024 — a CRA + React Router SPA paired with an Express + Sequelize + Postgres backend. The museum preserves the frontend as-is and reimplements the backend in Next.js + Drizzle so the SPA functions end-to-end against the same API surface.",
     year: "May 2024",
     category: "full-stack",
     techOriginal: ["React (CRA)", "React Router", "Express", "PostgreSQL"],
@@ -405,9 +408,12 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "rest-rant-ssr",
+    repo: "moefingers/UNLV-rest-rant",
     title: "Rest-Rant (SSR)",
     description:
       "Restaurant rating SSR app. Feb 2024 — JSX views, form-driven mutations.",
+    synopsis:
+      "Restaurant rating SSR app from Feb 2024 — original used Express + express-react-views + MongoDB, server-rendering JSX views. The museum preserves the JSX views and SSR character verbatim while reimplementing the data layer as Next.js Server Components + Drizzle/Neon.",
     year: "Feb 2024",
     category: "full-stack",
     techOriginal: [
@@ -528,7 +534,15 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "Express", "Fetch API"],
-    original: <OriginalFrame src="/originals/admin-portal/admin.html" />,
+    // Three-page original: the Admin CRUD UI was the entry point, the
+    // Books list was the customer-facing view, and the API Docs page
+    // documented the underlying Express endpoints. Rail order puts the
+    // admin UI first since that's the project's headline feature.
+    pages: [
+      { label: "Admin", src: "/originals/admin-portal/admin.html" },
+      { label: "Books", src: "/originals/admin-portal/index.html" },
+      { label: "API Docs", src: "/originals/admin-portal/api-docs.html" },
+    ],
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     notes: {
@@ -538,14 +552,21 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "interactive-map",
+    repo: "moefingers/JS-Making-an-Interactive-Map",
     title: "Interactive Map",
     description: "Geolocation mapping with Leaflet.",
+    synopsis:
+      "Geolocation mapping in vanilla JS — the browser's GPS pin is plotted on a Leaflet + OpenStreetMap tile map, and a select-then-submit form queries the Foursquare Places API to drop nearby business markers around the user's location.",
     year: "Jan 2024",
     category: "frontend",
     techOriginal: ["JavaScript", "Leaflet", "Foursquare API"],
     original: <OriginalFrame src="/originals/interactive-map/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original committed the Foursquare API key to client JS, the way the assignment was taught. For the museum-ready branch, the key was redacted and getFoursquare() early-returns an empty list so the business-search button no-ops gracefully; the geolocation pin and tile layer still work. The original branch retains the historical commit. A 3s geolocation timeout falls back to Las Vegas coordinates when the sandboxed iframe blocks the browser prompt.",
+    },
   },
   {
     slug: "stock-charts",
@@ -595,9 +616,12 @@ export const PROJECTS: Project[] = [
   // APIs & BACKEND
   {
     slug: "music-tour-api",
+    repo: "moefingers/SQL-Music-Tour-API",
     href: "/api-client?api=music-tour",
     title: "Music Tour API",
     description: "REST API for music tour management.",
+    synopsis:
+      "REST API for managing bands and their tour events — the original UNLV exercise used Express + Sequelize against Postgres; the museum reimplements the same routes in Next.js + Drizzle and surfaces them via /api-client.",
     year: "Apr 2024",
     category: "api",
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
@@ -607,9 +631,12 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "sql-injection-demo",
+    repo: "moefingers/iam-2-sql-injection-demo",
     href: "/api-client?api=sql-demo",
     title: "SQL Injection Demo",
     description: "Educational SQL injection demonstration.",
+    synopsis:
+      "Educational demo from UNLV's Information Assurance coursework — a login form runs both a vulnerable (string-interpolated) and a safe (parameterized) query against an in-memory SQLite user table, so students see firsthand that `' OR '1'='1' --` bypasses one and is neutralized by the other.",
     year: "May 2024",
     category: "api",
     techOriginal: ["Express", "SQLite", "HTML"],
