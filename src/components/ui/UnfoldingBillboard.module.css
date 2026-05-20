@@ -11,6 +11,14 @@
      <path> requires SVG-CSS interaction that's flaky; instead we let
      the parent stage have a vivid background and the glass shape
      just reads visually as "frosted." */
+  /* pointer-events: none here so the SVG geometry (path, vertex
+     pinpoints) doesn't intercept taps on touch devices. The
+     interactive content lives in .contentLayer beneath this SVG —
+     making the SVG transparent to input lets taps fall through to
+     the Link cleanly. On mouse this worked anyway because mouse
+     events follow z-order and stacking; touch's tap-target
+     resolution is stricter and the SVG was eating the tap. */
+  pointer-events: none;
 }
 
 .shape {

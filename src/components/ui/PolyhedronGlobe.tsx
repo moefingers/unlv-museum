@@ -2344,6 +2344,16 @@ export function PolyhedronGlobe({
                 ? `top ${coneHeightTransitionMs}ms ease-out`
                 : "none",
             pointerEvents: hexOpen ? "auto" : "none",
+            // Override the ancestor stage's `touch-action: none`.
+            // `none` is required on the sphere (so the browser
+            // doesn't pan/zoom natively while we drive rotation +
+            // pinch ourselves), but it ALSO suppresses the synthetic
+            // click events the browser would normally emit from
+            // taps — meaning Link clicks inside the hex card never
+            // fire on touch. `manipulation` re-enables the synthetic
+            // click while still disabling the (unwanted) double-tap
+            // zoom and panning gestures.
+            touchAction: "manipulation",
             zIndex: 2,
           }}
           onPointerDown={(e) => {
