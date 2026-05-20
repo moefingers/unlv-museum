@@ -39,6 +39,10 @@ const myMap = {
 }
 
 // get coordinates via geolocation api
+// museum-ready: 3s timeout + Las Vegas fallback so the map still loads when
+// geolocation is blocked, denied, or unavailable in the museum's sandboxed
+// iframe. The `original` branch retains the unguarded version that hangs
+// forever without permission.
 async function getCoords(){
 	const fallback = [36.1084, -115.1440]
 	if (!navigator.geolocation) return fallback
@@ -57,13 +61,25 @@ async function getCoords(){
 	}
 }
 
+// museum-ready: the Foursquare API key the original shipped (committed to
+// client JS, the way the assignment was taught) was redacted before this
+// branch went public. The `original` branch retains the historical
+// commit. With FOURSQUARE_API_KEY redacted, the business-search button
+// returns an empty result list and the map continues to function for the
+// "you are here" pin + tile layer.
+const FOURSQUARE_API_KEY = '<redacted-for-museum>'
+
 // get foursquare businesses
 async function getFoursquare(business) {
+	if (FOURSQUARE_API_KEY === '<redacted-for-museum>' || !FOURSQUARE_API_KEY) {
+		console.warn('[interactive-map] Foursquare API key redacted for museum; business search disabled.')
+		return []
+	}
 	const options = {
 		method: 'GET',
 		headers: {
 		Accept: 'application/json',
-		Authorization: 'fsq3ATzZbmcGhdeFafr73wZcnJ+LlN6bK+4dh19a7ClS4u8='
+		Authorization: FOURSQUARE_API_KEY
 		}
 	}
 	let limit = 5
