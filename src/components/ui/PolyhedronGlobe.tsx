@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
-import { type Project } from "@/lib/projects";
+import { projectPath, type Project } from "@/lib/projects";
 import {
   fromAxisAngle,
   fromUnitVectors,
@@ -1838,21 +1839,71 @@ export function PolyhedronGlobe({
             spring={{ stiffness: 260, damping: 18 }}
           >
             {anchoredProject && (
-              <div
+              <Link
+                href={
+                  anchoredProject.href ?? `/${projectPath(anchoredProject)}`
+                }
                 style={{
-                  fontFamily: HOVER_DOT_FONT_FAMILY,
-                  fontSize: 18,
-                  fontWeight: 500,
-                  letterSpacing: "0.02em",
-                  color: "rgba(245, 248, 255, 0.96)",
-                  textShadow:
-                    "0 0 6px rgba(180, 210, 255, 0.6), 0 0 18px rgba(140, 180, 255, 0.35)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.35rem",
+                  textAlign: "center",
+                  textDecoration: "none",
                   padding: "0 12%",
-                  lineHeight: 1.25,
+                  cursor: "pointer",
+                  // Reserve enough vertical room for title + year +
+                  // desc inside the hex's inscribed-square region.
+                  // UnfoldingBillboard's contentLayer caps width at
+                  // radius * 1.4 already.
+                  width: "100%",
                 }}
               >
-                {anchoredProject.title}
-              </div>
+                <span
+                  style={{
+                    fontFamily: HOVER_DOT_FONT_FAMILY,
+                    fontSize: 18,
+                    fontWeight: 600,
+                    letterSpacing: "0.02em",
+                    color: "rgba(245, 248, 255, 0.97)",
+                    textShadow:
+                      "0 0 6px rgba(180, 210, 255, 0.6), 0 0 18px rgba(140, 180, 255, 0.35)",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {anchoredProject.title}
+                </span>
+                <span
+                  style={{
+                    fontFamily: HOVER_DOT_FONT_FAMILY,
+                    fontSize: 11,
+                    color: "rgba(200, 210, 230, 0.78)",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {anchoredProject.year}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.35,
+                    color: "rgba(220, 225, 240, 0.88)",
+                    // Trim the description to one or two lines so it
+                    // fits the hex's bowl. Clamping with -webkit-
+                    // line-clamp is widely supported and graceful on
+                    // the few engines that still ignore it (the
+                    // overflow just hides any excess).
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    marginTop: "0.1rem",
+                  }}
+                >
+                  {anchoredProject.description}
+                </span>
+              </Link>
             )}
           </UnfoldingBillboard>
         </div>

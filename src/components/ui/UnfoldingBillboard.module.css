@@ -39,6 +39,7 @@
 .contentLayer[data-visible="true"] {
   opacity: 1;
   transition-delay: 80ms;
+  pointer-events: auto;
 }
 
 /* Stage debug readout — top-center of the host. */
