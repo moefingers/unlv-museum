@@ -10,9 +10,13 @@
 }
 
 .portfolioLink {
-  margin-bottom: calc(
-    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
+  /* Floats at the top-left corner of the viewport, independent of the
+     centered floating header. Stays put across view toggles and across
+     the header's collapsed state. */
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  left: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  z-index: 21;
   color: var(--muted-foreground);
   transition: color var(--duration-normal) var(--ease-default);
 }
@@ -20,29 +24,72 @@
   color: var(--foreground);
 }
 
-/* Hero heading — clamp to mid-mobile then jump to display-size on >= sm. */
-.heroTitle {
-  font-size: calc(
-    var(--font-size-4xl) * var(--app-size, 1) * var(--room-size, 1)
-  );
-  letter-spacing: var(--tracking-tight);
-}
-@media (min-width: 640px) {
-  .heroTitle {
-    font-size: calc(
-      var(--font-size-5xl) * var(--app-size, 1) * var(--room-size, 1)
-    );
-  }
+/* Top-right help button now lives inside HelpModal as its own closed
+   state — see HelpModal.module.css. The morph-from-button-to-card
+   animation needs both states on the same DOM element, so the button
+   isn't standalone here anymore. */
+
+/* ─── Floating header ────────────────────────────── */
+
+/*
+ * Top-center floating header. Mirrors the floating-legend pattern at
+ * the opposite edge of the viewport — same fixed-position, radial-
+ * gradient-backed pill, chevron toggle for collapse, inline backdrop
+ * filter (Lightning CSS strips it from CSS modules in this project).
+ *
+ * Stacking: pointer-events: none on the wrapper so it doesn't intercept
+ * pointer events outside its visible pill; .headerBody and .headerToggle
+ * re-enable pointer-events on themselves.
+ */
+.floatingHeader {
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
 }
 
-.heroLede {
-  margin-top: calc(
-    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+.headerBody {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
+  max-width: min(92vw, 40rem);
+  user-select: none;
+  -webkit-user-select: none;
+  /* Same radial-gradient backing as the legend so the panel reads
+     cleanly against the breathing mesh underneath. */
+  background: radial-gradient(
+    ellipse at center,
+    oklch(from var(--background) l c h / 0.92) 0%,
+    oklch(from var(--background) l c h / 0.78) 55%,
+    oklch(from var(--background) l c h / 0) 100%
   );
-  max-width: 32rem;
-  text-align: center;
-  color: var(--muted-foreground);
+  border-radius: var(--radius-lg);
+  transition:
+    opacity var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+  transform-origin: top center;
 }
+
+/*
+ * Collapsible title + lede block. Grid 0fr → 1fr trick: the wrapper
+ * row interpolates between 0 and 1 fractional units, the inner content
+ * has overflow:hidden + min-height:0 to clip during the transition.
+ * Animates to the content's natural height without an arbitrary
+ * max-height bound. Same idiom as .legendHintRow.
+ */
+/* Hero title + lede moved to HelpModal — the floating header is now
+   purely a control surface (view + sort toggles). Collapsible row /
+   header toggle removed; the help button morph in HelpModal carries
+   the intro content. */
 
 /* View toggle — segmented pill group, same vocabulary as the tier picker
    in ProjectChrome. Active button gets a card-surface fill; inactive
@@ -54,9 +101,7 @@
  * (they each have `margin-top` on .viewToggle, which would compound here).
  */
 .toggleRow {
-  margin-top: calc(
-    var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
+  /* No top margin: lives inside .headerBody with its own flex gap. */
   display: inline-flex;
   gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
   flex-wrap: wrap;

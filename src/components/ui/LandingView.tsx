@@ -1,9 +1,17 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
+import { HelpModal } from "@/components/ui/HelpModal";
 import {
   PolyhedronGlobe,
   type VertexAssignment,
@@ -31,6 +39,7 @@ type SortMode = "category" | "time";
 
 const VIEW_DEFAULT: ViewMode = "globe";
 const SORT_DEFAULT: SortMode = "category";
+const HELP_DISMISSED_KEY = "unlv-museum.help-dismissed";
 
 /**
  * Mirror landing view + sort selections into the URL as `?view=` and
@@ -303,6 +312,34 @@ function LandingViewInner() {
   // breathes when the user wants it out of the way. Not URL-backed —
   // private chrome behavior, not a shareable view dimension.
   const [legendOpen, setLegendOpen] = useState(true);
+  // Help modal — defaults closed so the SSR render matches the
+  // first-paint client render (avoids hydration mismatch). On mount,
+  // if localStorage doesn't have the dismissed flag, open it. Manual
+  // re-open via the help button in the header.
+  //
+  // The setHelpOpen call is deferred via queueMicrotask so it doesn't
+  // run synchronously inside the effect body — React 19's lint rule
+  // flags synchronous setState there (see CLAUDE.md note). Microtask
+  // scheduling drops the call onto the next tick, which is enough to
+  // pass the rule while keeping the behavior identical.
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    queueMicrotask(() => {
+      if (localStorage.getItem(HELP_DISMISSED_KEY) !== "1") {
+        setHelpOpen(true);
+      }
+    });
+  }, []);
+  const closeHelp = () => {
+    setHelpOpen(false);
+    try {
+      localStorage.setItem(HELP_DISMISSED_KEY, "1");
+    } catch {
+      // localStorage can throw in private-browsing / disabled-storage
+      // environments. Silently fail — the modal still closes; it'll
+      // just reappear next visit, which is acceptable.
+    }
+  };
 
   // Ref on the globe wrapper. BreathingMesh measures it each frame to align
   // its circular cutout to wherever the globe is rendered (centers, scrolls,
@@ -349,66 +386,93 @@ function LandingViewInner() {
         the wrapper scales 0 → 1 and the cutout opens in lockstep.
       */}
       <BreathingMesh cutoutTarget={globeWrapRef} />
+
+      {/*
+        Top-left fixed back-link. Separated from the floating header
+        because conventionally the back-arrow lives at the page corner,
+        not as a member of the centered header panel. Persists across
+        view toggles and the header's collapsed state.
+      */}
       <a
         href="https://software.infinite-syndicate.com"
         className={`text-sm ${styles.portfolioLink}`}
       >
         ← Software Portfolio
       </a>
-      <h1 className={`font-bold ${styles.heroTitle}`}>UNLV Museum</h1>
-      <p className={styles.heroLede}>
-        Projects from UNLV&apos;s software development course, rebuilt across
-        three tiers: original, enhanced, and reimagined.
-      </p>
 
-      <div className={styles.toggleRow}>
-        <div className={styles.viewToggle}>
-          <button
-            onClick={() => setView("globe")}
-            className={`${styles.viewButton} ${
-              view === "globe" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <GlobeIcon size={14} />
-            Globe
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`${styles.viewButton} ${
-              view === "list" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <List size={14} />
-            List
-          </button>
-        </div>
-        {/*
-          Sort axis: applies to both views. In List it swaps section
-          grouping; in Globe it re-shuffles Fibonacci-sphere positions
-          and cards fly to their new spots (stable `key={item.id}` +
-          a CSS transition on .item's transform).
-        */}
-        <div className={styles.viewToggle}>
-          <button
-            onClick={() => setSort("category")}
-            className={`${styles.viewButton} ${
-              sort === "category"
-                ? styles.viewButtonActive
-                : styles.viewButtonIdle
-            }`}
-          >
-            <FolderTree size={14} />
-            Category
-          </button>
-          <button
-            onClick={() => setSort("time")}
-            className={`${styles.viewButton} ${
-              sort === "time" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <Clock size={14} />
-            Time
-          </button>
+      {/*
+        Floating header: position: fixed, top-center, persists across
+        both views. Now purely a control surface — view + sort toggles.
+        The museum title + lede moved to the HelpModal welcome card so
+        the header stays compact and the intro content lives in the
+        same place visitors can summon it from later.
+      */}
+      <div className={styles.floatingHeader}>
+        <div
+          className={styles.headerBody}
+          // Inline backdrop-filter (Lightning CSS strips it from CSS
+          // modules in this project). Same workaround as .legendBody.
+          style={{
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        >
+          <div className={styles.toggleRow}>
+            <div className={styles.viewToggle}>
+              <button
+                onClick={() => setView("globe")}
+                className={`${styles.viewButton} ${
+                  view === "globe"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <GlobeIcon size={14} />
+                Globe
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`${styles.viewButton} ${
+                  view === "list"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <List size={14} />
+                List
+              </button>
+            </div>
+            {/*
+              Sort axis: applies to both views. In List it swaps section
+              grouping; in Globe it re-shuffles Fibonacci-sphere positions
+              and cards fly to their new spots (stable `key={item.id}` +
+              a CSS transition on .item's transform).
+            */}
+            <div className={styles.viewToggle}>
+              <button
+                onClick={() => setSort("category")}
+                className={`${styles.viewButton} ${
+                  sort === "category"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <FolderTree size={14} />
+                Category
+              </button>
+              <button
+                onClick={() => setSort("time")}
+                className={`${styles.viewButton} ${
+                  sort === "time"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <Clock size={14} />
+                Time
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -496,6 +560,18 @@ function LandingViewInner() {
           {legendOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
         </button>
       </div>
+
+      {/*
+        Help modal. Auto-opens on first visit (when no
+        unlv-museum.help-dismissed flag in localStorage); manual reopen
+        via the top-right help button. Any close path (X, ESC, backdrop
+        click, "Got it") persists the dismissal flag.
+      */}
+      <HelpModal
+        open={helpOpen}
+        onOpen={() => setHelpOpen(true)}
+        onClose={closeHelp}
+      />
     </div>
   );
 }

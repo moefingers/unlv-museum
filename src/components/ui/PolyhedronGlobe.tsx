@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { type Project } from "@/lib/projects";
-import { HoverDot } from "./HoverDot";
+import { VertexHover } from "./VertexHover";
 import styles from "./PolyhedronGlobe.module.css";
 
 // Locked tuning from the /hover-dot sandbox in svg-experiments. Mono
 // font + slow typing + caret + dismissal flash + subtle hologram
 // flicker. See commit history of svg-experiments for the rationale.
 const HOVER_DOT_TYPE_DURATION = 800;
-const HOVER_DOT_GRACE_MS = 1200;
 const HOVER_DOT_IDLE_GLOW = 8;
 const HOVER_DOT_EXPANDED_GLOW = 10;
 const HOVER_DOT_FONT_FAMILY =
@@ -181,50 +180,114 @@ export function PolyhedronGlobe({
     setRotation(r);
   }, []);
 
-  // Hover state for the typed-title overlay. The vertex index here is
-  // Hover-cycle bookkeeping. Each hover that lands on a dot triggers
-  // a decelerate → hold → resume animation on the sphere's auto-
-  // rotation, played out over (HOVER_DECEL_MS + HOVER_HOLD_MS +
-  // HOVER_RESUME_MS) ms. The cycle is driven by a `hoverCycleStart`
-  // timestamp ref. The rAF auto-rotate branch computes the current
-  // speed multiplier each frame from `now - hoverCycleStart`.
+  // ─── Hover engagement model ──────────────────────────────────
   //
-  // A new hover restarts the cycle only when the current speed
-  // multiplier is ≥ HOVER_RETRIGGER_THRESHOLD — otherwise we're still
-  // inside the slow-down or hold and the new hover is treated as
-  // continuing engagement with the same moment.
+  // Engagement is STICKY and PARENT-CONTROLLED. Once the user hovers
+  // a dot (with a recent mousemove signalling intent), that vertex
+  // becomes engaged — its title types in, the sphere runs its hover
+  // cycle. Engagement persists indefinitely even after the dot's hit
+  // target drifts away from under a motionless cursor.
+  //
+  // Engagement RELEASES only on:
+  //   1. The user moves the cursor and lands on a DIFFERENT dot's
+  //      hit target → old releases, new engages
+  //   2. The cursor leaves the entire SVG → old releases
+  // (Future: clicking anywhere on the sphere → engagement transitions
+  //  to the click-zoom + billboard interaction in Phase 3.)
+  //
+  // Why this model: the museum's sphere rotates. Dots drift under a
+  // motionless cursor. The browser fires mouseleave/enter events as
+  // hit targets cross the cursor — but those events are GEOMETRY
+  // events, not INTENT events. A user-intent event is a mousemove
+  // followed by a mouseenter. We gate engagement on intent.
+  const [engagedVertexIdx, setEngagedVertexIdx] = useState<number | null>(null);
+
+  // Hover-cycle bookkeeping (sphere decelerate → hold → resume).
   const hoverCycleStart = useRef<number | null>(null);
 
-  // Which vertex idx is currently engaged (active=true). null when no
-  // dot is engaged. Used to enforce "only one dot active at a time" —
-  // when a new dot reports active=true, we set this to its idx, which
-  // causes every OTHER dot to receive forceClose=true and run its
-  // dismissal sequence immediately. This handles the case where the
-  // previous dot's onMouseLeave never fired because the sphere
-  // rotation moved its hit target out from under a motionless cursor.
-  const [activeVertexIdx, setActiveVertexIdx] = useState<number | null>(null);
+  // Cursor-movement gating. Updated by the SVG-level pointermove
+  // listener. A new dot's mouseenter only counts as user intent if a
+  // mousemove fired within INTENT_WINDOW_MS before it.
+  const lastCursorMoveAt = useRef<number>(0);
+  const INTENT_WINDOW_MS = 100;
 
-  // Per-vertex onActiveChange handler. The HoverDot at vertex `vi`
-  // calls this with active=true on engage, active=false on dismiss.
-  //
-  // On engage: start a new hover cycle (subject to threshold) and
-  // record this vertex as the active one — which force-closes any
-  // other dot via the forceClose prop wiring below.
-  //
-  // On dismiss: clear activeVertexIdx if it was us. (No cycle change.)
-  const handleDotActiveChange = useCallback((vi: number, active: boolean) => {
-    if (active) {
-      const now = performance.now();
+  const handleDotEnter = useCallback((vi: number) => {
+    const now = performance.now();
+    const intent = now - lastCursorMoveAt.current < INTENT_WINDOW_MS;
+    if (!intent) {
+      // Geometry drift — dot rolled under a motionless cursor. Ignore.
+      return;
+    }
+    // Different vertex → new engagement + maybe new hover cycle.
+    setEngagedVertexIdx((prev) => {
+      if (prev === vi) return prev; // same dot, already engaged
+      // Trigger a fresh hover cycle if the sphere is back near cruise.
       const currentMul = computeHoverSpeedMul(now, hoverCycleStart.current);
       if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
         hoverCycleStart.current = now;
       }
-      setActiveVertexIdx(vi);
-    } else {
-      // Use the functional updater so concurrent dismiss/engage events
-      // from different dots don't clobber a more-recent engagement.
-      setActiveVertexIdx((curr) => (curr === vi ? null : curr));
-    }
+      return vi;
+    });
+  }, []);
+
+  // Dot mouseleave is INTENTIONALLY IGNORED — geometry drift would
+  // fire it spuriously. Engagement only releases via SVG-level leave
+  // or via a different dot's intent-gated mouseenter.
+  const handleDotLeave = useCallback(() => {
+    // noop
+  }, []);
+
+  // SVG-level pointer handlers.
+  //
+  // pointermove tracks two things:
+  //   - lastCursorMoveAt timestamp (gates intent for dot-enter)
+  //   - cursorPos in viewBox coordinates (used by the per-frame
+  //     check below to decide whether the cursor is currently over
+  //     the engaged dot's hit target)
+  //
+  // pointerleave: cursor left the entire SVG. Belt-and-suspenders
+  // dismiss — the per-frame check would also catch this once it
+  // notices the cursor's last-known position is no longer over the
+  // engaged dot, but pointerleave fires immediately.
+  const cursorPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handleSvgPointerMove = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      lastCursorMoveAt.current = performance.now();
+      // Convert client coords → SVG viewBox coords. The SVG fills its
+      // wrapper at intrinsic size (we set width/height = stageSize),
+      // so the math is a simple subtract-bounding-rect.
+      const rect = e.currentTarget.getBoundingClientRect();
+      cursorPos.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    },
+    [],
+  );
+  const handleSvgPointerLeave = useCallback(() => {
+    cursorPos.current = null;
+    setEngagedVertexIdx(null);
+  }, []);
+
+  // Collapse timer: starts when the cursor moves off the engaged dot's
+  // hit target (without re-entering it). Cancelled if the cursor returns
+  // to the dot before expiry. On expiry, engagement releases — title
+  // runs its dismissal animation (flash + untype) via the VertexHover's
+  // engaged=false transition.
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const COLLAPSE_MS = 1200;
+  // Mirror engagedVertexIdx into a ref so the rAF loop can read it
+  // without depending on it (would re-mount the loop otherwise).
+  const engagedVertexIdxRef = useRef<number | null>(null);
+  useEffect(() => {
+    engagedVertexIdxRef.current = engagedVertexIdx;
+  }, [engagedVertexIdx]);
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    };
   }, []);
 
   // Drag-momentum physics loop. Direct port from Globe.tsx — same time
@@ -484,6 +547,65 @@ export function PolyhedronGlobe({
     return { faceRecords: records, visibleVertices: vertices };
   }, [mesh.faces, projected]);
 
+  // Per-render: check whether the cursor is still over the engaged dot.
+  //
+  // Every frame (because `projected` and thus `visibleVertices`
+  // re-memoize when rotation changes), this effect runs and:
+  //   - If engaged AND cursor is currently inside the engaged dot's
+  //     hit target → cancel any pending collapse timer.
+  //   - If engaged AND cursor is NOT over the dot (or dot is back-
+  //     culled and not visible) → start a collapse timer (if not
+  //     already running). On expiry, engagedVertexIdx clears, which
+  //     drives VertexHover's engaged=false → flash + untype.
+  //   - If not engaged → nothing to do (clear any leftover timer).
+  //
+  // The cursor's position is captured by handleSvgPointerMove on each
+  // pointermove. Between moves the cursor is motionless; the position
+  // ref stays valid until the next move.
+  useEffect(() => {
+    const engaged = engagedVertexIdx;
+    if (engaged === null) {
+      if (collapseTimer.current) {
+        clearTimeout(collapseTimer.current);
+        collapseTimer.current = null;
+      }
+      return;
+    }
+    const cursor = cursorPos.current;
+    const dot = visibleVertices.find((v) => v.vi === engaged);
+    // Compute cursor-over-dot. If cursor has never moved (null), treat
+    // as "still over" — the user has been motionless since engagement.
+    // If the dot itself is back-culled (not in visibleVertices), the
+    // user has rotated it off-screen → treat as "not over."
+    let cursorOverDot = false;
+    if (cursor === null) {
+      cursorOverDot = true; // motionless cursor, keep engagement
+    } else if (dot) {
+      const dx = cursor.x - dot.sx;
+      const dy = cursor.y - dot.sy;
+      // Use a slightly generous radius (1.2× the hit-target) so brief
+      // perimeter wobble doesn't oscillate the timer state.
+      const reach = 24 * 1.2;
+      cursorOverDot = dx * dx + dy * dy <= reach * reach;
+    }
+
+    if (cursorOverDot) {
+      // Cancel any pending collapse timer.
+      if (collapseTimer.current) {
+        clearTimeout(collapseTimer.current);
+        collapseTimer.current = null;
+      }
+    } else {
+      // Start collapse timer if not already running.
+      if (!collapseTimer.current) {
+        collapseTimer.current = setTimeout(() => {
+          setEngagedVertexIdx(null);
+          collapseTimer.current = null;
+        }, COLLAPSE_MS);
+      }
+    }
+  });
+
   return (
     <div
       className={styles.stage}
@@ -500,6 +622,8 @@ export function PolyhedronGlobe({
         viewBox={`0 0 ${stageSize} ${stageSize}`}
         className={styles.svg}
         aria-label="Museum sphere"
+        onPointerMove={handleSvgPointerMove}
+        onPointerLeave={handleSvgPointerLeave}
       >
         <defs>
           {/* Radial gradient for the background halo. Centered on the
@@ -613,32 +737,31 @@ export function PolyhedronGlobe({
         {ENABLE_VERTEX_GLOW &&
           visibleVertices.map((v) => {
             const project = assignmentByVertex.get(v.vi);
-            // Assigned vertex: render a <HoverDot> at the projected
-            // screen position. HoverDot owns its own hover state +
-            // grace timer + typing animation + dismissal flash +
-            // subtle flicker. We listen via onActiveChange to keep
-            // activeDotCount in sync (pauses auto-rotation).
+            // Assigned vertex: render <VertexHover>. Engagement is
+            // sticky and parent-controlled — see the engagement model
+            // comment above. The dot's hit-target enter/leave events
+            // are intercepted by the parent (which gates on
+            // mousemove-recency to distinguish user intent from
+            // geometry drift). Dot mouseleave is intentionally a
+            // noop here; engagement only releases via SVG-level
+            // pointerleave OR a different dot's intent-gated enter.
             if (project) {
               return (
-                <HoverDot
+                <VertexHover
                   key={v.vi}
                   title={project.title}
                   x={v.sx}
                   y={v.sy}
+                  engaged={engagedVertexIdx === v.vi}
+                  onHitTargetEnter={() => handleDotEnter(v.vi)}
+                  onHitTargetLeave={handleDotLeave}
                   typeDuration={HOVER_DOT_TYPE_DURATION}
-                  graceMs={HOVER_DOT_GRACE_MS}
                   idleGlowRadius={HOVER_DOT_IDLE_GLOW}
                   expandedGlowRadius={HOVER_DOT_EXPANDED_GLOW}
                   titleFontFamily={HOVER_DOT_FONT_FAMILY}
                   titleFontSize={HOVER_DOT_FONT_SIZE}
                   showCaret={true}
                   flickerStyle="subtle"
-                  onActiveChange={(active) =>
-                    handleDotActiveChange(v.vi, active)
-                  }
-                  forceClose={
-                    activeVertexIdx !== null && activeVertexIdx !== v.vi
-                  }
                 />
               );
             }

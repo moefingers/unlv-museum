@@ -1,0 +1,230 @@
+/*
+ * Help modal — single morphing element. Closed state is a small
+ * circular button at the top-right of the viewport; open state is a
+ * centered rounded card. CSS transitions on width, height, position,
+ * border-radius, and the inner content's opacity carry the morph.
+ *
+ * The element's natural CSS position is its CLOSED state (the help
+ * button at top-right) — so the JSX always renders it; when not
+ * open, the help button is what's visible. Opening flips data-open
+ * which transitions the whole element to the centered-card geometry.
+ */
+
+/* Backdrop: dimmed + blurred page wash, click-to-close. Fades in
+   alongside the morph. Pointer-events only enabled when open so
+   it never intercepts clicks otherwise. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  border: 0;
+  cursor: pointer;
+  background: oklch(from var(--background) l c h / 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-snap);
+}
+.backdrop[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/*
+ * The morphing element. Closed: 2rem × 2rem circle anchored to
+ * top-right at the same coords as where the dedicated .helpButton
+ * used to live, so the page layout doesn't shift. Open: 28rem
+ * card centered in the viewport with a 1rem corner radius.
+ *
+ * All transitionable properties — top, right, bottom, left,
+ * width, height, transform, border-radius — animate together
+ * via a single transition shorthand so the morph reads as one
+ * continuous motion.
+ */
+.morph {
+  position: fixed;
+  /* Closed geometry. */
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  right: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  /* Open transform — default identity in closed state. */
+  transform: none;
+  /* Surface treatment. The closed state shows this as the button's
+     surface; the open state shows it as the card's surface. */
+  background: oklch(from var(--card) l c h / 0.92);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  z-index: 21;
+  overflow: hidden;
+  transition:
+    top var(--duration-slow) var(--ease-snap),
+    right var(--duration-slow) var(--ease-snap),
+    left var(--duration-slow) var(--ease-snap),
+    width var(--duration-slow) var(--ease-snap),
+    height var(--duration-slow) var(--ease-snap),
+    transform var(--duration-slow) var(--ease-snap),
+    border-radius var(--duration-slow) var(--ease-snap),
+    box-shadow var(--duration-slow) var(--ease-snap),
+    background var(--duration-normal) var(--ease-default);
+}
+
+/*
+ * Open geometry. Top-right anchor releases (right: auto, top: 50%
+ * instead) so the element can re-anchor to viewport center via
+ * translate(-50%, -50%). max-height is used instead of a fixed
+ * height so the content can determine the card's natural size;
+ * the transition still animates because the element's content
+ * grows in opacity rather than dimension.
+ */
+.morph[data-open="true"] {
+  top: 50%;
+  right: auto;
+  left: 50%;
+  width: min(92vw, 28rem);
+  height: auto;
+  /* Card-ish radius — softer than the page-toggle 0.5rem but well
+     short of the 50% circle. */
+  border-radius: 1rem;
+  transform: translate(-50%, -50%);
+  box-shadow: var(--shadow-lg);
+}
+
+/*
+ * Help icon inside the morph. Fills the closed circle when small;
+ * fades out fast when the morph starts to open so we don't have
+ * an icon visible inside the open card.
+ */
+.iconButton {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+  transition:
+    opacity var(--duration-fast) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.iconButton:hover {
+  color: var(--foreground);
+}
+.morph[data-open="true"] .iconButton {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * Open-state content. Hidden + non-interactive while the morph is
+ * closed; fades in with a delay so the morph mostly completes
+ * before the content appears (otherwise the small closed circle
+ * would briefly show the full content text as it expands).
+ */
+.content {
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+  color: var(--card-foreground);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-default);
+  transition-delay: 0s;
+}
+.morph[data-open="true"] .content {
+  opacity: 1;
+  pointer-events: auto;
+  /* Wait until the morph has mostly settled before the content
+     fades in. */
+  transition-delay: calc(var(--duration-slow) * 0.6);
+}
+
+.title {
+  font-size: calc(
+    var(--font-size-3xl) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.lede {
+  color: var(--muted-foreground);
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+/* Smaller transitional line between the welcome lede and the steps
+   list — keeps the visual rhythm: title (big) → lede (paragraph) →
+   how-to (small) → steps. */
+.howTo {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--muted-foreground);
+  margin-bottom: calc(
+    var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0
+    calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+  align-items: center;
+}
+
+.stepIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+
+.note {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: oklch(from var(--muted-foreground) l c h / 0.7);
+  font-style: italic;
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.gotIt {
+  width: 100%;
+  padding: calc(0.5rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border: 0;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.gotIt:hover {
+  background: oklch(from var(--primary) calc(l * 0.92) c h);
+}
