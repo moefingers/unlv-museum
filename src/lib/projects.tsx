@@ -278,6 +278,11 @@ export function resolveTierSources(
   project: Project,
   tier: ViewMode,
 ): TierSource[] {
+  // `#readme` lands the visitor scrolled past the file listing and onto
+  // the README block — where the museum banner lives. The page renders
+  // the same with or without the fragment; this just sets initial scroll
+  // position so the project intro is the first thing in view.
+  const README_FRAGMENT = "#readme";
   if (tier === "original") {
     if (!project.repo) return [];
     const ref = getSourceRef(project.slug);
@@ -285,19 +290,22 @@ export function resolveTierSources(
       return [
         {
           label: "Original source",
-          url: `https://github.com/${project.repo}/tree/${ref.branch}`,
+          url: `https://github.com/${project.repo}/tree/${ref.branch}${README_FRAGMENT}`,
         },
       ];
     }
     return [
-      { label: "Original source", url: `https://github.com/${project.repo}` },
+      {
+        label: "Original source",
+        url: `https://github.com/${project.repo}${README_FRAGMENT}`,
+      },
     ];
   }
   const tierRepo =
     tier === "enhanced" ? project.repoEnhanced : project.repoReimagined;
   if (!tierRepo) return [];
   const label = tier === "enhanced" ? "Enhanced source" : "Reimagined source";
-  return [{ label, url: `https://github.com/${tierRepo}` }];
+  return [{ label, url: `https://github.com/${tierRepo}${README_FRAGMENT}` }];
 }
 
 /**

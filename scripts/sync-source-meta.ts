@@ -122,7 +122,7 @@ function applyMeta(slug: string, info: SourceRef) {
   applyDefaultBranch(slug, repo);
   applyHomepageAndDescription(slug, repo, homepage);
   applyTopics(slug, repo);
-  applyReadmeBanner(slug, repo, homepage, info);
+  applyReadmeBanner(slug, repo, homepage);
 }
 
 /**
@@ -363,12 +363,7 @@ function applyTopics(_slug: string, repo: string) {
   );
 }
 
-function applyReadmeBanner(
-  slug: string,
-  repo: string,
-  homepage: string,
-  info: SourceRef,
-) {
+function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   // Submodule path follows convention: .sources/<lastPathSegment>
   const submoduleDir = repo.split("/")[1];
   if (!submoduleDir) {
@@ -429,12 +424,25 @@ function applyReadmeBanner(
   // selectors DO respect the github.com page's prefers-color-scheme, so the
   // browser picks the right variant before fetching.
   //
-  // Cache-bust suffix `?v=<hash>` busts camo whenever EITHER the source
-  // content (lockHash) OR the banner-relevant project metadata changes.
+  // Cache-bust suffix `?v=<hash>` busts camo whenever the banner-relevant
+  // project metadata (what the SVG endpoint actually renders) changes.
+  //
+  // IMPORTANT: do NOT mix `lockHash` into this hash. The lockHash represents
+  // the source-content hash and changes on every `pnpm sync:source` run,
+  // even when the SVG output would be byte-identical. Including it created
+  // a feedback loop where each sync triggered a meta-sync banner update,
+  // each banner update bumped the submodule pointer, each bump triggered
+  // another sync — leaving museum-ready/original cluttered with duplicate
+  // "unlv-museum-banner-start" commits per repo (see commit history of
+  // JS-Events-Demonstration / JS-Building-a-Shared-Counter-Part-1 before
+  // their post-cleanup squash).
+  //
+  // Live runtime data the banner shows (fork status, language stats,
+  // commit counts) is fetched at SVG-render time by /github-banners/<slug>
+  // from the GitHub API — it doesn't need cache-busting via this hash.
   const bustHash = createHash("sha256")
     .update(
       JSON.stringify({
-        lockHash: info.lockHash,
         title: project?.title ?? "",
         synopsis: project?.synopsis ?? "",
         year: project?.year ?? "",
