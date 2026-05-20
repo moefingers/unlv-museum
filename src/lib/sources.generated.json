@@ -56,8 +56,8 @@
   "interactive-map": {
     "repo": "moefingers/JS-Making-an-Interactive-Map",
     "branch": "museum-ready/original",
-    "commit": "b409ca822db921f201c00eddb6c80bec8c7c1f67",
-    "lockHash": "sha256:7277bc2e7b7eaddc883b5ecdcfef50cb586ddfbcfb136463cc19ebde37c25c1a",
+    "commit": "da414de12b6c8162cb18baafd142e7e720cc1500",
+    "lockHash": "sha256:4ce4a202f6b0e38c426bb67613610eb9e82de521f1b9b218909262cc20c470ea",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-04"
