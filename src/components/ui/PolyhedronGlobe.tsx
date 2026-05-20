@@ -952,10 +952,12 @@ export function PolyhedronGlobe({
   // Long enough that the type-in animation (800ms) completes plus
   // a comfortable read window before any dismissal could fire. The
   // timer is what gives the user time to read the title even when
-  // their cursor has drifted off the dot. Earlier value (1200ms)
-  // could expire while the title was still partway through typing
-  // — felt like the label was being snatched away.
-  const COLLAPSE_MS = 2500;
+  // their cursor has drifted off the dot. Earlier values were too
+  // short: 1200ms could expire while the title was still partway
+  // through typing; 2500ms still felt rushed for slower readers.
+  // 4000ms gives a comfortable read window (typing 800ms + ~3s
+  // dwell) before dismissing.
+  const COLLAPSE_MS = 4000;
   // Mirror engagedVertexIdx into a ref so the rAF loop can read it
   // without depending on it (would re-mount the loop otherwise).
   const engagedVertexIdxRef = useRef<number | null>(null);
@@ -1187,23 +1189,52 @@ export function PolyhedronGlobe({
   // crosshairEngagedVi = the vertex currently engaged by proximity.
   // crosshairStartedAt = pointerdown timestamp, used to detect taps
   //   (release within TAP_MAX_MS and TAP_MAX_PX of start = tap).
-  const [crosshairPos, setCrosshairPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  // Mirror crosshairPos into a ref so the pointerup callback can
-  // read the latest value without depending on state in its dep
-  // array (which would re-create the callback every frame the
-  // crosshair moves).
+  // crosshairVisible drives the mount/unmount + opacity of the
+  // crosshair <g>; coordinate updates skip React entirely and go
+  // straight to the DOM via crosshairGroupRef.setAttribute. Going
+  // through React state for every pointermove introduced laggy
+  // tracking (one render per move, batched + reconciled).
+  //
+  // When `visible` transitions false → true, it carries the first
+  // position so the SVG group's `transform` attribute is correct
+  // on initial paint. Subsequent move updates bypass React and
+  // write straight to setAttribute.
+  const [crosshairVisible, setCrosshairVisible] = useState<{
+    visible: boolean;
+    initialX: number;
+    initialY: number;
+  }>({ visible: false, initialX: 0, initialY: 0 });
+  // releasing = true during the 1-second post-pointerup linger.
+  // Triggers a CSS opacity fade on the crosshair group while still
+  // rendered.
+  const [crosshairReleasing, setCrosshairReleasing] = useState(false);
+  // Imperative DOM ref so we can update the crosshair's transform
+  // attribute on every pointermove without going through React.
+  const crosshairGroupRef = useRef<SVGGElement | null>(null);
+  // Latest crosshair position in viewBox units. Read by the
+  // pointerup handler to find the nearest vertex; also written
+  // by every pointermove (alongside the imperative DOM update).
   const crosshairPosRef = useRef<{ x: number; y: number } | null>(null);
   const crosshairStartedAt = useRef<number>(0);
   const crosshairStartPos = useRef<{ x: number; y: number } | null>(null);
   const crosshairMaxMovement = useRef<number>(0);
-  // Set crosshair position state AND mirror ref in one call so
-  // every code path that updates the crosshair keeps both in sync.
-  const applyCrosshair = (pos: { x: number; y: number } | null) => {
+  // Timer for the 1-second post-release linger before the
+  // crosshair fully unmounts.
+  const crosshairLingerTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  // How long the crosshair stays visible (fading out) after the
+  // user lifts their finger.
+  const CROSSHAIR_LINGER_MS = 1000;
+  // Update crosshair: writes the DOM transform directly (no React
+  // re-render) and mirrors into the ref. The mount/unmount happens
+  // separately via setCrosshairVisible.
+  const writeCrosshair = (pos: { x: number; y: number } | null) => {
     crosshairPosRef.current = pos;
-    setCrosshairPos(pos);
+    const g = crosshairGroupRef.current;
+    if (g && pos) {
+      g.setAttribute("transform", `translate(${pos.x} ${pos.y})`);
+    }
   };
   // Touch-mode ref so handlers can read the current mode without
   // recreating on every prop change. The crosshair render is
@@ -1326,7 +1357,19 @@ export function PolyhedronGlobe({
       if (touchModeRef.current === "hover") {
         const vbPoint = clientToViewBox(e.clientX, e.clientY);
         if (vbPoint) {
-          applyCrosshair(vbPoint);
+          // Cancel any in-flight linger from a prior release so a
+          // new tap doesn't fade out partway through.
+          if (crosshairLingerTimer.current) {
+            clearTimeout(crosshairLingerTimer.current);
+            crosshairLingerTimer.current = null;
+          }
+          writeCrosshair(vbPoint);
+          setCrosshairReleasing(false);
+          setCrosshairVisible({
+            visible: true,
+            initialX: vbPoint.x,
+            initialY: vbPoint.y,
+          });
           const vi = findNearestAssignedVertex(
             vbPoint,
             CROSSHAIR_ENGAGEMENT_RADIUS,
@@ -1394,7 +1437,10 @@ export function PolyhedronGlobe({
       if (touchModeRef.current === "hover") {
         const vbPoint = clientToViewBox(e.clientX, e.clientY);
         if (!vbPoint) return;
-        applyCrosshair(vbPoint);
+        // Imperative DOM write — bypasses React reconciliation
+        // so the crosshair tracks the finger at the pointermove
+        // event rate without per-frame state updates.
+        writeCrosshair(vbPoint);
         if (crosshairStartPos.current) {
           const dx = e.clientX - crosshairStartPos.current.x;
           const dy = e.clientY - crosshairStartPos.current.y;
@@ -1520,7 +1566,22 @@ export function PolyhedronGlobe({
             handleDotClick(vi);
           }
         }
-        applyCrosshair(null);
+        // Linger: keep the crosshair rendered for an additional
+        // CROSSHAIR_LINGER_MS after lift, fading out via CSS
+        // opacity transition (crosshairReleasing → true triggers
+        // the fade). This gives the user a moment of visual
+        // confirmation that their gesture registered before the
+        // crosshair disappears entirely.
+        setCrosshairReleasing(true);
+        if (crosshairLingerTimer.current) {
+          clearTimeout(crosshairLingerTimer.current);
+        }
+        crosshairLingerTimer.current = setTimeout(() => {
+          setCrosshairVisible({ visible: false, initialX: 0, initialY: 0 });
+          setCrosshairReleasing(false);
+          crosshairPosRef.current = null;
+          crosshairLingerTimer.current = null;
+        }, CROSSHAIR_LINGER_MS);
         // Dismiss engagement on release whether it was a tap or
         // drag — the crosshair is gone, the label should go too.
         setEngagedVertexIdx(null);
@@ -2052,36 +2113,47 @@ export function PolyhedronGlobe({
           })}
 
         {/* ─── Touch hover crosshair ──────────────────────────────
-            Rendered only when the user is actively touching in
-            hover mode. A small luminous hexagon at the crosshair
-            position — matches the rest of the UI's hex vocabulary
-            and gives the finger a clear "cursor" affordance. The
-            crosshair's coordinates are already in viewBox units
-            (set by applyCrosshair via clientToViewBox). */}
-        {touchMode === "hover" && crosshairPos && (
-          <g pointerEvents="none">
-            {/* Outer halo: soft glow at the crosshair position so
-                the user perceives it even through their finger. */}
-            <circle
-              cx={crosshairPos.x}
-              cy={crosshairPos.y}
-              r={28}
-              fill="url(#hover-dot-glow)"
-              opacity={0.6}
-            />
-            {/* The hexagon mark — small, bright, rim only. Sized
-                comfortably bigger than a fingertip but small enough
-                that the user can see what it's pointing at. */}
+            Rendered when the user is actively touching in hover
+            mode OR within CROSSHAIR_LINGER_MS of release (fading
+            out). A small luminous hexagon — matches the UI's hex
+            vocabulary and gives the finger a clear "cursor"
+            affordance.
+            Position lives on the <g>'s transform attribute and is
+            updated IMPERATIVELY (via crosshairGroupRef +
+            setAttribute) on every pointermove, bypassing React
+            reconciliation so the crosshair tracks the finger at
+            the input event rate without per-frame re-renders.
+            Children are drawn at origin (0,0); the group's
+            transform places them at the cursor position. */}
+        {touchMode === "hover" && crosshairVisible.visible && (
+          <g
+            ref={crosshairGroupRef}
+            pointerEvents="none"
+            // Initial transform from the position captured when the
+            // crosshair became visible. Subsequent moves bypass
+            // React entirely via writeCrosshair → setAttribute on
+            // this same element, so the position can update at the
+            // pointermove rate without re-rendering.
+            transform={`translate(${crosshairVisible.initialX} ${crosshairVisible.initialY})`}
+            style={{
+              opacity: crosshairReleasing ? 0 : 1,
+              transition: `opacity ${CROSSHAIR_LINGER_MS}ms ease-out`,
+            }}
+          >
+            {/* Outer halo: soft glow so the user perceives the
+                crosshair even through their fingertip. */}
+            <circle r={28} fill="url(#hover-dot-glow)" opacity={0.6} />
+            {/* Hexagon mark — bright rim, faint fill. Sized bigger
+                than a fingertip but small enough to see what it's
+                pointing at. Pre-computed once: it's static. */}
             <polygon
               points={(() => {
-                const cx = crosshairPos.x;
-                const cy = crosshairPos.y;
                 const r = 18;
                 const pts: string[] = [];
                 for (let i = 0; i < 6; i++) {
                   const a = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
                   pts.push(
-                    `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`,
+                    `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`,
                   );
                 }
                 return pts.join(" ");
@@ -2092,12 +2164,7 @@ export function PolyhedronGlobe({
               strokeLinejoin="round"
             />
             {/* Center pinpoint. */}
-            <circle
-              cx={crosshairPos.x}
-              cy={crosshairPos.y}
-              r={2}
-              fill="rgba(255, 255, 255, 0.95)"
-            />
+            <circle r={2} fill="rgba(255, 255, 255, 0.95)" />
           </g>
         )}
 
