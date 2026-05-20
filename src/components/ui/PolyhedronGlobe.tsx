@@ -1918,16 +1918,21 @@ export function PolyhedronGlobe({
         handlePointerUp();
         handleStagePointerLeave();
       }}
-      onClickCapture={(e) => {
-        if (didDrag.current) e.preventDefault();
-      }}
+      // Background-click dismissal (Stage 4). Fires only on clicks
+      // that bubble up to the stage from "bare" areas — dots and
+      // the hex card both stop propagation in BUBBLE phase, so
+      // clicks on them never reach here. The `didDrag` guard
+      // suppresses clicks that were really drag-releases (the
+      // pointermove handler flags didDrag when movement >3px).
+      //
+      // No onClickCapture preventDefault here: that was an
+      // over-defensive measure that blocked the React event
+      // delegation chain from reaching the hex card's Link
+      // (capture phase fires top-down, so preventDefault here
+      // would set defaultPrevented BEFORE the click reached the
+      // Link's React onClick, and Next's delegated handler
+      // would bail).
       onClick={() => {
-        // Background-click dismissal (Stage 4). Dot hit-targets stop
-        // propagation, and the billboard is rendered in a sibling
-        // div whose own clicks don't bubble through here unless they
-        // hit the surrounding empty area — those count as background
-        // and should dismiss. If didDrag is set, the click was a
-        // drag-release and we ignore it.
         if (didDrag.current) return;
         if (getAnchoredVi() !== null) releaseAnchor();
       }}
@@ -2369,18 +2374,27 @@ export function PolyhedronGlobe({
           onPointerDownCapture={(e) => {
             // Capture-phase stop so the stage's onPointerDown
             // (drag-start + anchor-release) never sees this — the
-            // hex card is INSIDE the stage tree, and capture-phase
-            // listeners on ancestors fire before bubble-phase
-            // stopPropagation on this element can do anything.
-            // (Same reason for onClickCapture below: the stage's
-            // onClickCapture sets preventDefault when didDrag is
-            // true, which on touch happens easily from small
-            // finger jitter — blocking the Link's navigation.)
+            // hex card is INSIDE the stage tree. The pointerdown
+            // here is for navigating the card, not for grabbing
+            // the sphere.
             e.stopPropagation();
           }}
-          onClickCapture={(e) => {
+          onClick={(e) => {
+            // BUBBLE-phase stop. By the time we get here in bubble
+            // phase, the click has ALREADY been delivered to the
+            // Link's React onClick (which calls router.push). Now
+            // we prevent it from bubbling up to the stage's
+            // onClick (background-dismiss). DO NOT stop in capture
+            // phase — that would prevent React's delegated event
+            // from reaching the Link in the first place.
             e.stopPropagation();
           }}
+          // Mark this subtree so the stage's onClickCapture
+          // (which preventDefaults when didDrag is set) can
+          // recognize clicks coming from the hex card and skip
+          // its preventDefault — finger jitter shouldn't block
+          // navigation just because the user drew a short arc.
+          data-hex-card=""
         >
           <UnfoldingBillboard
             open={hexOpen}
@@ -2395,15 +2409,23 @@ export function PolyhedronGlobe({
                 }
                 onClick={(e) => {
                   // Explicit router.push instead of relying on Next's
-                  // native-click delegation. During rapid nav (esp.
-                  // API-href projects with query-param routing), the
-                  // global click interceptor sometimes preventDefaults
-                  // the click but fails to actually router.push —
-                  // leaving the user stuck on the museum page wondering
-                  // why nothing happened. Direct router.push avoids
-                  // the brittle path. Honor modifier keys (cmd/ctrl/
-                  // shift/middle-click) so power users can open in new
-                  // tabs as expected.
+                  // native-click delegation. The previous version was
+                  // brittle for two combined reasons: (1) the stage
+                  // div's onClickCapture preventDefaulted clicks when
+                  // didDrag.current was true, which finger-jitter could
+                  // flip on; (2) clicks on the hex card also stopped
+                  // propagation in capture phase, blocking React's
+                  // delegated onClick from running at all.
+                  //
+                  // With the capture-phase stops removed (see the
+                  // hex card div above and the stage onClickCapture
+                  // below), the click reaches us cleanly. We still
+                  // explicitly router.push for resilience against
+                  // any future Next.js click-delegation quirks.
+                  //
+                  // Honor modifier keys (cmd/ctrl/shift/alt/middle-
+                  // click) so power users can open in new tabs as
+                  // expected — the Link's href takes over there.
                   if (
                     e.ctrlKey ||
                     e.metaKey ||
