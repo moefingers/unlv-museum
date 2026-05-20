@@ -127,6 +127,55 @@ function hash01(s: string): number {
   return (h >>> 0) / 4294967295;
 }
 
+/**
+ * Inline SVG dot that mirrors the polyhedron's vertex glow exactly.
+ * Same primitive (an SVG <circle> filled with a radial-gradient
+ * whose stops use `var(--category-...)`) so what renders in the
+ * legend is structurally identical to what renders on the globe —
+ * just smaller and viewport-positioned instead of sphere-positioned.
+ *
+ * Gradient ID must be unique per category. Inline <svg> elements
+ * in HTML share the document's ID namespace, so a fixed ID like
+ * "g" across six instances would resolve to the first defined
+ * gradient for ALL of them — every dot ends up the same color.
+ * Suffixing with the category name namespaces them properly.
+ *
+ * The viewBox is sized to give the gradient room to fade out past
+ * the visible circle's edge (so there's no hard cutoff at the
+ * gradient's 100% stop).
+ */
+function CategoryGlowDot({ category }: { category: Category }) {
+  const colorToken: Record<Category, string> = {
+    games: "--category-games",
+    "full-stack": "--category-fullstack",
+    frontend: "--category-frontend",
+    api: "--category-apis",
+    python: "--category-python",
+    exercises: "--category-exercises",
+  };
+  const token = colorToken[category];
+  const gradientId = `legend-glow-${category}`;
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    >
+      <defs>
+        <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
+          <stop offset="35%" stopColor={`var(${token})`} stopOpacity={0.95} />
+          <stop offset="65%" stopColor={`var(${token})`} stopOpacity={0.7} />
+          <stop offset="100%" stopColor={`var(${token})`} stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      <circle cx="8" cy="8" r="8" fill={`url(#${gradientId})`} />
+    </svg>
+  );
+}
+
 function ListCard({
   project,
   registerRef,
@@ -788,7 +837,7 @@ function LandingViewInner() {
           <div className={styles.legendDots}>
             {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
               <span key={cat} className={`text-xs ${styles.legendItem}`}>
-                <span className={styles.categoryDot} data-category={cat} />
+                <CategoryGlowDot category={cat} />
                 {CATEGORY_LABELS[cat]}
               </span>
             ))}

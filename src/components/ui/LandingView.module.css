@@ -358,21 +358,55 @@
 }
 
 /* Category dot. data-category attribute selects which --category-* token
-   to consume. Same idiom as ApiExplorer's .methodDot[data-method].
-   Rendered as a radial-gradient pinpoint that echoes the polyhedron's
-   #hover-dot-glow — bright white center, category-colored mid stop,
-   fading to transparent at the rim. Slightly oversized vs. the old
-   solid dot to give the gradient room to read. */
+   to consume. Same stop palette as the polyhedron's per-category
+   `hover-dot-glow-${cat}` radial gradients in PolyhedronGlobe so the
+   legend dots and vertex glows are VISUALLY IDENTICAL. Keep the
+   percentages and alphas in sync with the <radialGradient> stops
+   in PolyhedronGlobe.tsx.
+
+   The outermost stop fades to the category color at ALPHA ZERO
+   (not `transparent`) — `transparent` is shorthand for
+   `oklch(0 0 0 / 0)` which CSS interpolates *through* a dark/gray
+   intermediate hue toward zero alpha. With the matching color at
+   alpha 0 the gradient stays in the same hue family and just fades
+   its alpha smoothly, no ghost ring. The SVG version dodges this
+   because it uses stopOpacity (pure alpha) rather than full-color
+   interpolation. */
 .categoryDot {
   display: inline-block;
-  height: 0.875rem;
-  width: 0.875rem;
-  border-radius: var(--radius-full);
+  height: 1rem;
+  width: 1rem;
+  /* No border-radius — the gradient fades to alpha 0 by 100% on its
+     own. A clipped border-radius would create a hard edge where the
+     gradient's tail is still partially visible inside the box.
+
+     color-mix used instead of relative-color syntax (`oklch(from ...)`)
+     because nested var() inside `from` has spotty parsing across
+     engines — when it fails the whole declaration is invalid and
+     the element renders as a solid block. color-mix has reliable
+     var() handling. Mixing the category color with `transparent`
+     at percent N gives effective alpha (100 - N) / 100. */
   background: radial-gradient(
     circle at center,
     rgba(255, 255, 255, 1) 0%,
-    var(--category-color, var(--muted-foreground)) 45%,
-    transparent 100%
+    color-mix(
+        in oklch,
+        var(--category-color, var(--muted-foreground)) 95%,
+        transparent
+      )
+      35%,
+    color-mix(
+        in oklch,
+        var(--category-color, var(--muted-foreground)) 70%,
+        transparent
+      )
+      65%,
+    color-mix(
+        in oklch,
+        var(--category-color, var(--muted-foreground)) 0%,
+        transparent
+      )
+      100%
   );
 }
 .categoryDot[data-category="games"] {
@@ -403,7 +437,12 @@
   border: 0;
   padding: 0;
   cursor: pointer;
-  font: inherit;
+  /* Don't reset font shorthand — the `text-xs` className on the
+     element needs to set font-size, and `font: inherit` would
+     override it with the body's font-size. Only reset what we
+     have to. */
+  font-family: inherit;
+  font-weight: inherit;
   color: var(--muted-foreground);
   transition: color var(--duration-normal) var(--ease-default);
 }

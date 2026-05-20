@@ -55,6 +55,14 @@ export interface VertexHoverProps {
   titleFontFamily?: string;
   showCaret?: boolean;
   flickerStyle?: "none" | "subtle" | "medium" | "glitchy";
+  /**
+   * Override the SVG radial-gradient ID used for the glow fill.
+   * Defaults to `hover-dot-glow` (the sandbox/HoverDot gradient,
+   * blue-tinted). The museum passes per-category gradient IDs
+   * (e.g. `hover-dot-glow-games`) so each vertex glows in its
+   * project's category color.
+   */
+  glowGradientId?: string;
 }
 
 const DEFAULT_TEXT_SHADOW = [
@@ -83,6 +91,7 @@ export function VertexHover({
   titleFontFamily,
   showCaret = false,
   flickerStyle = "none",
+  glowGradientId = "hover-dot-glow",
 }: VertexHoverProps) {
   // typedChars animates 0 → title.length when engaged flips true,
   // back to 0 (faster) when engaged flips false.
@@ -148,7 +157,7 @@ export function VertexHover({
         cx={x}
         cy={y}
         r={currentGlowRadius}
-        fill="url(#hover-dot-glow)"
+        fill={`url(#${glowGradientId})`}
         className={blinking ? styles.blinking : ""}
         pointerEvents="none"
       />

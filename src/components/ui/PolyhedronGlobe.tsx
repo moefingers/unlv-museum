@@ -25,6 +25,16 @@ const HOVER_DOT_EXPANDED_GLOW = 10;
 const HOVER_DOT_FONT_FAMILY =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
 const HOVER_DOT_FONT_SIZE = 17;
+// Label engagement collapse timeout. When the cursor leaves an
+// engaged dot's hit target (and doesn't return), the label
+// dismisses after this many ms — long enough to cover the typing
+// animation (800ms) + a comfortable ~3s read window.
+const COLLAPSE_MS = 4000;
+// Intent gating for label engagement: a dot's mouseenter only
+// counts as user-intent if a pointermove fired within this many
+// ms before it. Filters out spurious enters from sphere rotation
+// drifting a dot under a motionless cursor.
+const INTENT_WINDOW_MS = 100;
 
 /**
  * Tessellated icosphere with optional per-vertex project assignments.
@@ -138,6 +148,10 @@ const TIME_CONSTANT = 600;
 // keep similar value in radians.
 const VELOCITY_THRESHOLD = 0.01;
 const AXIAL_TILT_DEG = 18;
+// First-paint user rotation: a small pitch around world-X so the
+// sphere shows a bit more of its northern hemisphere on initial
+// load rather than reading as a perfectly equator-on view.
+const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
 
 // ─── Anchor (click-to-anchor) ────────────────────────────────
 // Clicking an assigned vertex anchors the sphere: the clicked vertex
@@ -284,6 +298,31 @@ export const USER_ZOOM_MAX = 2.4;
 // event so it feels equally smooth.
 export const USER_ZOOM_WHEEL_SENSITIVITY = 0.0015;
 
+// ─── Touch hover mode ────────────────────────────────────────
+// Tunings for the touch "hover" mode (crosshair-cursor preview).
+//
+// CROSSHAIR_LINGER_MS  — how long the crosshair stays rendered
+//                        after the finger lifts, fading out via
+//                        opacity transition. Gives a moment of
+//                        visual confirmation that the gesture
+//                        registered.
+// TAP_MAX_MS / TAP_MAX_PX — a pointerdown→up gesture within
+//                        this duration AND with less than this
+//                        much movement counts as a "tap" (open
+//                        the card for the engaged vertex);
+//                        otherwise the gesture was a preview-
+//                        drag and just dismisses.
+// CROSSHAIR_ENGAGEMENT_RADIUS — how close to a vertex the
+//                        crosshair has to be (in viewBox units)
+//                        to engage its label. Set comfortably
+//                        wider than VertexHover's hit-target
+//                        (24) so the user gets the same
+//                        generous reach as a mouse hover.
+const CROSSHAIR_LINGER_MS = 1000;
+const TAP_MAX_MS = 400;
+const TAP_MAX_PX = 20;
+const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
+
 // ─── Glow toggles ─────────────────────────────────────────────
 // Flip these constants to A/B individual visual effects in isolation
 // without touching the render code. polyhedron-glow branch ships with
@@ -362,7 +401,6 @@ export function PolyhedronGlobe({
   // Y `(0, 1, 0)` — the sphere spins around its vertical axis. Stage 2
   // (click-to-anchor) will swap this to point through the clicked
   // vertex, giving rotation around an arbitrary axis.
-  const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
   const [q, setQ] = useState<Quat>(() =>
     fromAxisAngle(1, 0, 0, INITIAL_PITCH_RAD),
   );
@@ -476,7 +514,6 @@ export function PolyhedronGlobe({
   // listener. A new dot's mouseenter only counts as user intent if a
   // mousemove fired within INTENT_WINDOW_MS before it.
   const lastCursorMoveAt = useRef<number>(0);
-  const INTENT_WINDOW_MS = 100;
 
   const handleDotEnter = useCallback((vi: number) => {
     const now = performance.now();
@@ -712,8 +749,9 @@ export function PolyhedronGlobe({
   // The rAF loop's slerp-completion notification. When the swing
   // phase's slerp finishes, advance to coneRising. We don't react
   // to the tick during other phases — the rAF loop also nulls
-  // anchorAnim on completion during phases like unswinging.
-  const swingCompletionCount = useRef(0);
+  // anchorAnim on completion during phases like unswinging. The
+  // bump-and-watch pattern (incrementing state to fire an effect)
+  // bridges from an imperative rAF write into React's data flow.
   const [swingCompletionTick, setSwingCompletionTick] = useState(0);
   useEffect(() => {
     const p = phaseRef.current;
@@ -943,27 +981,13 @@ export function PolyhedronGlobe({
     setEngagedVertexIdx(null);
   }, []);
 
-  // Collapse timer: starts when the cursor moves off the engaged dot's
-  // hit target (without re-entering it). Cancelled if the cursor returns
-  // to the dot before expiry. On expiry, engagement releases — title
-  // runs its dismissal animation (flash + untype) via the VertexHover's
-  // engaged=false transition.
+  // Collapse timer: starts when the cursor moves off the engaged
+  // dot's hit target (without re-entering it). Cancelled if the
+  // cursor returns to the dot before expiry. On expiry, engagement
+  // releases — title runs its dismissal animation (flash + untype)
+  // via the VertexHover's engaged=false transition. Timeout
+  // duration is COLLAPSE_MS (module scope).
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Long enough that the type-in animation (800ms) completes plus
-  // a comfortable read window before any dismissal could fire. The
-  // timer is what gives the user time to read the title even when
-  // their cursor has drifted off the dot. Earlier values were too
-  // short: 1200ms could expire while the title was still partway
-  // through typing; 2500ms still felt rushed for slower readers.
-  // 4000ms gives a comfortable read window (typing 800ms + ~3s
-  // dwell) before dismissing.
-  const COLLAPSE_MS = 4000;
-  // Mirror engagedVertexIdx into a ref so the rAF loop can read it
-  // without depending on it (would re-mount the loop otherwise).
-  const engagedVertexIdxRef = useRef<number | null>(null);
-  useEffect(() => {
-    engagedVertexIdxRef.current = engagedVertexIdx;
-  }, [engagedVertexIdx]);
   // Cleanup
   useEffect(() => {
     return () => {
@@ -1026,11 +1050,10 @@ export function PolyhedronGlobe({
             }
           }
           anchorAnim.current = null;
-          // Notify the hex-billboard effect that the swing has just
-          // settled. Bump a counter ref + sync to a state setter so
-          // the effect re-runs (refs don't trigger re-renders).
-          swingCompletionCount.current += 1;
-          setSwingCompletionTick(swingCompletionCount.current);
+          // Notify the swing-completion effect (above) that the
+          // slerp has just settled. Functional setter monotonically
+          // increments → effect's [swingCompletionTick] dep fires.
+          setSwingCompletionTick((n) => n + 1);
         }
         frame = requestAnimationFrame(tick);
         return;
@@ -1223,9 +1246,6 @@ export function PolyhedronGlobe({
   const crosshairLingerTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  // How long the crosshair stays visible (fading out) after the
-  // user lifts their finger.
-  const CROSSHAIR_LINGER_MS = 1000;
   // Update crosshair: writes the DOM transform directly (no React
   // re-render) and mirrors into the ref. The mount/unmount happens
   // separately via setCrosshairVisible.
@@ -1253,17 +1273,6 @@ export function PolyhedronGlobe({
   useEffect(() => {
     userZoomRef.current = userZoom;
   }, [userZoom]);
-
-  // Tap threshold: a pointerdown→up gesture within TAP_MAX_MS that
-  // moved less than TAP_MAX_PX qualifies as a tap (route to the
-  // currently-engaged vertex). Otherwise it's a drag, no open.
-  const TAP_MAX_MS = 400;
-  const TAP_MAX_PX = 20;
-  // How close to a vertex the crosshair has to be to engage it.
-  // In viewBox units; should match or exceed VertexHover's
-  // hitTargetRadius (24) so the user has the same generous reach
-  // as a mouse hover.
-  const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
 
   // Compute the centroid + average radius of all active pointers.
   // For 1 pointer: centroid = that pointer's pos, radius = 0.
@@ -1980,17 +1989,58 @@ export function PolyhedronGlobe({
           </filter>
 
           {/* Radial gradient referenced by HoverDot's expandable glow
-              circle. Project-bearing vertices get this; unassigned
-              vertices use the quieter ph-vertex-glow.
-              Cranked saturation and alpha so the glow reads as a
-              vivid pinpoint against the surrounding mesh — these
-              are the museum's call-to-action targets. */}
+              circle in the sandbox (kept for compatibility). Project-
+              bearing museum vertices use the per-category variants
+              below instead. */}
           <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
             <stop offset="22%" stopColor="rgba(180, 220, 255, 0.9)" />
             <stop offset="55%" stopColor="rgba(100, 170, 255, 0.7)" />
             <stop offset="100%" stopColor="rgba(60, 130, 230, 0)" />
           </radialGradient>
+
+          {/* Per-category vertex glow gradients. White-hot center →
+              category color mid → fade to transparent. Same stop
+              palette across all categories so the dots read as
+              consistently "lit pinpoints"; only the mid color
+              changes. The legend's category dots use a matching
+              CSS radial-gradient (LandingView.module.css) so the
+              two surfaces are visually identical.
+
+              `stop-color` accepts CSS var() — the colors track the
+              project's category tokens (light + dark theme variants
+              defined in globals.css). */}
+          {(
+            [
+              ["games", "--category-games"],
+              ["full-stack", "--category-fullstack"],
+              ["frontend", "--category-frontend"],
+              ["api", "--category-apis"],
+              ["python", "--category-python"],
+              ["exercises", "--category-exercises"],
+            ] as const
+          ).map(([cat, token]) => (
+            <radialGradient
+              key={cat}
+              id={`hover-dot-glow-${cat}`}
+              cx="50%"
+              cy="50%"
+              r="50%"
+            >
+              <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
+              <stop
+                offset="35%"
+                stopColor={`var(${token})`}
+                stopOpacity={0.95}
+              />
+              <stop
+                offset="65%"
+                stopColor={`var(${token})`}
+                stopOpacity={0.7}
+              />
+              <stop offset="100%" stopColor={`var(${token})`} stopOpacity={0} />
+            </radialGradient>
+          ))}
 
           {/* Projection cone gradient. Used for the projection beam
               from the anchored dot up to the hex's base. userSpaceOnUse
@@ -2093,6 +2143,7 @@ export function PolyhedronGlobe({
                   titleFontSize={HOVER_DOT_FONT_SIZE}
                   showCaret={true}
                   flickerStyle="subtle"
+                  glowGradientId={`hover-dot-glow-${project.category}`}
                 />
               );
             }
