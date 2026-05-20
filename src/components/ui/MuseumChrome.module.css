@@ -1,0 +1,156 @@
+/*
+ * Shared museum chrome. Used by ProjectChrome and the api-client.
+ * See ./MuseumChrome.tsx for the JSX and the merge history that
+ * collapsed the two legacy implementations into this one primitive.
+ *
+ * Key responsibilities of this stylesheet:
+ *   - Sticky translucent header with a backdrop blur
+ *   - Row layout that wraps gracefully on narrow viewports
+ *     (trail group drops to a new line, tier buttons can stack
+ *     inside the pill if even that doesn't fit)
+ *   - Tier-pill view-transition (the active tier's background
+ *     morphs across navigations via `view-transition-name`)
+ *   - Back-link view-transition (the arrow holds position
+ *     across chrome-bearing route transitions)
+ */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+  /* Translucent surface so content scrolls behind. The 80% alpha keeps
+     things readable while still signalling "this floats". */
+  background: oklch(from var(--background) l c h / 0.8);
+  backdrop-filter: blur(8px);
+  view-transition-name: site-header;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Wrap when there isn't horizontal room for both halves — narrow
+     viewports push the trail group (sign-in + tier picker) to a
+     second line rather than compressing the lead group (back arrow
+     + title) into nothing. */
+  flex-wrap: wrap;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.leadGroup {
+  display: flex;
+  align-items: center;
+  /* Allow the lead group to shrink (so its title block can truncate
+     instead of pushing the trail off-screen) without letting the
+     back link itself collapse — that's pinned via flex-shrink: 0
+     on .backLink below. */
+  min-width: 0;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Pin the back arrow's size — narrow viewports compress the
+     header row, and without flex-shrink: 0 the back link collapses
+     to zero width and the icon vanishes from view. */
+  flex-shrink: 0;
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  /* Held in position across chrome-bearing route transitions via the
+     shared view-transition-name. Only one back link renders per route. */
+  view-transition-name: site-back-link;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.backLink:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  /* Allow the text inside to truncate rather than force the row
+     wider than the viewport (which would compress siblings like the
+     back link). min-width: 0 is the flex-item trick that lets a
+     child shrink below its content's intrinsic width. */
+  min-width: 0;
+}
+
+/*
+ * Subtitle / meta line under the title. Hosts the subtitle text
+ * (year + tech for ProjectChrome, descriptive sentence for
+ * ApiClient) and any inline extras (notes toggle in ProjectChrome).
+ */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1));
+  color: var(--muted-foreground);
+}
+
+.trailGroup {
+  display: flex;
+  align-items: center;
+  /* Wrap so the tier picker and sign-in chip can stack on their own
+     line(s) when the row doesn't have enough width for both. */
+  flex-wrap: wrap;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+/* Tier picker — a segmented pill group. Hosts three states per tier:
+   current (filled card), available (muted hoverable), unavailable (faded). */
+.tierPicker {
+  display: inline-flex;
+  /* Wrap so the tier buttons stack inside the pill when even they
+     don't fit horizontally (very narrow viewports). The active
+     tier's `.tierCurrent` background still slides across via the
+     shared view-transition-name. */
+  flex-wrap: wrap;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+}
+
+.tier {
+  border-radius: var(--radius-md);
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--chrome-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+
+.tierCurrent {
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+  /* The pill is the only `.tierCurrent` on a page at a time. Naming it
+     lets the browser morph it between tier buttons across navigation —
+     the highlight slides instead of teleporting. */
+  view-transition-name: tier-pill-bg;
+}
+
+.tierAvailable {
+  color: var(--muted-foreground);
+}
+.tierAvailable:hover {
+  color: var(--foreground);
+}
+
+.tierDisabled {
+  cursor: not-allowed;
+  color: oklch(from var(--muted-foreground) l c h / 0.5);
+}

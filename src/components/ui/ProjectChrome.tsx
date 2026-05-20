@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
-import { SignInChip } from "@/components/auth/SignInChip";
+import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
 import { projectPath, type Project, type ViewMode } from "@/lib/projects";
 import styles from "./ProjectChrome.module.css";
 
@@ -20,6 +19,12 @@ const TIERS: { mode: ViewMode; label: string }[] = [
  * navigation so the header stays put while only the body content swaps.
  * Tier picker is `<Link>`-based rather than client state; the active tier
  * is derived from the URL via usePathname.
+ *
+ * This component is now a thin wrapper around the shared <MuseumChrome>
+ * primitive (which it also shares with /api-client). The project-specific
+ * pieces — per-tier note panel + its toggle button, year/tech subtitle —
+ * live here; MuseumChrome handles the generic layout, tier picker, and
+ * view-transition wiring.
  */
 export function ProjectChrome({ project }: { project: Project }) {
   const pathname = usePathname();
@@ -44,87 +49,48 @@ export function ProjectChrome({ project }: { project: Project }) {
         ? project.techEnhanced
         : project.techReimagined;
 
-  return (
-    <header className={styles.header}>
-      <div className={styles.row}>
-        <div className={styles.leadGroup}>
-          <Link
-            href="/"
-            className={styles.backLink}
-            aria-label="Back to museum"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div className={styles.titleBlock}>
-            <h1 className="text-lg font-semibold">{project.title}</h1>
-            <p className={`text-sm ${styles.meta}`}>
-              <span>
-                {project.year}
-                {tierTech && tierTech.length > 0
-                  ? ` · ${tierTech.join(", ")}`
-                  : ""}
-              </span>
-              {note && (
-                <button
-                  onClick={() => setNotesOpen(!notesOpen)}
-                  className={styles.notesToggle}
-                >
-                  <ChevronDown
-                    size={12}
-                    className={`${styles.notesChevron} ${notesOpen ? styles.notesChevronOpen : ""}`}
-                  />
-                  Notes
-                </button>
-              )}
-            </p>
-          </div>
-        </div>
+  const tiers: TierSpec[] = TIERS.map(({ mode, label }) => ({
+    label,
+    href: available[mode]
+      ? mode === "original"
+        ? `/${path}`
+        : `/${path}/${mode}`
+      : undefined,
+    current: currentTier === mode,
+  }));
 
-        <div className={styles.trailGroup}>
-          <SignInChip />
-          <nav className={styles.tierPicker} aria-label="Tier">
-            {TIERS.map(({ mode, label }) => {
-              const isAvailable = available[mode];
-              const isCurrent = currentTier === mode;
-              const href =
-                mode === "original" ? `/${path}` : `/${path}/${mode}`;
-              const stateClass = isCurrent
-                ? styles.tierCurrent
-                : isAvailable
-                  ? styles.tierAvailable
-                  : styles.tierDisabled;
-              if (!isAvailable) {
-                return (
-                  <span
-                    key={mode}
-                    className={`${styles.tier} ${stateClass}`}
-                    aria-disabled="true"
-                    title={`${label} not available`}
-                  >
-                    {label}
-                  </span>
-                );
-              }
-              return (
-                <Link
-                  key={mode}
-                  href={href}
-                  className={`${styles.tier} ${stateClass}`}
-                  aria-current={isCurrent ? "page" : undefined}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-      {note && (
-        <Collapsible open={notesOpen} duration={200}>
-          <p className={`text-sm ${styles.notesPanel}`}>{note}</p>
-        </Collapsible>
-      )}
-    </header>
+  return (
+    <MuseumChrome
+      title={project.title}
+      subtitle={
+        <>
+          {project.year}
+          {tierTech && tierTech.length > 0 ? ` · ${tierTech.join(", ")}` : ""}
+        </>
+      }
+      titleExtra={
+        note && (
+          <button
+            onClick={() => setNotesOpen(!notesOpen)}
+            className={styles.notesToggle}
+          >
+            <ChevronDown
+              size={12}
+              className={`${styles.notesChevron} ${notesOpen ? styles.notesChevronOpen : ""}`}
+            />
+            Notes
+          </button>
+        )
+      }
+      tiers={tiers}
+      belowRow={
+        note && (
+          <Collapsible open={notesOpen} duration={200}>
+            <p className={`text-sm ${styles.notesPanel}`}>{note}</p>
+          </Collapsible>
+        )
+      }
+    />
   );
 }
 

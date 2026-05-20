@@ -2,10 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
-import { SignInChip } from "@/components/auth/SignInChip";
+import { MuseumChrome } from "@/components/ui/MuseumChrome";
 import {
   APIS_ORIGINAL,
   APIS_REIMAGINED,
@@ -164,52 +163,30 @@ function ApiClientInner({ tier }: { tier: Tier }) {
 
   return (
     <div className={styles.shell} data-sidebar-open={sidebarOpen}>
-      <header className={styles.header}>
-        <div className={styles.headerLead}>
-          <Link
-            href="/"
-            className={styles.backLink}
-            aria-label="Back to museum"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-lg font-semibold">API Client</h1>
-            <p className={`text-xs ${styles.headerSubtitle}`}>
-              Backend-only UNLV projects — live endpoints, interactive explorer
-            </p>
-          </div>
-        </div>
-
-        {/*
-          Tier strip — mirrors ProjectChrome's pill. These projects skip the
-          Enhanced tier entirely; only Original and Reimagined are surfaced.
-          Each segment is a <Link> to its own route, so switching tiers is a
-          real navigation that participates in the museum's view transitions.
-        */}
-        <nav className={styles.tierPicker} aria-label="Tier">
-          <Link
-            href="/api-client"
-            aria-current={tier === "original" ? "page" : undefined}
-            className={`${styles.tier} ${
-              tier === "original" ? styles.tierCurrent : styles.tierIdle
-            }`}
-          >
-            Original
-          </Link>
-          <Link
-            href="/api-client/reimagined"
-            aria-current={tier === "reimagined" ? "page" : undefined}
-            className={`${styles.tier} ${
-              tier === "reimagined" ? styles.tierCurrent : styles.tierIdle
-            }`}
-          >
-            Reimagined
-          </Link>
-        </nav>
-
-        <SignInChip />
-      </header>
+      {/*
+        Shared museum chrome. These api-client projects skip the Enhanced
+        tier entirely; only Original and Reimagined are surfaced. Each
+        tier href is a real route so navigation participates in the
+        view-transition system (the tier-pill highlight slides across
+        tiers, the back arrow holds position, etc. — same as
+        ProjectChrome via the same primitive).
+      */}
+      <MuseumChrome
+        title="API Client"
+        subtitle="Backend-only UNLV projects — live endpoints, interactive explorer"
+        tiers={[
+          {
+            label: "Original",
+            href: "/api-client",
+            current: tier === "original",
+          },
+          {
+            label: "Reimagined",
+            href: "/api-client/reimagined",
+            current: tier === "reimagined",
+          },
+        ]}
+      />
 
       <div className={styles.body}>
         {/* Backdrop sits behind the drawer on narrow viewports; CSS hides

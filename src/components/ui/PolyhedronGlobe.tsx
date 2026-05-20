@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { projectPath, type Project } from "@/lib/projects";
 import {
@@ -375,6 +376,15 @@ export function PolyhedronGlobe({
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
   const mesh: Mesh = useMemo(() => geodesic(frequency), [frequency]);
+
+  // Next router for explicit programmatic navigation from the hex
+  // card's Link onClick. Avoids relying on Next's native-click
+  // delegation, which can silently drop clicks when invoked during
+  // ongoing view transitions / Suspense settling from rapid prior
+  // navigation. The Link still has an href for SSR/middle-click
+  // semantics, but the onClick handler explicitly pushes the route
+  // — robust path that doesn't depend on the global click intercept.
+  const router = useRouter();
 
   // Vertex-idx → project lookup. Vertices without an assignment render
   // as plain glow circles (no hover, no title).
@@ -2383,6 +2393,31 @@ export function PolyhedronGlobe({
                 href={
                   anchoredProject.href ?? `/${projectPath(anchoredProject)}`
                 }
+                onClick={(e) => {
+                  // Explicit router.push instead of relying on Next's
+                  // native-click delegation. During rapid nav (esp.
+                  // API-href projects with query-param routing), the
+                  // global click interceptor sometimes preventDefaults
+                  // the click but fails to actually router.push —
+                  // leaving the user stuck on the museum page wondering
+                  // why nothing happened. Direct router.push avoids
+                  // the brittle path. Honor modifier keys (cmd/ctrl/
+                  // shift/middle-click) so power users can open in new
+                  // tabs as expected.
+                  if (
+                    e.ctrlKey ||
+                    e.metaKey ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.button !== 0
+                  ) {
+                    return;
+                  }
+                  e.preventDefault();
+                  const href =
+                    anchoredProject.href ?? `/${projectPath(anchoredProject)}`;
+                  router.push(href);
+                }}
                 style={{
                   display: "flex",
                   flexDirection: "column",
