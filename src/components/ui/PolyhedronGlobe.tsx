@@ -1135,6 +1135,57 @@ export function PolyhedronGlobe({
   // Doing it at the transition site instead of in a useEffect
   // avoids the derived-state-via-effect pattern.)
 
+  // ─── Multi-pointer state ─────────────────────────────────────
+  //
+  // Active pointers tracked by pointerId. 1 pointer → drag using
+  // that pointer's position. 2+ pointers → pinch + drag-on-
+  // midpoint: the midpoint of all active pointers drives yaw/pitch
+  // (so the user can still rotate while pinching), and the average
+  // distance between pointers and the midpoint drives zoom.
+  //
+  // Map enables O(1) updates on pointermove without an extra
+  // traversal. Insertion order is preserved which is convenient
+  // for deterministic midpoint calculation.
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(
+    new Map(),
+  );
+  // Last pinch reference distance — set on the 2nd pointer down
+  // (or whenever we drop from 3+ → 2 pointers), updated on each
+  // pointermove with 2+ pointers. The ratio between the new
+  // distance and the last reference distance drives the zoom step.
+  const lastPinchDistance = useRef<number | null>(null);
+
+  // Compute the centroid + average radius of all active pointers.
+  // For 1 pointer: centroid = that pointer's pos, radius = 0.
+  // For 2+: centroid is the geometric mean of positions, radius is
+  // the average Euclidean distance from each pointer to the centroid.
+  // Radius (not raw distance) generalizes pinch to 3+ fingers if
+  // they ever happen (e.g., palm-rejection failure).
+  const pointerCentroid = (): {
+    x: number;
+    y: number;
+    radius: number;
+    count: number;
+  } => {
+    const pts = activePointers.current;
+    const n = pts.size;
+    if (n === 0) return { x: 0, y: 0, radius: 0, count: 0 };
+    let cx = 0;
+    let cy = 0;
+    for (const p of pts.values()) {
+      cx += p.x;
+      cy += p.y;
+    }
+    cx /= n;
+    cy /= n;
+    if (n === 1) return { x: cx, y: cy, radius: 0, count: 1 };
+    let sumR = 0;
+    for (const p of pts.values()) {
+      sumR += Math.hypot(p.x - cx, p.y - cy);
+    }
+    return { x: cx, y: cy, radius: sumR / n, count: n };
+  };
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       // Anchored + pointerdown on bare sphere/background (dots stop
@@ -1146,45 +1197,63 @@ export function PolyhedronGlobe({
       if (getAnchoredVi() !== null) {
         releaseAnchor();
       }
-      dragging.current = true;
-      didDrag.current = false;
-      angularVelocityYaw.current = 0;
-      angularVelocityPitch.current = 0;
-      amplitudeYaw.current = 0;
-      amplitudePitch.current = 0;
-      lastMouse.current = { x: e.clientX, y: e.clientY };
-      lastTime.current = performance.now();
+      activePointers.current.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      const c = pointerCentroid();
+      // Recompute drag origin from the new centroid so the
+      // transition from 1→2 fingers (or vice versa) doesn't
+      // produce a snap-rotation. lastMouse is always the
+      // CURRENT centroid; subsequent moves compute delta from
+      // here.
+      lastMouse.current = { x: c.x, y: c.y };
+      // If we now have 2+ pointers, capture pinch baseline.
+      // Otherwise leave it null — 1-pointer moves never read it.
+      lastPinchDistance.current = c.count >= 2 ? c.radius : null;
+      if (!dragging.current) {
+        // Fresh gesture: clear momentum from any prior release.
+        dragging.current = true;
+        didDrag.current = false;
+        angularVelocityYaw.current = 0;
+        angularVelocityPitch.current = 0;
+        amplitudeYaw.current = 0;
+        amplitudePitch.current = 0;
+        lastTime.current = performance.now();
+      }
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
     [releaseAnchor],
   );
 
-  // Drag-input mapping: dx (horizontal pointer move) → yaw around
-  // world Y. dy (vertical pointer move) → pitch around world X.
-  // Both at DRAG_RATE radians per pixel.
+  // Pointermove handles both rotation (centroid-driven yaw/pitch)
+  // AND pinch (radius-change-driven zoom) concurrently. When only
+  // one pointer is active, the pinch branch is inert (radius = 0,
+  // no baseline) and only the rotation branch fires.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
+      const pt = activePointers.current.get(e.pointerId);
+      if (!pt) return; // unknown pointer (shouldn't happen)
+      pt.x = e.clientX;
+      pt.y = e.clientY;
 
       const now = performance.now();
       const dt = now - lastTime.current;
       if (dt === 0) return;
 
-      const dx = e.clientX - lastMouse.current.x;
-      const dy = e.clientY - lastMouse.current.y;
+      const c = pointerCentroid();
 
+      // Rotation: delta from prior centroid → yaw/pitch around
+      // world axes. Same DRAG_RATE/momentum tracking as before;
+      // the midpoint of multi-touch behaves identically to a
+      // single cursor for the rotation pipeline.
+      const dx = c.x - lastMouse.current.x;
+      const dy = c.y - lastMouse.current.y;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
 
-      lastMouse.current = { x: e.clientX, y: e.clientY };
-      lastTime.current = now;
-
-      // Per-pixel rotation rate (rad/px). Matches the prior Euler
-      // model's 0.3°/px ≈ 0.00524 rad/px.
       const yawAngle = dx * DRAG_RATE;
       const pitchAngle = dy * DRAG_RATE;
-
-      // Angular velocity tracking (rad/sec) for release momentum.
-      // Same EMA smoothing as before (0.8 new + 0.2 old).
       const yawRate = (1000 * yawAngle) / (1 + dt);
       const pitchRate = (1000 * pitchAngle) / (1 + dt);
       angularVelocityYaw.current =
@@ -1192,9 +1261,6 @@ export function PolyhedronGlobe({
       angularVelocityPitch.current =
         0.8 * pitchRate + 0.2 * angularVelocityPitch.current;
 
-      // Apply the incremental rotation immediately. Same composition
-      // order as the momentum loop: yaw around world Y, then pitch
-      // around world X.
       let next = latestQ.current;
       if (yawAngle !== 0) {
         next = quatMultiply(fromAxisAngle(0, 1, 0, yawAngle), next);
@@ -1203,27 +1269,84 @@ export function PolyhedronGlobe({
         next = quatMultiply(fromAxisAngle(1, 0, 0, pitchAngle), next);
       }
       applyQ(next);
+
+      // Pinch: only when 2+ pointers AND we have a baseline.
+      // Convert the centroid-radius ratio into a synthetic wheel
+      // deltaY so the existing onWheelZoom path handles it —
+      // wheel and pinch end up calibrated against the same
+      // USER_ZOOM_WHEEL_SENSITIVITY in LandingView. Math:
+      //   ratio = newRadius / oldRadius
+      //   onWheelZoom expects deltaY where the parent multiplies
+      //   zoom by exp(-deltaY * sensitivity). To produce the
+      //   same effective ratio, set deltaY = -ln(ratio) /
+      //   sensitivity. The sensitivity constant lives in
+      //   PolyhedronGlobe (exported); read it through the
+      //   helper here.
+      if (
+        c.count >= 2 &&
+        lastPinchDistance.current !== null &&
+        lastPinchDistance.current > 0 &&
+        c.radius > 0 &&
+        onWheelZoom
+      ) {
+        const ratio = c.radius / lastPinchDistance.current;
+        const syntheticDeltaY = -Math.log(ratio) / USER_ZOOM_WHEEL_SENSITIVITY;
+        // Filter tiny jitter (sub-pixel noise on the radius
+        // calc), but allow real pinch gestures through.
+        if (Math.abs(syntheticDeltaY) > 0.5) {
+          onWheelZoom(syntheticDeltaY);
+          lastPinchDistance.current = c.radius;
+        }
+      }
+
+      lastMouse.current = { x: c.x, y: c.y };
+      lastTime.current = now;
     },
-    [applyQ],
+    [applyQ, onWheelZoom],
   );
 
-  const handlePointerUp = useCallback(() => {
-    if (!dragging.current) return;
-    dragging.current = false;
-
-    // Stationary-finger guard: if the last move was >50ms ago, clear
-    // accumulated velocity. Same as before.
-    if (performance.now() - lastTime.current > 50) {
-      angularVelocityYaw.current = 0;
-      angularVelocityPitch.current = 0;
+  const handlePointerUp = useCallback((e?: React.PointerEvent) => {
+    // Remove the lifted pointer from the active map. If `e` is
+    // undefined (caller used onPointerLeave without an event),
+    // clear all — the leave path covers "user dragged off the
+    // stage" which ends the entire gesture.
+    if (e) {
+      activePointers.current.delete(e.pointerId);
+    } else {
+      activePointers.current.clear();
     }
+    const c = pointerCentroid();
 
-    // Set the initial momentum amplitude from current angular velocity.
-    // The amplitude decays via Math.exp(-elapsed/TIME_CONSTANT) in the
-    // tick loop above.
-    amplitudeYaw.current = angularVelocityYaw.current;
-    amplitudePitch.current = angularVelocityPitch.current;
-    releaseTime.current = performance.now();
+    if (c.count === 0) {
+      // Gesture ended. Apply release momentum the same way the
+      // single-pointer path used to. Stationary-finger guard
+      // kept identical.
+      if (!dragging.current) return;
+      dragging.current = false;
+      if (performance.now() - lastTime.current > 50) {
+        angularVelocityYaw.current = 0;
+        angularVelocityPitch.current = 0;
+      }
+      amplitudeYaw.current = angularVelocityYaw.current;
+      amplitudePitch.current = angularVelocityPitch.current;
+      releaseTime.current = performance.now();
+      lastPinchDistance.current = null;
+      return;
+    }
+    // Still 1+ pointers on the stage — gesture continues with the
+    // remaining set. Re-anchor the drag origin to the new
+    // centroid so the next move doesn't jump-rotate.
+    lastMouse.current = { x: c.x, y: c.y };
+    lastTime.current = performance.now();
+    // Re-baseline the pinch reference: if we still have 2+
+    // pointers (3→2 case), capture the new radius; if down to 1,
+    // null the baseline since pinch is no longer active.
+    lastPinchDistance.current = c.count >= 2 ? c.radius : null;
+    // Clear momentum — we want a clean delta-from-here on the
+    // next move; otherwise the inherited velocity would feed
+    // back through the EMA after a finger-lift.
+    angularVelocityYaw.current = 0;
+    angularVelocityPitch.current = 0;
   }, []);
 
   // ─── per-frame projection ─────────────────────────────────────────
@@ -1478,6 +1601,7 @@ export function PolyhedronGlobe({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onPointerLeave={() => {
         handlePointerUp();
         handleStagePointerLeave();
