@@ -2,34 +2,63 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
+import { type Project } from "@/lib/projects";
+import { HoverDot } from "./HoverDot";
 import styles from "./PolyhedronGlobe.module.css";
 
+// Locked tuning from the /hover-dot sandbox in svg-experiments. Mono
+// font + slow typing + caret + dismissal flash + subtle hologram
+// flicker. See commit history of svg-experiments for the rationale.
+const HOVER_DOT_TYPE_DURATION = 800;
+const HOVER_DOT_GRACE_MS = 1200;
+const HOVER_DOT_IDLE_GLOW = 8;
+const HOVER_DOT_EXPANDED_GLOW = 10;
+const HOVER_DOT_FONT_FAMILY =
+  'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
+
 /**
- * Bare polyhedron sphere — tessellated icosphere with no content on it.
+ * Tessellated icosphere with optional per-vertex project assignments.
  *
- * This is the polyhedron-bare branch: everything beyond geometry is
- * stripped out (no per-face project assignments, no text, no category
- * tint, no link interactivity) so the surface can be evaluated in
- * isolation before content design choices are stacked back on.
+ * polyhedron-hover-type phase: each vertex of the icosphere can host a
+ * project. Hovering an assigned vertex pauses the sphere's rotation and
+ * types the project's title below the vertex (with caret + subtle flicker)
+ * — see ./HoverDot.tsx for the per-vertex visual logic.
+ *
+ * Hover semantics (locked in /hover-dot sandbox):
+ *   - Browser hover signal is the engagement contract. As long as the
+ *     cursor is "still hovering" a dot, the title stays open. A
+ *     motionless cursor doesn't dismiss anything.
+ *   - On mouseleave, a graceMs timer fires. During grace the title is
+ *     still visible. Re-entering before grace expires cancels it.
+ *   - When grace expires, a brief 80ms brightness flash precedes the
+ *     untype animation (3× faster than typing).
+ *   - PolyhedronGlobe tracks which dot is active (via HoverDot's
+ *     onActiveChange callback). Auto-rotation pauses while any dot
+ *     is active. Dragging the sphere is allowed even mid-hover; the
+ *     hover state survives drag.
  *
  * Rendering pipeline per frame:
  *   1. Compose Y-rotation (drag) × X-rotation (drag) × Z-tilt (axial)
  *   2. Rotate every vertex once
- *   3. For each face: compute centroid Z + screen winding
- *   4. Backface-cull (screen winding sign — see note inline)
- *   5. Painter-sort by centroid Z (back to front)
- *   6. Render each face as a uniform muted-fill <polygon>
- *
- * Drag + momentum + auto-rotation mirror the original Globe component's
- * physics (iOS-style exponential decay, pole bounce, stationary-finger
- * guard).
+ *   3. Backface-cull each face by screen-space winding
+ *   4. Painter-sort visible faces by centroid Z
+ *   5. Render face polygons + edge halos
+ *   6. Render <HoverDot> at each assigned + visible vertex
  */
+
+/** Map from vertex index (0..N-1 in the mesh) to a project. */
+export interface VertexAssignment {
+  vertexIdx: number;
+  project: Project;
+}
 
 interface PolyhedronGlobeProps {
   /** Sphere radius in viewBox units. */
   radius?: number;
-  /** Frequency of icosphere subdivision (2 = 80 faces, default). */
+  /** Frequency of icosphere subdivision (2 = 80 faces, 42 vertices). */
   frequency?: number;
+  /** Vertex-to-project bindings. Unassigned vertices show only their glow. */
+  assignments?: VertexAssignment[];
 }
 
 const AUTO_SPEED = 0.08;
@@ -64,10 +93,19 @@ function bounceX(x: number): { x: number; flipped: boolean } {
 export function PolyhedronGlobe({
   radius = 340,
   frequency = 2,
+  assignments,
 }: PolyhedronGlobeProps) {
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
   const mesh: Mesh = useMemo(() => geodesic(frequency), [frequency]);
+
+  // Vertex-idx → project lookup. Vertices without an assignment render
+  // as plain glow circles (no hover, no title).
+  const assignmentByVertex = useMemo(() => {
+    const map = new Map<number, Project>();
+    for (const a of assignments ?? []) map.set(a.vertexIdx, a.project);
+    return map;
+  }, [assignments]);
 
   // Initial X is positive: tips the top of the sphere toward the camera
   // by ~15°, exposing a touch more of the northern hemisphere on first
@@ -89,6 +127,31 @@ export function PolyhedronGlobe({
   const applyRotation = useCallback((r: { x: number; y: number }) => {
     latestRotation.current = r;
     setRotation(r);
+  }, []);
+
+  // Hover state for the typed-title overlay. The vertex index here is
+  // Hover bookkeeping: count of dots currently reporting active=true.
+  // HoverDot owns the per-dot grace timer + dismissal flash; we just
+  // need to know whether ANY dot is active so we can pause auto-
+  // rotation. Counting (not a single flag) lets us survive briefly-
+  // overlapping hovers — two dots could both be active during the
+  // grace window of one and the start of another.
+  const [activeDotCount, setActiveDotCount] = useState(0);
+  // Mirror the hover state into a ref so the rAF auto-rotation loop —
+  // which closes over its environment at effect-mount time — can read
+  // current value each frame without re-mounting.
+  const activeDotCountRef = useRef(0);
+  useEffect(() => {
+    activeDotCountRef.current = activeDotCount;
+  }, [activeDotCount]);
+
+  // Stable per-vertex onActiveChange callback factory. Each dot calls
+  // this with active=true on engage, active=false on dismiss; we
+  // adjust the count. Stored in a ref keyed by vertex idx so the
+  // callback identity is stable across renders (React 19 set-state-in-
+  // effect lint is otherwise unhappy).
+  const handleDotActiveChange = useCallback((active: boolean) => {
+    setActiveDotCount((n) => (active ? n + 1 : Math.max(0, n - 1)));
   }, []);
 
   // Drag-momentum physics loop. Direct port from Globe.tsx — same time
@@ -128,7 +191,11 @@ export function PolyhedronGlobe({
             amplitudeY.current = 0;
             amplitudeX.current = 0;
           }
-        } else {
+        } else if (activeDotCountRef.current === 0) {
+          // Auto-rotate only when no vertex is currently engaged. While
+          // a vertex is hovered (or in its grace-period extension), the
+          // sphere holds still so the typed title stays anchored under
+          // the cursor.
           const r = latestRotation.current;
           applyRotation({
             ...r,
@@ -410,6 +477,16 @@ export function PolyhedronGlobe({
           >
             <feGaussianBlur stdDeviation="2.5" />
           </filter>
+
+          {/* Radial gradient referenced by HoverDot's expandable glow
+              circle. Brighter pinpoint center than the plain
+              vertex-glow gradient; HoverDot uses radius scaling to
+              animate it. ID must match what HoverDot.tsx references. */}
+          <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(220, 235, 255, 0.95)" />
+            <stop offset="40%" stopColor="rgba(140, 180, 255, 0.55)" />
+            <stop offset="100%" stopColor="rgba(80, 140, 220, 0)" />
+          </radialGradient>
         </defs>
 
         {ENABLE_RADIAL_BG && (
@@ -454,9 +531,31 @@ export function PolyhedronGlobe({
 
         {ENABLE_VERTEX_GLOW &&
           visibleVertices.map((v) => {
-            // Glow radius and opacity ramp gently with facingCamera so
-            // vertices on the silhouette stay small while center-facing
-            // vertices read as little stars. Radius in viewBox units.
+            const project = assignmentByVertex.get(v.vi);
+            // Assigned vertex: render a <HoverDot> at the projected
+            // screen position. HoverDot owns its own hover state +
+            // grace timer + typing animation + dismissal flash +
+            // subtle flicker. We listen via onActiveChange to keep
+            // activeDotCount in sync (pauses auto-rotation).
+            if (project) {
+              return (
+                <HoverDot
+                  key={v.vi}
+                  title={project.title}
+                  x={v.sx}
+                  y={v.sy}
+                  typeDuration={HOVER_DOT_TYPE_DURATION}
+                  graceMs={HOVER_DOT_GRACE_MS}
+                  idleGlowRadius={HOVER_DOT_IDLE_GLOW}
+                  expandedGlowRadius={HOVER_DOT_EXPANDED_GLOW}
+                  titleFontFamily={HOVER_DOT_FONT_FAMILY}
+                  showCaret={true}
+                  flickerStyle="subtle"
+                  onActiveChange={handleDotActiveChange}
+                />
+              );
+            }
+            // Unassigned vertex: plain glow circle (same as before).
             const r = 4 + v.facingCamera * 4;
             const opacity = 0.4 + v.facingCamera * 0.5;
             return (

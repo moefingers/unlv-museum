@@ -1,0 +1,164 @@
+/* The blink class is applied for 80ms when grace expires and we're
+   about to contract the title. A quick brightness pulse signals
+   "releasing your hover" before the text shrinks away. */
+.blinking {
+  filter: brightness(1.6);
+  transition: filter 30ms ease-out;
+}
+
+/*
+ * Title styling — SVG <text>. Note `text-shadow` works on SVG text in
+ * modern browsers (Chromium 73+, Firefox 84+, Safari 14+). On older
+ * engines the title still renders correctly, just without the glow.
+ *
+ * Font size is intentionally smallish — the dot is the focus; the
+ * title is supporting evidence. ~13px sans-serif feels right.
+ */
+.title {
+  font-family: var(--font-geist-sans, system-ui), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  fill: rgba(245, 250, 255, 0.95);
+  user-select: none;
+  /* Transition the text-shadow so the blink flash propagates smoothly. */
+  transition: filter 80ms ease-out;
+}
+
+.titleBlinking {
+  filter: brightness(1.5);
+}
+
+/* Blinking caret — appears after the typed text while `active` is
+   true. ~1Hz blink. Slight horizontal padding (via emoji-style space
+   handled by leading whitespace in the tspan would work but we keep
+   it simple here — the | character has its own inherent left margin
+   via the SVG text layout. */
+.caret {
+  animation: hover-dot-caret-blink 1.05s steps(2, end) infinite;
+}
+
+@keyframes hover-dot-caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ─── Hologram flicker variants ──────────────────────────────────────
+   Each flicker animation runs forever while the class is applied.
+   Irregular keyframe stops give the flicker an organic-looking pattern
+   even though it's a loop — perfectly periodic flicker reads as a
+   rhythm, not a signal.
+
+   All variants oscillate around brightness 1.0 with no jitter on
+   position or scale (text is small; sub-pixel jitter at SVG text
+   sizes degrades into noise). text-shadow tweaking is the secondary
+   axis: a slight increase in halo width pulses the glow alongside
+   the brightness pulse.
+*/
+
+.flicker-subtle {
+  animation: hover-dot-flicker-subtle 3.7s ease-in-out infinite;
+}
+@keyframes hover-dot-flicker-subtle {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  17% {
+    filter: brightness(0.96);
+  }
+  23% {
+    filter: brightness(1.04);
+  }
+  41% {
+    filter: brightness(0.98);
+  }
+  59% {
+    filter: brightness(1.02);
+  }
+  72% {
+    filter: brightness(0.94);
+  }
+  78% {
+    filter: brightness(1.06);
+  }
+  91% {
+    filter: brightness(1);
+  }
+}
+
+.flicker-medium {
+  animation: hover-dot-flicker-medium 4.1s ease-in-out infinite;
+}
+@keyframes hover-dot-flicker-medium {
+  0%,
+  100% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+  13% {
+    filter: brightness(0.93) drop-shadow(0 0 1px rgba(140, 180, 255, 0.3));
+  }
+  21% {
+    filter: brightness(1.07) drop-shadow(0 0 2px rgba(180, 200, 255, 0.4));
+  }
+  37% {
+    filter: brightness(0.97);
+  }
+  53% {
+    filter: brightness(1.04) drop-shadow(0 0 1.5px rgba(160, 190, 255, 0.35));
+  }
+  61% {
+    filter: brightness(0.91);
+  }
+  74% {
+    filter: brightness(1.08) drop-shadow(0 0 3px rgba(180, 200, 255, 0.45));
+  }
+  85% {
+    filter: brightness(1);
+  }
+}
+
+.flicker-glitchy {
+  animation: hover-dot-flicker-glitchy 3.3s ease-in-out infinite;
+}
+@keyframes hover-dot-flicker-glitchy {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  11% {
+    filter: brightness(0.88);
+  }
+  13% {
+    filter: brightness(1.12);
+  }
+  19% {
+    filter: brightness(0.6); /* blip — projector struggling */
+  }
+  21% {
+    filter: brightness(1.1);
+  }
+  37% {
+    filter: brightness(0.95);
+  }
+  49% {
+    filter: brightness(1.15);
+  }
+  53% {
+    filter: brightness(0.85);
+  }
+  67% {
+    filter: brightness(0.7); /* second blip */
+  }
+  70% {
+    filter: brightness(1.08);
+  }
+  88% {
+    filter: brightness(1);
+  }
+}

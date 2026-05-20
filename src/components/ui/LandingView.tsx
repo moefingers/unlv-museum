@@ -1,10 +1,14 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
-import { PolyhedronGlobe } from "@/components/ui/PolyhedronGlobe";
+import {
+  PolyhedronGlobe,
+  type VertexAssignment,
+} from "@/components/ui/PolyhedronGlobe";
+import { geodesic } from "@/lib/polyhedra";
 import {
   PROJECTS,
   CATEGORY_LABELS,
@@ -305,9 +309,33 @@ function LandingViewInner() {
   // etc.). In List view the ref is passed as null and the mesh fills.
   const globeWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // polyhedron-bare branch: the sphere has no content on it. ListView
-  // gets `sort` directly and computes its own ordering; the globe
-  // doesn't need an ordered project list at all.
+  // polyhedron-hover-type: assign projects to vertices.
+  //
+  // Each vertex of the icosphere gets one project, in `orderedProjects`
+  // order. Frequency-2 icosphere has 42 vertices (12 degree-5 + 30
+  // degree-6). With ~30-50 projects, first 42 win their vertex; the
+  // rest aren't on the sphere this phase (still accessible via list
+  // view).
+  //
+  // Reshuffling on sort change is intentional — same as the legacy
+  // Fibonacci-globe behavior, where sort changes re-mapped which
+  // project occupied which Fibonacci slot.
+  const orderedProjects = useMemo(
+    () =>
+      sort === "time"
+        ? [...PROJECTS].sort((a, b) =>
+            projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
+          )
+        : PROJECTS,
+    [sort],
+  );
+  const vertexAssignments: VertexAssignment[] = useMemo(() => {
+    const vertexCount = geodesic(2).vertices.length;
+    return orderedProjects.slice(0, vertexCount).map((project, i) => ({
+      vertexIdx: i,
+      project,
+    }));
+  }, [orderedProjects]);
 
   return (
     <div className={styles.shell}>
@@ -394,7 +422,7 @@ function LandingViewInner() {
       */}
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
         <div ref={globeWrapRef} className={styles.globeScaleHost}>
-          <PolyhedronGlobe radius={600} />
+          <PolyhedronGlobe radius={600} assignments={vertexAssignments} />
         </div>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>

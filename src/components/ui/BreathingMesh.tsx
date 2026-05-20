@@ -637,6 +637,14 @@ export function BreathingMesh({
       }
 
       // Pass 2: edges (below dots so dots cap line joins).
+      // Skip any edge whose endpoints have drifted further than the
+      // STRETCH_THRESHOLD apart — happens when a dot is mid-cascade,
+      // pushed out by the cutout, or dodged by a card while its
+      // neighbor isn't. Drawing the edge anyway would produce a
+      // visually unnatural long line crossing the wrong region.
+      // Threshold is generous enough to let local drift through but
+      // tight enough to break edges that span outside the lattice.
+      const STRETCH_THRESHOLD_SQ = SPACING * 1.6 * (SPACING * 1.6);
       ctx.strokeStyle = stroke;
       ctx.globalAlpha = 0.18;
       ctx.lineWidth = 1;
@@ -644,8 +652,15 @@ export function BreathingMesh({
       const edges = edgesRef.current;
       for (let i = 0; i < edges.length; i++) {
         const [a, b] = edges[i]!;
-        ctx.moveTo(positions[a * 2]!, positions[a * 2 + 1]!);
-        ctx.lineTo(positions[b * 2]!, positions[b * 2 + 1]!);
+        const ax = positions[a * 2]!;
+        const ay = positions[a * 2 + 1]!;
+        const bx = positions[b * 2]!;
+        const by = positions[b * 2 + 1]!;
+        const dx = bx - ax;
+        const dy = by - ay;
+        if (dx * dx + dy * dy > STRETCH_THRESHOLD_SQ) continue;
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
       }
       ctx.stroke();
 
