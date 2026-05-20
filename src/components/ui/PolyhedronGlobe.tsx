@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { type Project } from "@/lib/projects";
+import {
+  fromAxisAngle,
+  multiply as quatMultiply,
+  toMatrix3,
+  type Quat,
+} from "@/lib/quaternion";
 import { VertexHover } from "./VertexHover";
 import styles from "./PolyhedronGlobe.module.css";
 
@@ -61,7 +67,12 @@ interface PolyhedronGlobeProps {
   assignments?: VertexAssignment[];
 }
 
-const AUTO_SPEED = 0.08;
+// Auto-rotation angular speed in radians/second. Equivalent to the
+// prior Euler AUTO_SPEED of 0.08 deg/frame at 60fps (~4.8 deg/sec).
+const AUTO_ANGULAR_SPEED = (0.08 / 16) * 1000 * (Math.PI / 180);
+// Drag input rate: radians of rotation per pixel of pointer move.
+// Equivalent to the prior Euler 0.3 deg/px.
+const DRAG_RATE = (0.3 * Math.PI) / 180;
 
 // ─── Hover cycle ─────────────────────────────────────────────
 // Any mouse hover landing on a dot triggers a "stop-and-resume" cycle:
@@ -82,8 +93,10 @@ const HOVER_HOLD_MS = 1700;
 const HOVER_RESUME_MS = 550;
 const HOVER_RETRIGGER_THRESHOLD = 0.5;
 const TIME_CONSTANT = 600;
-const VELOCITY_THRESHOLD = 0.5;
-const POLE_LIMIT = 60;
+// Angular-velocity threshold (rad/sec) below which momentum is
+// considered settled. Was 0.5 deg/sec equivalent in the Euler model;
+// keep similar value in radians.
+const VELOCITY_THRESHOLD = 0.01;
 const AXIAL_TILT_DEG = 18;
 
 // ─── Glow toggles ─────────────────────────────────────────────
@@ -126,21 +139,6 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
 
-function bounceX(x: number): { x: number; flipped: boolean } {
-  let flipped = false;
-  while (x > POLE_LIMIT || x < -POLE_LIMIT) {
-    if (x > POLE_LIMIT) {
-      x = 2 * POLE_LIMIT - x;
-      flipped = !flipped;
-    }
-    if (x < -POLE_LIMIT) {
-      x = -2 * POLE_LIMIT - x;
-      flipped = !flipped;
-    }
-  }
-  return { x, flipped };
-}
-
 export function PolyhedronGlobe({
   radius = 340,
   frequency = 2,
@@ -158,27 +156,51 @@ export function PolyhedronGlobe({
     return map;
   }, [assignments]);
 
-  // Initial X is positive: tips the top of the sphere toward the camera
-  // by ~15°, exposing a touch more of the northern hemisphere on first
-  // render. Composed with the 18° axial-tilt Z rotation downstream.
-  const [rotation, setRotation] = useState({ x: 15, y: 0 });
+  // ─── Rotation state (quaternion) ─────────────────────────────
+  //
+  // A single quaternion `q` represents the cumulative rotation of the
+  // sphere's user-controlled orientation. Drag and auto-rotate left-
+  // multiply incremental rotations into `q` each frame. The axial Z
+  // tilt is applied as a fixed post-rotation in the projection
+  // pipeline below — it's a camera tilt, not part of the user's
+  // controllable rotation.
+  //
+  // Initial value: a 15° rotation around world-X (matches the prior
+  // Euler initial tilt that exposed a bit more of the northern
+  // hemisphere on first paint).
+  //
+  // The auto-rotate axis is stored separately. By default it's world
+  // Y `(0, 1, 0)` — the sphere spins around its vertical axis. Stage 2
+  // (click-to-anchor) will swap this to point through the clicked
+  // vertex, giving rotation around an arbitrary axis.
+  const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
+  const [q, setQ] = useState<Quat>(() =>
+    fromAxisAngle(1, 0, 0, INITIAL_PITCH_RAD),
+  );
+  const latestQ = useRef<Quat>(fromAxisAngle(1, 0, 0, INITIAL_PITCH_RAD));
+  const autoRotateAxis = useRef<{ x: number; y: number; z: number }>({
+    x: 0,
+    y: 1,
+    z: 0,
+  });
+
+  const applyQ = useCallback((next: Quat) => {
+    latestQ.current = next;
+    setQ(next);
+  }, []);
+
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const lastTime = useRef(0);
   const didDrag = useRef(false);
-  const velocityY = useRef(0);
-  const velocityX = useRef(0);
+  // Angular velocity components (radians/sec) accumulated during drag,
+  // decayed via TIME_CONSTANT after release. Replaces the prior
+  // velocityX/velocityY scalars that targeted Euler angles directly.
+  const angularVelocityYaw = useRef(0);
+  const angularVelocityPitch = useRef(0);
   const releaseTime = useRef(0);
-  const amplitudeY = useRef(0);
-  const amplitudeX = useRef(0);
-  const targetY = useRef(0);
-  const targetX = useRef(0);
-  const latestRotation = useRef({ x: 15, y: 0 });
-
-  const applyRotation = useCallback((r: { x: number; y: number }) => {
-    latestRotation.current = r;
-    setRotation(r);
-  }, []);
+  const amplitudeYaw = useRef(0);
+  const amplitudePitch = useRef(0);
 
   // ─── Hover engagement model ──────────────────────────────────
   //
@@ -290,8 +312,18 @@ export function PolyhedronGlobe({
     };
   }, []);
 
-  // Drag-momentum physics loop. Direct port from Globe.tsx — same time
-  // constant, same pole bounce, same stationary-finger guard.
+  // ─── Drag-momentum physics loop ──────────────────────────────
+  //
+  // Each frame: if drag-momentum is still decaying, apply incremental
+  // yaw/pitch rotations (computed from decaying angular velocities)
+  // to the quaternion. Otherwise auto-rotate around the current
+  // autoRotateAxis, modulated by the hover-cycle speed multiplier.
+  //
+  // Pole-bounce is GONE in this refactor — it was a constraint
+  // specific to the Euler model and doesn't compose with the
+  // arbitrary-axis rotation we'll need in Stage 2 (click-to-anchor).
+  // The sphere can now drag freely over the poles. This is a small
+  // user-facing change vs the prior Euler implementation.
   useEffect(() => {
     let lastTick = performance.now();
     let frame: number;
@@ -299,51 +331,54 @@ export function PolyhedronGlobe({
     function tick(now: number) {
       const dt = now - lastTick;
       lastTick = now;
+      const dtSec = dt / 1000;
 
       if (!dragging.current) {
         const speed =
-          Math.abs(amplitudeY.current) + Math.abs(amplitudeX.current);
+          Math.abs(amplitudeYaw.current) + Math.abs(amplitudePitch.current);
 
         if (speed > VELOCITY_THRESHOLD) {
+          // Drag-release momentum: decay the angular velocity and apply
+          // an incremental rotation each frame.
           const elapsed = now - releaseTime.current;
           const decay = Math.exp(-elapsed / TIME_CONSTANT);
 
-          const rawX = targetX.current - amplitudeX.current * decay;
-          const { x: bouncedX, flipped } = bounceX(rawX);
-          if (flipped) {
-            amplitudeX.current = -amplitudeX.current;
-            targetX.current = 2 * bouncedX - targetX.current;
+          const yawRate = amplitudeYaw.current * decay;
+          const pitchRate = amplitudePitch.current * decay;
+
+          // Compose two world-axis rotations: yaw around world Y,
+          // pitch around world X. Order matches the prior Euler model
+          // (Y applied first, then X) — pitch is multiplied last in
+          // the chain so it ends up on the left of yaw.
+          let next = latestQ.current;
+          const yawAngle = yawRate * dtSec;
+          const pitchAngle = pitchRate * dtSec;
+          if (yawAngle !== 0) {
+            next = quatMultiply(fromAxisAngle(0, 1, 0, yawAngle), next);
           }
+          if (pitchAngle !== 0) {
+            next = quatMultiply(fromAxisAngle(1, 0, 0, pitchAngle), next);
+          }
+          applyQ(next);
 
-          applyRotation({
-            x: bouncedX,
-            y: targetY.current - amplitudeY.current * decay,
-          });
-
-          if (
-            Math.abs(amplitudeY.current * decay) < 0.1 &&
-            Math.abs(amplitudeX.current * decay) < 0.1
-          ) {
-            amplitudeY.current = 0;
-            amplitudeX.current = 0;
+          if (Math.abs(yawRate) < 0.01 && Math.abs(pitchRate) < 0.01) {
+            amplitudeYaw.current = 0;
+            amplitudePitch.current = 0;
           }
         } else {
-          // Auto-rotate, modulated by the hover cycle's speed multiplier.
-          // The multiplier is 1 at cruise, ramps to 0 over HOVER_DECEL_MS
-          // when a hover triggers a new cycle, sits at 0 through the
-          // hold, then ramps back to 1 over HOVER_RESUME_MS — see
-          // computeHoverSpeedMul. When the cycle completes, the ref is
-          // reset so subsequent frames don't keep recomputing.
+          // Auto-rotate around autoRotateAxis. The speed multiplier is
+          // driven by the hover cycle (decelerates on hover-engage,
+          // holds, then ramps back up). When the cycle completes,
+          // hoverCycleStart resets so we stop recomputing.
           const speedMul = computeHoverSpeedMul(now, hoverCycleStart.current);
           if (speedMul >= 1 && hoverCycleStart.current !== null) {
             hoverCycleStart.current = null;
           }
           if (speedMul > 0) {
-            const r = latestRotation.current;
-            applyRotation({
-              ...r,
-              y: r.y + AUTO_SPEED * speedMul * (dt / 16),
-            });
+            const angle = AUTO_ANGULAR_SPEED * speedMul * dtSec;
+            const axis = autoRotateAxis.current;
+            const delta = fromAxisAngle(axis.x, axis.y, axis.z, angle);
+            applyQ(quatMultiply(delta, latestQ.current));
           }
         }
       }
@@ -353,20 +388,23 @@ export function PolyhedronGlobe({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [applyRotation]);
+  }, [applyQ]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     dragging.current = true;
     didDrag.current = false;
-    velocityX.current = 0;
-    velocityY.current = 0;
-    amplitudeX.current = 0;
-    amplitudeY.current = 0;
+    angularVelocityYaw.current = 0;
+    angularVelocityPitch.current = 0;
+    amplitudeYaw.current = 0;
+    amplitudePitch.current = 0;
     lastMouse.current = { x: e.clientX, y: e.clientY };
     lastTime.current = performance.now();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   }, []);
 
+  // Drag-input mapping: dx (horizontal pointer move) → yaw around
+  // world Y. dy (vertical pointer move) → pitch around world X.
+  // Both at DRAG_RATE radians per pixel.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
@@ -383,32 +421,51 @@ export function PolyhedronGlobe({
       lastMouse.current = { x: e.clientX, y: e.clientY };
       lastTime.current = now;
 
-      const vxNow = (1000 * dx) / (1 + dt);
-      const vyNow = (1000 * dy) / (1 + dt);
-      velocityY.current = 0.8 * vxNow + 0.2 * velocityY.current;
-      velocityX.current = 0.8 * vyNow + 0.2 * velocityX.current;
+      // Per-pixel rotation rate (rad/px). Matches the prior Euler
+      // model's 0.3°/px ≈ 0.00524 rad/px.
+      const yawAngle = dx * DRAG_RATE;
+      const pitchAngle = dy * DRAG_RATE;
 
-      const r = latestRotation.current;
-      const { x: bx } = bounceX(r.x + dy * 0.3);
-      applyRotation({ x: bx, y: r.y + dx * 0.3 });
+      // Angular velocity tracking (rad/sec) for release momentum.
+      // Same EMA smoothing as before (0.8 new + 0.2 old).
+      const yawRate = (1000 * yawAngle) / (1 + dt);
+      const pitchRate = (1000 * pitchAngle) / (1 + dt);
+      angularVelocityYaw.current =
+        0.8 * yawRate + 0.2 * angularVelocityYaw.current;
+      angularVelocityPitch.current =
+        0.8 * pitchRate + 0.2 * angularVelocityPitch.current;
+
+      // Apply the incremental rotation immediately. Same composition
+      // order as the momentum loop: yaw around world Y, then pitch
+      // around world X.
+      let next = latestQ.current;
+      if (yawAngle !== 0) {
+        next = quatMultiply(fromAxisAngle(0, 1, 0, yawAngle), next);
+      }
+      if (pitchAngle !== 0) {
+        next = quatMultiply(fromAxisAngle(1, 0, 0, pitchAngle), next);
+      }
+      applyQ(next);
     },
-    [applyRotation],
+    [applyQ],
   );
 
   const handlePointerUp = useCallback(() => {
     if (!dragging.current) return;
     dragging.current = false;
 
+    // Stationary-finger guard: if the last move was >50ms ago, clear
+    // accumulated velocity. Same as before.
     if (performance.now() - lastTime.current > 50) {
-      velocityY.current = 0;
-      velocityX.current = 0;
+      angularVelocityYaw.current = 0;
+      angularVelocityPitch.current = 0;
     }
 
-    const r = latestRotation.current;
-    amplitudeY.current = (velocityY.current * TIME_CONSTANT) / 1000;
-    amplitudeX.current = (velocityX.current * TIME_CONSTANT) / 1000;
-    targetY.current = r.y + amplitudeY.current;
-    targetX.current = r.x + amplitudeX.current;
+    // Set the initial momentum amplitude from current angular velocity.
+    // The amplitude decays via Math.exp(-elapsed/TIME_CONSTANT) in the
+    // tick loop above.
+    amplitudeYaw.current = angularVelocityYaw.current;
+    amplitudePitch.current = angularVelocityPitch.current;
     releaseTime.current = performance.now();
   }, []);
 
@@ -424,65 +481,38 @@ export function PolyhedronGlobe({
   const cx = stageSize / 2;
   const cy = stageSize / 2;
 
-  // Convert rotation degrees to radians; combine Y (mouse-x), X (mouse-y),
-  // and the axial Z tilt into one set of trig values.
-  //
-  // Direct conversion — both axes share the same sign convention.
-  // The drag handler stores rotation.x and rotation.y in this same
-  // convention (positive rotation.x tips the top toward the camera;
-  // positive rotation.y spins the right side toward the back). No
-  // sign mismatches between input space and matrix space; whatever
-  // visual flips the original CSS-Globe ported with are absorbed
-  // at the drag-handler boundary instead.
-  const angleY = (rotation.y * Math.PI) / 180;
-  const angleX = (rotation.x * Math.PI) / 180;
+  // The user-controlled rotation is now a quaternion. Each frame we
+  // convert it to a 3×3 matrix (once, not per vertex), apply that to
+  // each vertex, then apply the fixed axial Z tilt and perspective.
   const angleZ = (AXIAL_TILT_DEG * Math.PI) / 180;
-  const cosY = Math.cos(angleY);
-  const sinY = Math.sin(angleY);
-  const cosX = Math.cos(angleX);
-  const sinX = Math.sin(angleX);
   const cosZ = Math.cos(angleZ);
   const sinZ = Math.sin(angleZ);
+  const rotMatrix = useMemo(() => toMatrix3(q), [q]);
 
-  // Project every vertex. Order of rotations: first Y (sphere spin), then
-  // X (pitch from drag), then Z (axial tilt). Mirrors how the rectangle
-  // Globe composed its three CSS rotateY/rotateX/rotateZ transforms.
+  // Project every vertex through:
+  //   1. quaternion rotation (user-controlled, q)
+  //   2. axial Z tilt (fixed camera tilt, AXIAL_TILT_DEG)
+  //   3. perspective projection + viewBox translation
   const projected = useMemo(() => {
+    const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = rotMatrix;
     return mesh.vertices.map((v) => {
-      // Y rotation: spin around vertical axis
-      const x1 = v.x * cosY + v.z * sinY;
-      const z1 = -v.x * sinY + v.z * cosY;
-      const y1 = v.y;
-      // X rotation: pitch (look up/down)
-      const y2 = y1 * cosX - z1 * sinX;
-      const z2 = y1 * sinX + z1 * cosX;
-      const x2 = x1;
-      // Z rotation: axial tilt
-      const x3 = x2 * cosZ - y2 * sinZ;
-      const y3 = x2 * sinZ + y2 * cosZ;
-      const z3 = z2;
-      // Perspective
-      const persp = cameraZ / (cameraZ - z3);
+      // Rotate by the user quaternion's matrix.
+      const x1 = m0 * v.x + m1 * v.y + m2 * v.z;
+      const y1 = m3 * v.x + m4 * v.y + m5 * v.z;
+      const z1 = m6 * v.x + m7 * v.y + m8 * v.z;
+      // Axial Z tilt — fixed camera-level rotation.
+      const x2 = x1 * cosZ - y1 * sinZ;
+      const y2 = x1 * sinZ + y1 * cosZ;
+      const z2 = z1;
+      // Perspective.
+      const persp = cameraZ / (cameraZ - z2);
       return {
-        // Screen-space (post-perspective, post-translate-to-viewBox-center).
-        sx: x3 * persp * scale + cx,
-        sy: -y3 * persp * scale + cy,
-        z: z3,
+        sx: x2 * persp * scale + cx,
+        sy: -y2 * persp * scale + cy,
+        z: z2,
       };
     });
-  }, [
-    mesh.vertices,
-    cosY,
-    sinY,
-    cosX,
-    sinX,
-    cosZ,
-    sinZ,
-    cameraZ,
-    scale,
-    cx,
-    cy,
-  ]);
+  }, [mesh.vertices, rotMatrix, cosZ, sinZ, cameraZ, scale, cx, cy]);
 
   // Per-face processing: cull backfaces, compute centroid Z for sort.
   // Also collects the union of vertex indices touched by visible (front-
