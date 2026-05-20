@@ -1,51 +1,73 @@
 import { db } from "@/lib/db";
-import { pgSchema, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { bounties } from "@/lib/schema/jaskis";
 import { desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-const jaskisSchema = pgSchema("rest_rant");
-
-const spots = jaskisSchema.table("places", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  cuisine: text("cuisine").notNull(),
-  imageUrl: text("image_url"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+/**
+ * JASKIS — bounties collection (museum port of moefingers/API-JASKIS).
+ *
+ * Source data lives at moefingers/API-JASKIS:commands.js — a MongoDB
+ * shell exercise around an animal-bounties collection. The museum
+ * surfaces the same data shape as a REST API so visitors can interact
+ * with it via api-client.
+ *
+ * Endpoints mirror what a MongoDB-backed Express version of the same
+ * exercise would expose: list all, get one, create, update, delete.
+ *
+ * GET /api/jaskis           → list all bounties (newest first)
+ * POST /api/jaskis          → create a new bounty
+ *
+ * See ./[id]/route.ts for single-bounty operations.
+ */
 
 export async function GET() {
-  const allSpots = await db.select().from(spots).orderBy(desc(spots.createdAt));
-  return NextResponse.json(allSpots);
+  const allBounties = await db
+    .select()
+    .from(bounties)
+    .orderBy(desc(bounties.createdAt));
+  return NextResponse.json(allBounties);
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     name?: string;
-    city?: string;
-    state?: string;
-    cuisine?: string;
+    species?: string;
+    location?: string;
+    wantedFor?: string;
+    client?: string;
+    reward?: number;
+    captured?: boolean;
   };
 
-  if (!body.name || !body.city || !body.state || !body.cuisine) {
+  if (
+    !body.name ||
+    !body.species ||
+    !body.location ||
+    !body.wantedFor ||
+    !body.client ||
+    body.reward === undefined
+  ) {
     return NextResponse.json(
-      { error: "name, city, state, and cuisine are required" },
+      {
+        error:
+          "name, species, location, wantedFor, client, and reward are required",
+      },
       { status: 400 },
     );
   }
 
-  const [spot] = await db
-    .insert(spots)
+  const [bounty] = await db
+    .insert(bounties)
     .values({
       name: body.name.slice(0, 100),
-      city: body.city.slice(0, 50),
-      state: body.state.slice(0, 2),
-      cuisine: body.cuisine.slice(0, 50),
+      species: body.species.slice(0, 50),
+      location: body.location.slice(0, 80),
+      wantedFor: body.wantedFor.slice(0, 200),
+      client: body.client.slice(0, 80),
+      reward: body.reward,
+      captured: body.captured ?? false,
     })
     .returning();
 
-  return NextResponse.json(spot, { status: 201 });
+  return NextResponse.json(bounty, { status: 201 });
 }

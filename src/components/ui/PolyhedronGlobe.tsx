@@ -439,14 +439,24 @@ export function PolyhedronGlobe({
   const amplitudeYaw = useRef(0);
   const amplitudePitch = useRef(0);
 
-  // ─── Anchor choreography state machine (Stage 3) ────────────
+  // ─── Anchor state machine: TYPE + state + accessor ──────────
   //
-  // Declared up here (before the engagement model below) because
-  // engagement decisions depend on the anchored state — e.g.,
-  // hovering the anchored vertex should NOT re-engage its label
-  // (the card has supplanted the label as its presentation). The
-  // full state machine's effects + handlers are defined later in
-  // the file; only the type, state, ref, and accessor live up here.
+  // The anchor state machine is split across three sections in
+  // this file due to mutual dependencies on the engagement model
+  // between them:
+  //
+  //   1. (HERE) type + `phase` state + `getAnchoredVi()` accessor.
+  //      Declared first so the engagement model below can
+  //      ask "is this vertex currently anchored?" via the
+  //      accessor.
+  //   2. (below "Hover engagement model") swing-animation state
+  //      (anchorAnim ref, anchoredAxis ref) + `computeAnchorTarget`
+  //      helper. Doesn't depend on engagement, but is read by the
+  //      phase drivers in (3).
+  //   3. (below that) phase drivers — the timer + effect chain
+  //      that advances phases, plus `handleDotClick` and
+  //      `releaseAnchor`. Uses `setEngagedVertexIdx` from the
+  //      engagement model, so it must follow it.
   //
   // Anchor open/close is a multi-phase sequence; this state machine
   // makes every phase explicit so no two animations race each
@@ -558,15 +568,12 @@ export function PolyhedronGlobe({
     // noop
   }, []);
 
-  // ─── Anchor (click-to-anchor) state ──────────────────────────
+  // ─── Anchor state machine (2/3): swing animation state ──────
   //
-  // anchoredVertexIdx is DERIVED from the phase state machine below
-  // (search for "Anchor choreography state machine"). It's null in
-  // the idle and unswinging phases, otherwise it's the vi the phase
-  // carries. Callsites that need a current-anchored-vi read from a
-  // side-effect (rAF loop, pointer-down handler) consult `phaseRef`
-  // directly via `getAnchoredVi()` rather than maintaining a
-  // separate ref-mirror — single source of truth.
+  // Continued from "Anchor state machine: TYPE + state + accessor"
+  // above the engagement model. Side-effect callbacks (rAF loop,
+  // pointer handlers) read `phaseRef.current` / `getAnchoredVi()`
+  // for the current vertex — no separate `anchoredVertexIdx` ref.
 
   // Swing animation state. When set, the rAF loop interpolates `q`
   // from `fromQ` to `toQ` over [startedAt, startedAt + ANCHOR_SWING_MS]
@@ -631,12 +638,18 @@ export function PolyhedronGlobe({
     [],
   );
 
-  // ─── Anchor choreography state machine (Stage 3) — drivers ──
+  // ─── Anchor state machine (3/3): phase drivers + handlers ───
   //
-  // The type, state, ref, and getAnchoredVi accessor are declared
-  // earlier in the component (right after the rotation refs) so
-  // the engagement model below can depend on anchored state.
-  // Below: the timer-driven phase progression + handlers.
+  // Final piece of the state machine. Continued from sections
+  // (1/3) above the engagement model and (2/3) just above.
+  //
+  // What lives here: the timer + effect chain that drives phase
+  // transitions (scheduleNextPhase, the phase-driven side-effect
+  // useEffect, handleDotClick, releaseAnchor). This is the last
+  // piece because handlers in this section call
+  // `setEngagedVertexIdx` to clear engagement when entering an
+  // anchored phase — that setter is declared in the engagement
+  // model above.
   //
   // Single shared timer for phase advancement. Clearing it before
   // every new phase means rapid clicks (e.g., spam-clicking

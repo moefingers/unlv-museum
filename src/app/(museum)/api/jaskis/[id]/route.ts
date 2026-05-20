@@ -1,38 +1,36 @@
 import { db } from "@/lib/db";
-import { pgSchema, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { bounties } from "@/lib/schema/jaskis";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-const jaskisSchema = pgSchema("rest_rant");
-
-const spots = jaskisSchema.table("places", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  cuisine: text("cuisine").notNull(),
-  imageUrl: text("image_url"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+/**
+ * Single-bounty operations for the JASKIS port.
+ * See ../route.ts for the source-data background.
+ *
+ * GET /api/jaskis/:id      → fetch one bounty
+ * PUT /api/jaskis/:id      → update one bounty (any subset of fields)
+ * DELETE /api/jaskis/:id   → remove one bounty
+ */
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const spotId = parseInt(id, 10);
-  if (isNaN(spotId)) {
+  const bountyId = parseInt(id, 10);
+  if (isNaN(bountyId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
-  const [spot] = await db.select().from(spots).where(eq(spots.id, spotId));
-  if (!spot) {
-    return NextResponse.json({ error: "Spot not found" }, { status: 404 });
+  const [bounty] = await db
+    .select()
+    .from(bounties)
+    .where(eq(bounties.id, bountyId));
+  if (!bounty) {
+    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
   }
 
-  return NextResponse.json(spot);
+  return NextResponse.json(bounty);
 }
 
 export async function PUT(
@@ -40,31 +38,43 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const spotId = parseInt(id, 10);
-  if (isNaN(spotId)) {
+  const bountyId = parseInt(id, 10);
+  if (isNaN(bountyId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
   const body = (await request.json()) as {
     name?: string;
-    city?: string;
-    state?: string;
-    cuisine?: string;
+    species?: string;
+    location?: string;
+    wantedFor?: string;
+    client?: string;
+    reward?: number;
+    captured?: boolean;
   };
 
   const [updated] = await db
-    .update(spots)
+    .update(bounties)
     .set({
-      ...(body.name && { name: body.name.slice(0, 100) }),
-      ...(body.city && { city: body.city.slice(0, 50) }),
-      ...(body.state && { state: body.state.slice(0, 2) }),
-      ...(body.cuisine && { cuisine: body.cuisine.slice(0, 50) }),
+      ...(body.name !== undefined && { name: body.name.slice(0, 100) }),
+      ...(body.species !== undefined && {
+        species: body.species.slice(0, 50),
+      }),
+      ...(body.location !== undefined && {
+        location: body.location.slice(0, 80),
+      }),
+      ...(body.wantedFor !== undefined && {
+        wantedFor: body.wantedFor.slice(0, 200),
+      }),
+      ...(body.client !== undefined && { client: body.client.slice(0, 80) }),
+      ...(body.reward !== undefined && { reward: body.reward }),
+      ...(body.captured !== undefined && { captured: body.captured }),
     })
-    .where(eq(spots.id, spotId))
+    .where(eq(bounties.id, bountyId))
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "Spot not found" }, { status: 404 });
+    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
   }
 
   return NextResponse.json(updated);
@@ -75,19 +85,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const spotId = parseInt(id, 10);
-  if (isNaN(spotId)) {
+  const bountyId = parseInt(id, 10);
+  if (isNaN(bountyId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
   const [deleted] = await db
-    .delete(spots)
-    .where(eq(spots.id, spotId))
+    .delete(bounties)
+    .where(eq(bounties.id, bountyId))
     .returning();
 
   if (!deleted) {
-    return NextResponse.json({ error: "Spot not found" }, { status: 404 });
+    return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ message: "Deleted", spot: deleted });
+  return NextResponse.json({ message: "Deleted", bounty: deleted });
 }
