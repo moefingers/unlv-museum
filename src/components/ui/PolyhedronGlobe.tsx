@@ -2356,17 +2356,19 @@ export function PolyhedronGlobe({
             touchAction: "manipulation",
             zIndex: 2,
           }}
-          onPointerDown={(e) => {
-            // Block pointerdown so the stage's drag handler doesn't
-            // start a drag when the user clicks on the hex card.
-            // (The stage's pointerdown also releases the anchor as
-            // a "user wants to drag" intent — neither should fire
-            // when the user is interacting with the card itself.)
+          onPointerDownCapture={(e) => {
+            // Capture-phase stop so the stage's onPointerDown
+            // (drag-start + anchor-release) never sees this — the
+            // hex card is INSIDE the stage tree, and capture-phase
+            // listeners on ancestors fire before bubble-phase
+            // stopPropagation on this element can do anything.
+            // (Same reason for onClickCapture below: the stage's
+            // onClickCapture sets preventDefault when didDrag is
+            // true, which on touch happens easily from small
+            // finger jitter — blocking the Link's navigation.)
             e.stopPropagation();
           }}
-          onClick={(e) => {
-            // Stop the click from bubbling to the stage-bg dismiss.
-            // Clicking the hex itself shouldn't release the anchor.
+          onClickCapture={(e) => {
             e.stopPropagation();
           }}
         >
