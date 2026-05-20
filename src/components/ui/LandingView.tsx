@@ -38,6 +38,9 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Hand,
+  Crosshair,
+  HelpCircle,
 } from "lucide-react";
 import styles from "./LandingView.module.css";
 
@@ -340,6 +343,35 @@ function LandingViewInner() {
   // breathes when the user wants it out of the way. Not URL-backed —
   // private chrome behavior, not a shareable view dimension.
   const [legendOpen, setLegendOpen] = useState(true);
+
+  // ─── Touch input mode ────────────────────────────────────────
+  //
+  // Touch devices have no hover signal, so the per-vertex label
+  // preview (hover-to-type) isn't accessible by default. The
+  // "Hover" mode renders a crosshair that follows the user's
+  // finger; while it's active, the vertex nearest the crosshair
+  // gets engagement (label types in), and a tap routes to that
+  // same nearest vertex's open-card action — so the user can
+  // explore titles without committing to a specific dot's hit area.
+  //
+  // Default "tap" mode = current behavior (drag rotates, tap on
+  // dot opens). Toggle is only shown on touch devices (coarse
+  // pointer, no hover); on hybrid devices the user can opt into
+  // either via the same toggle, with mouse interactions still
+  // working alongside.
+  type TouchMode = "tap" | "hover";
+  const [touchMode, setTouchMode] = useState<TouchMode>("tap");
+  // Coarse-pointer detection drives whether the toggle is rendered
+  // at all. Default false on SSR; the client effect re-derives.
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(pointer: coarse) and (hover: none)");
+    const apply = () => setIsTouchDevice(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   // Help modal — defaults closed so the SSR render matches the
   // first-paint client render (avoids hydration mismatch). On mount,
   // if localStorage doesn't have the dismissed flag, open it. Manual
@@ -626,6 +658,38 @@ function LandingViewInner() {
                 Time
               </button>
             </div>
+            {/*
+              Touch-mode toggle. Only rendered on touch devices (coarse
+              pointer + no hover). Lets touch users opt into a crosshair-
+              cursor "Hover" mode where finger movement previews vertex
+              labels instead of immediately opening cards.
+            */}
+            {isTouchDevice && view === "globe" && (
+              <div className={styles.viewToggle}>
+                <button
+                  onClick={() => setTouchMode("tap")}
+                  className={`${styles.viewButton} ${
+                    touchMode === "tap"
+                      ? styles.viewButtonActive
+                      : styles.viewButtonIdle
+                  }`}
+                >
+                  <Hand size={14} />
+                  Tap
+                </button>
+                <button
+                  onClick={() => setTouchMode("hover")}
+                  className={`${styles.viewButton} ${
+                    touchMode === "hover"
+                      ? styles.viewButtonActive
+                      : styles.viewButtonIdle
+                  }`}
+                >
+                  <Crosshair size={14} />
+                  Hover
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -677,6 +741,8 @@ function LandingViewInner() {
               assignments={vertexAssignments}
               onAnchoredChange={setAnchored}
               onWheelZoom={handleWheelZoom}
+              touchMode={touchMode}
+              userZoom={userZoom}
             />
           </div>
         </div>
@@ -713,22 +779,12 @@ function LandingViewInner() {
           }}
         >
           {/*
-            Globe-only hint, conditionally revealed via the grid
-            0fr → 1fr trick: the wrapper is a single-row grid whose
-            track interpolates from 0fr (collapsed) to 1fr (expanded),
-            and the inner element has overflow:hidden + min-height:0
-            so it clips during the transition. Cleaner than max-height
-            because it animates to the content's natural size without
-            picking an arbitrary upper bound.
+            Category legend rows. The "drag to rotate / click a card"
+            instructions moved into the HelpModal; the help row at
+            the end of this list is the entry point back to that
+            modal. Each category dot is a radial gradient styled to
+            visually echo the polyhedron's vertex glow.
           */}
-          <div
-            className={styles.legendHintRow}
-            data-globe-active={view === "globe"}
-          >
-            <p className={`text-xs ${styles.legendHint}`}>
-              Drag to rotate. Click a card to explore.
-            </p>
-          </div>
           <div className={styles.legendDots}>
             {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
               <span key={cat} className={`text-xs ${styles.legendItem}`}>
@@ -736,6 +792,15 @@ function LandingViewInner() {
                 {CATEGORY_LABELS[cat]}
               </span>
             ))}
+            <button
+              type="button"
+              className={`text-xs ${styles.legendItem} ${styles.legendHelpButton}`}
+              onClick={() => setHelpOpen(true)}
+              aria-label="Show help"
+            >
+              <HelpCircle size={12} className={styles.legendHelpIcon} />
+              help
+            </button>
           </div>
         </div>
         <button

@@ -121,7 +121,8 @@ const STEPS_TOUCH: Step[] = [
     icon: <Hand size={18} />,
     body: (
       <>
-        <strong>Drag</strong> with one finger to rotate the globe.
+        In <strong>Tap mode</strong> (default): drag with one finger to rotate,
+        tap a glowing point to open its card.
       </>
     ),
   },
@@ -129,7 +130,8 @@ const STEPS_TOUCH: Step[] = [
     icon: <Pointer size={18} />,
     body: (
       <>
-        <strong>Tap</strong> a glowing point to open its project card.
+        Switch to <strong>Hover mode</strong> in the header to preview titles: a
+        crosshair follows your finger, lift to open whatever it&apos;s near.
       </>
     ),
   },

@@ -87,6 +87,24 @@ interface PolyhedronGlobeProps {
    * ceiling/floor adjustments) live with the state in one place.
    */
   onWheelZoom?: (deltaY: number) => void;
+  /**
+   * Touch input mode. "tap" (default) = current behavior; finger
+   * drag rotates the sphere, finger-tap on a vertex's hit target
+   * opens the card. "hover" = a virtual crosshair follows the
+   * finger; the vertex nearest the crosshair gets label engagement
+   * (preview-on-hover, no card open). A tap-without-much-movement
+   * in hover mode opens whichever vertex the crosshair is nearest
+   * to — so the user can preview titles by sliding around, then
+   * commit with a lift. Defaults to "tap" for backward compat.
+   */
+  touchMode?: "tap" | "hover";
+  /**
+   * Current user zoom factor. Used to scale the drag rate inversely
+   * with zoom — at higher zoom the same finger motion covers
+   * less of the (visually larger) sphere, so the rotation feels
+   * too fast unless we slow it down proportionally. Defaults to 1.
+   */
+  userZoom?: number;
 }
 
 // Auto-rotation angular speed in radians/second. Equivalent to the
@@ -312,6 +330,8 @@ export function PolyhedronGlobe({
   assignments,
   onAnchoredChange,
   onWheelZoom,
+  touchMode = "tap",
+  userZoom = 1,
 }: PolyhedronGlobeProps) {
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
@@ -1155,6 +1175,65 @@ export function PolyhedronGlobe({
   // distance and the last reference distance drives the zoom step.
   const lastPinchDistance = useRef<number | null>(null);
 
+  // ─── Touch hover-mode crosshair ──────────────────────────────
+  //
+  // When touchMode === "hover", a virtual crosshair tracks the
+  // user's finger position. The vertex nearest the crosshair gets
+  // label engagement (preview-on-hover). A tap-release with
+  // minimal movement opens that vertex's card.
+  //
+  // crosshairPos is stage-local viewBox coords (same space as the
+  // SVG's projected vertex coords); null = no crosshair shown.
+  // crosshairEngagedVi = the vertex currently engaged by proximity.
+  // crosshairStartedAt = pointerdown timestamp, used to detect taps
+  //   (release within TAP_MAX_MS and TAP_MAX_PX of start = tap).
+  const [crosshairPos, setCrosshairPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  // Mirror crosshairPos into a ref so the pointerup callback can
+  // read the latest value without depending on state in its dep
+  // array (which would re-create the callback every frame the
+  // crosshair moves).
+  const crosshairPosRef = useRef<{ x: number; y: number } | null>(null);
+  const crosshairStartedAt = useRef<number>(0);
+  const crosshairStartPos = useRef<{ x: number; y: number } | null>(null);
+  const crosshairMaxMovement = useRef<number>(0);
+  // Set crosshair position state AND mirror ref in one call so
+  // every code path that updates the crosshair keeps both in sync.
+  const applyCrosshair = (pos: { x: number; y: number } | null) => {
+    crosshairPosRef.current = pos;
+    setCrosshairPos(pos);
+  };
+  // Touch-mode ref so handlers can read the current mode without
+  // recreating on every prop change. The crosshair render is
+  // gated on (touchMode === "hover" && crosshairPos) in the JSX,
+  // so switching to Tap mode hides the crosshair visually
+  // without needing an effect to clear state.
+  const touchModeRef = useRef(touchMode);
+  useEffect(() => {
+    touchModeRef.current = touchMode;
+  }, [touchMode]);
+  // userZoom mirror: lets the drag handler scale its per-pixel
+  // rotation rate inversely with zoom (so dragging a fixed pixel
+  // distance always rotates the sphere the same amount visually,
+  // not the same amount of underlying degrees).
+  const userZoomRef = useRef(userZoom);
+  useEffect(() => {
+    userZoomRef.current = userZoom;
+  }, [userZoom]);
+
+  // Tap threshold: a pointerdown→up gesture within TAP_MAX_MS that
+  // moved less than TAP_MAX_PX qualifies as a tap (route to the
+  // currently-engaged vertex). Otherwise it's a drag, no open.
+  const TAP_MAX_MS = 400;
+  const TAP_MAX_PX = 20;
+  // How close to a vertex the crosshair has to be to engage it.
+  // In viewBox units; should match or exceed VertexHover's
+  // hitTargetRadius (24) so the user has the same generous reach
+  // as a mouse hover.
+  const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
+
   // Compute the centroid + average radius of all active pointers.
   // For 1 pointer: centroid = that pointer's pos, radius = 0.
   // For 2+: centroid is the geometric mean of positions, radius is
@@ -1186,8 +1265,82 @@ export function PolyhedronGlobe({
     return { x: cx, y: cy, radius: sumR / n, count: n };
   };
 
+  // Ref on the SVG so we can convert client coords → viewBox
+  // coords from any handler. Used by hover-mode crosshair to
+  // place itself in the same coord space as projected vertices.
+  // Wrapped in useCallback with [radius] so it's stable across
+  // renders that don't change the radius prop — pointer-event
+  // handlers can list it as a dep without losing memoization.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const clientToViewBox = useCallback(
+    (clientX: number, clientY: number): { x: number; y: number } | null => {
+      const svg = svgRef.current;
+      if (!svg) return null;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return null;
+      return {
+        x: ((clientX - rect.left) / rect.width) * (radius * 2 + 200),
+        y: ((clientY - rect.top) / rect.height) * (radius * 2 + 200),
+      };
+    },
+    [radius],
+  );
+
+  // Find the visible vertex nearest to a viewBox-space point.
+  // Returns null if no vertex is within engagementRadius (in
+  // viewBox units, which is the same coord space as projected[].sx/sy).
+  // Restricted to ASSIGNED vertices since those are the only
+  // ones a hover should engage / a tap should open.
+  const visibleVerticesRef = useRef<
+    Array<{ vi: number; sx: number; sy: number }>
+  >([]);
+  const findNearestAssignedVertex = useCallback(
+    (
+      point: { x: number; y: number },
+      engagementRadius: number,
+    ): number | null => {
+      let best: number | null = null;
+      let bestDist = engagementRadius * engagementRadius;
+      for (const v of visibleVerticesRef.current) {
+        if (!assignmentByVertex.has(v.vi)) continue;
+        const dx = point.x - v.sx;
+        const dy = point.y - v.sy;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestDist) {
+          bestDist = d2;
+          best = v.vi;
+        }
+      }
+      return best;
+    },
+    [assignmentByVertex],
+  );
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
+      // ── Touch hover mode ─────────────────────────────────
+      // Pointerdown in hover mode places the crosshair at the
+      // touch point and engages the nearest assigned vertex.
+      // Drag/pinch logic is suppressed — the finger is a
+      // hover-cursor, not a sphere-grabber.
+      if (touchModeRef.current === "hover") {
+        const vbPoint = clientToViewBox(e.clientX, e.clientY);
+        if (vbPoint) {
+          applyCrosshair(vbPoint);
+          const vi = findNearestAssignedVertex(
+            vbPoint,
+            CROSSHAIR_ENGAGEMENT_RADIUS,
+          );
+          if (vi !== null && getAnchoredVi() !== vi) {
+            setEngagedVertexIdx(vi);
+          }
+          crosshairStartedAt.current = performance.now();
+          crosshairStartPos.current = { x: e.clientX, y: e.clientY };
+          crosshairMaxMovement.current = 0;
+        }
+        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        return;
+      }
       // Anchored + pointerdown on bare sphere/background (dots stop
       // propagation of pointerdown so we only get here when the
       // user is targeting the sphere itself, not a vertex) = the
@@ -1223,7 +1376,7 @@ export function PolyhedronGlobe({
       }
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
-    [releaseAnchor],
+    [releaseAnchor, clientToViewBox, findNearestAssignedVertex],
   );
 
   // Pointermove handles both rotation (centroid-driven yaw/pitch)
@@ -1232,6 +1385,40 @@ export function PolyhedronGlobe({
   // no baseline) and only the rotation branch fires.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
+      // ── Touch hover mode ─────────────────────────────────
+      // Finger movement updates the crosshair + re-engages the
+      // nearest vertex. We also track total movement distance
+      // (via crosshairMaxMovement) so the up handler can decide
+      // whether the gesture was a "tap" (movement < TAP_MAX_PX,
+      // open the card) or a "drag" (just a preview).
+      if (touchModeRef.current === "hover") {
+        const vbPoint = clientToViewBox(e.clientX, e.clientY);
+        if (!vbPoint) return;
+        applyCrosshair(vbPoint);
+        if (crosshairStartPos.current) {
+          const dx = e.clientX - crosshairStartPos.current.x;
+          const dy = e.clientY - crosshairStartPos.current.y;
+          const movement = Math.hypot(dx, dy);
+          if (movement > crosshairMaxMovement.current) {
+            crosshairMaxMovement.current = movement;
+          }
+        }
+        const vi = findNearestAssignedVertex(
+          vbPoint,
+          CROSSHAIR_ENGAGEMENT_RADIUS,
+        );
+        // Only re-engage if it's a different vertex AND it isn't
+        // the anchored one. Anchored vi is already presented as
+        // a card; re-engaging would type the label on top of it.
+        const anchoredVi = getAnchoredVi();
+        if (vi !== null && vi !== anchoredVi) {
+          setEngagedVertexIdx((prev) => (prev === vi ? prev : vi));
+        } else if (vi === null) {
+          // Crosshair left the engagement radius of all vertices.
+          setEngagedVertexIdx((prev) => (prev === null ? prev : null));
+        }
+        return;
+      }
       if (!dragging.current) return;
       const pt = activePointers.current.get(e.pointerId);
       if (!pt) return; // unknown pointer (shouldn't happen)
@@ -1252,8 +1439,14 @@ export function PolyhedronGlobe({
       const dy = c.y - lastMouse.current.y;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
 
-      const yawAngle = dx * DRAG_RATE;
-      const pitchAngle = dy * DRAG_RATE;
+      // Scale drag rate inversely with userZoom so the perceived
+      // rotation per finger-pixel feels constant across zoom
+      // levels. Without this, zooming in makes drags feel snappy
+      // (the visually-larger sphere rotates the same number of
+      // degrees per pixel, which reads as faster).
+      const dragRate = DRAG_RATE / Math.max(0.1, userZoomRef.current);
+      const yawAngle = dx * dragRate;
+      const pitchAngle = dy * dragRate;
       const yawRate = (1000 * yawAngle) / (1 + dt);
       const pitchRate = (1000 * pitchAngle) / (1 + dt);
       angularVelocityYaw.current =
@@ -1302,52 +1495,83 @@ export function PolyhedronGlobe({
       lastMouse.current = { x: c.x, y: c.y };
       lastTime.current = now;
     },
-    [applyQ, onWheelZoom],
+    [applyQ, onWheelZoom, clientToViewBox, findNearestAssignedVertex],
   );
 
-  const handlePointerUp = useCallback((e?: React.PointerEvent) => {
-    // Remove the lifted pointer from the active map. If `e` is
-    // undefined (caller used onPointerLeave without an event),
-    // clear all — the leave path covers "user dragged off the
-    // stage" which ends the entire gesture.
-    if (e) {
-      activePointers.current.delete(e.pointerId);
-    } else {
-      activePointers.current.clear();
-    }
-    const c = pointerCentroid();
-
-    if (c.count === 0) {
-      // Gesture ended. Apply release momentum the same way the
-      // single-pointer path used to. Stationary-finger guard
-      // kept identical.
-      if (!dragging.current) return;
-      dragging.current = false;
-      if (performance.now() - lastTime.current > 50) {
-        angularVelocityYaw.current = 0;
-        angularVelocityPitch.current = 0;
+  const handlePointerUp = useCallback(
+    (e?: React.PointerEvent) => {
+      // ── Touch hover mode ─────────────────────────────────────
+      // Pointerup in hover mode: if the gesture was a tap (short
+      // duration + low movement), open whichever vertex the
+      // crosshair was currently near. Then dismiss the crosshair +
+      // any active label engagement so the user gets a clean
+      // visual handoff.
+      if (touchModeRef.current === "hover") {
+        const duration = performance.now() - crosshairStartedAt.current;
+        const wasTap =
+          duration < TAP_MAX_MS && crosshairMaxMovement.current < TAP_MAX_PX;
+        const pos = crosshairPosRef.current;
+        if (wasTap && pos) {
+          const vi = findNearestAssignedVertex(
+            pos,
+            CROSSHAIR_ENGAGEMENT_RADIUS,
+          );
+          if (vi !== null) {
+            handleDotClick(vi);
+          }
+        }
+        applyCrosshair(null);
+        // Dismiss engagement on release whether it was a tap or
+        // drag — the crosshair is gone, the label should go too.
+        setEngagedVertexIdx(null);
+        crosshairStartPos.current = null;
+        crosshairMaxMovement.current = 0;
+        return;
       }
-      amplitudeYaw.current = angularVelocityYaw.current;
-      amplitudePitch.current = angularVelocityPitch.current;
-      releaseTime.current = performance.now();
-      lastPinchDistance.current = null;
-      return;
-    }
-    // Still 1+ pointers on the stage — gesture continues with the
-    // remaining set. Re-anchor the drag origin to the new
-    // centroid so the next move doesn't jump-rotate.
-    lastMouse.current = { x: c.x, y: c.y };
-    lastTime.current = performance.now();
-    // Re-baseline the pinch reference: if we still have 2+
-    // pointers (3→2 case), capture the new radius; if down to 1,
-    // null the baseline since pinch is no longer active.
-    lastPinchDistance.current = c.count >= 2 ? c.radius : null;
-    // Clear momentum — we want a clean delta-from-here on the
-    // next move; otherwise the inherited velocity would feed
-    // back through the EMA after a finger-lift.
-    angularVelocityYaw.current = 0;
-    angularVelocityPitch.current = 0;
-  }, []);
+      // Remove the lifted pointer from the active map. If `e` is
+      // undefined (caller used onPointerLeave without an event),
+      // clear all — the leave path covers "user dragged off the
+      // stage" which ends the entire gesture.
+      if (e) {
+        activePointers.current.delete(e.pointerId);
+      } else {
+        activePointers.current.clear();
+      }
+      const c = pointerCentroid();
+
+      if (c.count === 0) {
+        // Gesture ended. Apply release momentum the same way the
+        // single-pointer path used to. Stationary-finger guard
+        // kept identical.
+        if (!dragging.current) return;
+        dragging.current = false;
+        if (performance.now() - lastTime.current > 50) {
+          angularVelocityYaw.current = 0;
+          angularVelocityPitch.current = 0;
+        }
+        amplitudeYaw.current = angularVelocityYaw.current;
+        amplitudePitch.current = angularVelocityPitch.current;
+        releaseTime.current = performance.now();
+        lastPinchDistance.current = null;
+        return;
+      }
+      // Still 1+ pointers on the stage — gesture continues with the
+      // remaining set. Re-anchor the drag origin to the new
+      // centroid so the next move doesn't jump-rotate.
+      lastMouse.current = { x: c.x, y: c.y };
+      lastTime.current = performance.now();
+      // Re-baseline the pinch reference: if we still have 2+
+      // pointers (3→2 case), capture the new radius; if down to 1,
+      // null the baseline since pinch is no longer active.
+      lastPinchDistance.current = c.count >= 2 ? c.radius : null;
+      // Clear momentum — we want a clean delta-from-here on the
+      // next move; otherwise the inherited velocity would feed
+      // back through the EMA after a finger-lift.
+      angularVelocityYaw.current = 0;
+      angularVelocityPitch.current = 0;
+    },
+    [findNearestAssignedVertex, handleDotClick],
+  );
 
   // ─── per-frame projection ─────────────────────────────────────────
 
@@ -1456,6 +1680,14 @@ export function PolyhedronGlobe({
 
     return { faceRecords: records, visibleVertices: vertices };
   }, [mesh.faces, projected]);
+  // Mirror visibleVertices into a ref so non-React event handlers
+  // (hover-mode pointer routing in particular) can read the latest
+  // set without closure staleness or re-creating callbacks each
+  // render. Updated in an effect (not directly during render) per
+  // the react-hooks/refs lint — refs are commit-phase artifacts.
+  useEffect(() => {
+    visibleVerticesRef.current = visibleVertices;
+  }, [visibleVertices]);
 
   // ─── Anchored-vertex screen geometry (hex billboard + cone) ──
   //
@@ -1621,6 +1853,7 @@ export function PolyhedronGlobe({
       }}
     >
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${stageSize} ${stageSize}`}
         className={styles.svg}
         aria-label="Museum sphere"
@@ -1686,13 +1919,16 @@ export function PolyhedronGlobe({
           </filter>
 
           {/* Radial gradient referenced by HoverDot's expandable glow
-              circle. Brighter pinpoint center than the plain
-              vertex-glow gradient; HoverDot uses radius scaling to
-              animate it. ID must match what HoverDot.tsx references. */}
+              circle. Project-bearing vertices get this; unassigned
+              vertices use the quieter ph-vertex-glow.
+              Cranked saturation and alpha so the glow reads as a
+              vivid pinpoint against the surrounding mesh — these
+              are the museum's call-to-action targets. */}
           <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(220, 235, 255, 0.95)" />
-            <stop offset="40%" stopColor="rgba(140, 180, 255, 0.55)" />
-            <stop offset="100%" stopColor="rgba(80, 140, 220, 0)" />
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
+            <stop offset="22%" stopColor="rgba(180, 220, 255, 0.9)" />
+            <stop offset="55%" stopColor="rgba(100, 170, 255, 0.7)" />
+            <stop offset="100%" stopColor="rgba(60, 130, 230, 0)" />
           </radialGradient>
 
           {/* Projection cone gradient. Used for the projection beam
@@ -1814,6 +2050,56 @@ export function PolyhedronGlobe({
               />
             );
           })}
+
+        {/* ─── Touch hover crosshair ──────────────────────────────
+            Rendered only when the user is actively touching in
+            hover mode. A small luminous hexagon at the crosshair
+            position — matches the rest of the UI's hex vocabulary
+            and gives the finger a clear "cursor" affordance. The
+            crosshair's coordinates are already in viewBox units
+            (set by applyCrosshair via clientToViewBox). */}
+        {touchMode === "hover" && crosshairPos && (
+          <g pointerEvents="none">
+            {/* Outer halo: soft glow at the crosshair position so
+                the user perceives it even through their finger. */}
+            <circle
+              cx={crosshairPos.x}
+              cy={crosshairPos.y}
+              r={28}
+              fill="url(#hover-dot-glow)"
+              opacity={0.6}
+            />
+            {/* The hexagon mark — small, bright, rim only. Sized
+                comfortably bigger than a fingertip but small enough
+                that the user can see what it's pointing at. */}
+            <polygon
+              points={(() => {
+                const cx = crosshairPos.x;
+                const cy = crosshairPos.y;
+                const r = 18;
+                const pts: string[] = [];
+                for (let i = 0; i < 6; i++) {
+                  const a = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
+                  pts.push(
+                    `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`,
+                  );
+                }
+                return pts.join(" ");
+              })()}
+              fill="rgba(220, 235, 255, 0.12)"
+              stroke="rgba(220, 235, 255, 0.85)"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+            />
+            {/* Center pinpoint. */}
+            <circle
+              cx={crosshairPos.x}
+              cy={crosshairPos.y}
+              r={2}
+              fill="rgba(255, 255, 255, 0.95)"
+            />
+          </g>
+        )}
 
         {/* ─── Projection cone (Stage 3) ──────────────────────────
             Light-beam from the anchored dot upward to the hex base.

@@ -325,22 +325,6 @@
  * max-height bound. The body's flex gap is suppressed when the row
  * collapses so the dots don't get pushed down by phantom spacing.
  */
-.legendHintRow {
-  display: grid;
-  grid-template-rows: 0fr;
-  width: 100%;
-  transition: grid-template-rows var(--duration-normal) var(--ease-default);
-}
-.legendHintRow[data-globe-active="true"] {
-  grid-template-rows: 1fr;
-}
-.legendHint {
-  overflow: hidden;
-  min-height: 0;
-  text-align: center;
-  color: oklch(from var(--muted-foreground) l c h / 0.7);
-}
-
 .legendDots {
   display: flex;
   flex-wrap: wrap;
@@ -374,30 +358,60 @@
 }
 
 /* Category dot. data-category attribute selects which --category-* token
-   to consume. Same idiom as ApiExplorer's .methodDot[data-method]. */
+   to consume. Same idiom as ApiExplorer's .methodDot[data-method].
+   Rendered as a radial-gradient pinpoint that echoes the polyhedron's
+   #hover-dot-glow — bright white center, category-colored mid stop,
+   fading to transparent at the rim. Slightly oversized vs. the old
+   solid dot to give the gradient room to read. */
 .categoryDot {
   display: inline-block;
-  height: 0.625rem;
-  width: 0.625rem;
+  height: 0.875rem;
+  width: 0.875rem;
   border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 1) 0%,
+    var(--category-color, var(--muted-foreground)) 45%,
+    transparent 100%
+  );
 }
 .categoryDot[data-category="games"] {
-  background: var(--category-games);
+  --category-color: var(--category-games);
 }
 .categoryDot[data-category="full-stack"] {
-  background: var(--category-fullstack);
+  --category-color: var(--category-fullstack);
 }
 .categoryDot[data-category="frontend"] {
-  background: var(--category-frontend);
+  --category-color: var(--category-frontend);
 }
 .categoryDot[data-category="api"] {
-  background: var(--category-apis);
+  --category-color: var(--category-apis);
 }
 .categoryDot[data-category="python"] {
-  background: var(--category-python);
+  --category-color: var(--category-python);
 }
 .categoryDot[data-category="exercises"] {
-  background: var(--category-exercises);
+  --category-color: var(--category-exercises);
+}
+
+/* Inline help button rendered as a legend item — same row vocabulary
+   (icon + label, muted color) but interactive. Resets default <button>
+   chrome so it visually matches the surrounding <span>-based legend
+   items, just with a hover lift. */
+.legendHelpButton {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--muted-foreground);
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.legendHelpButton:hover {
+  color: var(--foreground);
+}
+.legendHelpIcon {
+  flex-shrink: 0;
 }
 
 /* ─── Project card (globe) ──────────────────────── */
