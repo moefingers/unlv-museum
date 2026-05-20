@@ -1,15 +1,10 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
-import {
-  PolyhedronGlobe,
-  type FaceAssignment,
-} from "@/components/ui/PolyhedronGlobe";
-import { geodesic } from "@/lib/polyhedra";
-import { wrapTriangleText } from "@/lib/triangle-text";
+import { PolyhedronGlobe } from "@/components/ui/PolyhedronGlobe";
 import {
   PROJECTS,
   CATEGORY_LABELS,
@@ -93,26 +88,6 @@ function projectSortKey(yearText: string): string {
   if (yearOnly) return `${yearOnly[1]}-12`;
   return "0000-00";
 }
-
-/**
- * Globe-card hex pairs. Kept as literal hex (not zcanon tokens) because
- * the globe cards force a white-ish surface for legibility regardless of
- * museum theme — the category accent only shows through as a faint
- * gradient tint blended over a white front face. Token-based oklch
- * mixing would break that contrast guarantee on dark backgrounds.
- *
- * The category-color identity for non-globe surfaces (list cards, legend
- * dots, etc.) uses the `--category-*` tokens in globals.css instead,
- * accessed via the `.categoryDot[data-category=...]` CSS Module rule.
- */
-const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
-  games: { light: "#22c55e", dark: "#15803d" },
-  "full-stack": { light: "#3b82f6", dark: "#1d4ed8" },
-  frontend: { light: "#a855f7", dark: "#7e22ce" },
-  api: { light: "#f59e0b", dark: "#b45309" },
-  python: { light: "#06b6d4", dark: "#0e7490" },
-  exercises: { light: "#ec4899", dark: "#be185d" },
-};
 
 function ListCard({
   project,
@@ -330,70 +305,9 @@ function LandingViewInner() {
   // etc.). In List view the ref is passed as null and the mesh fills.
   const globeWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // Apply the sort axis to BOTH List and Globe. For Globe this changes which
-  // Fibonacci-sphere index each project maps to, so toggling re-shuffles
-  // positions. With `key={item.id}` stable, React reuses each card's DOM
-  // node and only its transform changes — CSS transition on .item handles
-  // the flight across the sphere.
-  const orderedProjects =
-    sort === "time"
-      ? [...PROJECTS].sort((a, b) =>
-          projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
-        )
-      : PROJECTS;
-
-  // Generate icosphere mesh once (frequency 2 → 80 faces) and assign
-  // each project to a face. We use a simple stable mapping: the i-th
-  // project in `orderedProjects` lands on the i-th face. With 34 projects
-  // and 80 faces, ~46 faces stay empty (rendered as quiet outlines by
-  // PolyhedronGlobe).
-  //
-  // Re-sorting (category ↔ time) reshuffles which project lives on which
-  // face, mirroring the rectangle Globe's old Fibonacci-reshuffle.
-  const ICOSPHERE_FREQUENCY = 2;
-  const meshFaceCount = useMemo(
-    () => geodesic(ICOSPHERE_FREQUENCY).faces.length,
-    [],
-  );
-
-  // Pre-wrap each project's title for the face's text band. The wrap
-  // is computed once per project (titles don't change at runtime);
-  // PolyhedronGlobe builds a fresh affine matrix each frame that maps
-  // the band's local coordinates onto the face's tangent plane,
-  // oriented to the sphere's north pole.
-  //
-  // Band dimensions are in *sphere-unit* coordinates (the unit-sphere
-  // mesh's coordinate system, where vertices are on a sphere of radius
-  // 1.0). An icosphere sub-1 face has edge length ≈ 0.546 in sphere
-  // units; the inscribed-circle radius is ≈ edge / (2√3) ≈ 0.158.
-  // We size the text band conservatively inside the inscribed circle
-  // so text rarely overflows the face silhouette, even for faces
-  // rotated relative to north (where the band's axis-alignment doesn't
-  // match the face's apex-axis).
-  const BAND_HALF_WIDTH = 0.18; // sphere units
-  const BAND_HALF_HEIGHT = 0.14;
-  const assignments: FaceAssignment[] = useMemo(() => {
-    return orderedProjects.slice(0, meshFaceCount).map((project, i) => {
-      const wrap = wrapTriangleText(project.title, {
-        bandWidth: BAND_HALF_WIDTH * 2,
-        bandHeight: BAND_HALF_HEIGHT * 2,
-        startFontSize: 0.045,
-        minFontSize: 0.022,
-      });
-      return {
-        faceIdx: i,
-        id: project.slug,
-        href: project.href ?? `/${projectPath(project)}`,
-        hex: CATEGORY_HEX[project.category],
-        title: project.title,
-        textLines: wrap.lines,
-        textFontSize: wrap.fontSize,
-        textBandHalfWidth: BAND_HALF_WIDTH,
-        textBandHalfHeight: BAND_HALF_HEIGHT,
-      };
-    });
-     
-  }, [orderedProjects, meshFaceCount]);
+  // polyhedron-bare branch: the sphere has no content on it. ListView
+  // gets `sort` directly and computes its own ordering; the globe
+  // doesn't need an ordered project list at all.
 
   return (
     <div className={styles.shell}>
@@ -480,7 +394,7 @@ function LandingViewInner() {
       */}
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
         <div ref={globeWrapRef} className={styles.globeScaleHost}>
-          <PolyhedronGlobe assignments={assignments} radius={600} />
+          <PolyhedronGlobe radius={600} />
         </div>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>
