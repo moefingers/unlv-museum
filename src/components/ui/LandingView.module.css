@@ -169,7 +169,19 @@
    * this layout (the list's margin-top is independent).
    */
   --view-toggle-duration: 900ms;
-  --globe-frame-offset-y: 20%;
+  /*
+   * Base vertical offset for the sphere's resting position. Using
+   * dvh (not % of the element) so the offset scales with VIEWPORT
+   * height rather than the (fixed) stage size — without this, the
+   * sphere reads as "too high" on shorter screens because the
+   * absolute offset was being computed against a 1400px stage
+   * regardless of how tall the viewport was.
+   *
+   * 25dvh puts the sphere center roughly viewport-half + 25dvh
+   * below the viewport center (i.e., always in the lower portion)
+   * regardless of how short or tall the screen is.
+   */
+  --globe-frame-offset-y: 25dvh;
   position: fixed;
   top: 0;
   left: 0;

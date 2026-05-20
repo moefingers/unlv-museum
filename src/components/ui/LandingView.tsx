@@ -441,6 +441,58 @@ function LandingViewInner() {
   const viewToggleScale = view === "globe" ? 1 : 0;
   const outerScale = viewToggleScale * (anchored ? ANCHOR_ZOOM_SCALE : 1);
   const outerTranslateY = anchored ? ANCHOR_ZOOM_TRANSLATE_Y_PCT : 0;
+
+  // ─── Viewport-aware vertical framing ─────────────────────────
+  //
+  // Anchor point: the sphere's TOP EDGE sits at a fixed fraction
+  // (TOP_ANCHOR_FRACTION) of the viewport's height, regardless of
+  // viewport size or zoom level. This keeps the visual "horizon"
+  // of the sphere consistent across devices — on tall desktops the
+  // sphere center sits well below middle; on short / mobile screens
+  // the sphere extends past the bottom but its top edge anchors
+  // the composition.
+  //
+  // Math (derived from the actual transform stack):
+  //   host_layout_top   = (viewport_h - STAGE_SIZE) / 2
+  //   host_rendered_top = host_layout_top + (1-outerScale)*STAGE_SIZE/2 + transY
+  //     (outerScale applied about origin 50% 50% on globeScaleHost)
+  //   zoomLayer_top     = host_rendered_top
+  //     (userZoom applied about origin 50% 0% on globeZoomLayer)
+  //   sphere_top        = zoomLayer_top + PADDING * outerScale * userZoom
+  //     (PADDING is the empty stage margin around the sphere = 100)
+  //
+  // Solve sphere_top = target_y for transY:
+  //   transY = target_y - host_layout_top
+  //          - (1-outerScale)*STAGE_SIZE/2
+  //          - PADDING*outerScale*userZoom
+  //
+  // STAGE_SIZE and PADDING duplicate values from PolyhedronGlobe's
+  // internal stageSize = radius*2 + 200 formula. Kept in sync by
+  // referencing the same SPHERE_BASE_RADIUS constant used to pass
+  // the radius prop below — single source of truth.
+  const SPHERE_BASE_RADIUS = 500;
+  const STAGE_SIZE = SPHERE_BASE_RADIUS * 2 + 200;
+  const STAGE_PADDING = 100; // (STAGE_SIZE - 2*SPHERE_BASE_RADIUS) / 2
+  const TOP_ANCHOR_FRACTION = 0.22;
+  const [viewportH, setViewportH] = useState(() =>
+    typeof window === "undefined" ? 800 : window.innerHeight,
+  );
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const targetSphereTop = viewportH * TOP_ANCHOR_FRACTION;
+  const hostLayoutTop = (viewportH - STAGE_SIZE) / 2;
+  // Anchored state adds an additional drop (matches the prior
+  // ANCHOR_ZOOM_TRANSLATE_Y_PCT semantics — % of stage size).
+  const anchoredAdditionalPx = (outerTranslateY / 100) * STAGE_SIZE;
+  const totalTranslateYPx =
+    targetSphereTop -
+    hostLayoutTop -
+    ((1 - outerScale) * STAGE_SIZE) / 2 -
+    STAGE_PADDING * outerScale * userZoom +
+    anchoredAdditionalPx;
   // User-zoom transition duration: long enough to smooth step changes
   // between wheel events, short enough to feel direct. ~120ms is
   // around the lower bound of perceptual "instant" — fast enough
@@ -589,12 +641,22 @@ function LandingViewInner() {
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
         <div
           className={styles.globeScaleHost}
+          // The translateY depends on window.innerHeight which is
+          // only known on the client. SSR uses an 800px default; the
+          // first client render corrects it. suppressHydrationWarning
+          // because this attribute legitimately differs between server
+          // and client (it's window-sized) and we accept the one-frame
+          // pop on initial paint as a known cost of viewport-aware
+          // framing — alternative would be deferring all sphere
+          // rendering until after mount, which is worse.
+          suppressHydrationWarning
           style={{
-            // Outer layer: frame offset (CSS var) + anchored translate
-            // + view-toggle and anchored scales. Long transition tied
-            // to the rotation slerp so anchor + scale move as one
-            // gesture.
-            transform: `translateY(calc(var(--globe-frame-offset-y) + ${outerTranslateY}%)) scale(${outerScale})`,
+            // Outer layer: viewport-aware vertical offset (computed
+            // in JS above to honor "keep the sphere's top edge in
+            // frame at any viewport size + zoom level") + view-
+            // toggle / anchored scales. Long transition tied to the
+            // rotation slerp so anchor + scale move as one gesture.
+            transform: `translateY(${totalTranslateYPx}px) scale(${outerScale})`,
             transition: `transform ${ANCHOR_SWING_MS}ms ${ANCHOR_ZOOM_EASING}`,
           }}
         >
