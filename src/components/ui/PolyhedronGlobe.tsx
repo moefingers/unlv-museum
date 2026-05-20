@@ -62,6 +62,25 @@ interface PolyhedronGlobeProps {
 }
 
 const AUTO_SPEED = 0.08;
+
+// ─── Hover cycle ─────────────────────────────────────────────
+// Any mouse hover landing on a dot triggers a "stop-and-resume" cycle:
+//   1. The sphere decelerates from full auto-speed to a halt over
+//      HOVER_DECEL_MS, smoothly (ease-out cubic).
+//   2. It holds still for HOVER_HOLD_MS — the user's reading window,
+//      covering 800ms typing + a beat to digest the title.
+//   3. It accelerates back to cruise over HOVER_RESUME_MS.
+// During the cycle the dot's hover behavior is independent — the user
+// can engage and disengage; the cycle plays through.
+//
+// A new hover RESTARTS the cycle only if the current speed multiplier
+// is already ≥ HOVER_RETRIGGER_THRESHOLD. Otherwise the new hover is
+// treated as "the user is still looking at the previous engagement"
+// and the cycle continues without interruption.
+const HOVER_DECEL_MS = 350;
+const HOVER_HOLD_MS = 1700;
+const HOVER_RESUME_MS = 550;
+const HOVER_RETRIGGER_THRESHOLD = 0.5;
 const TIME_CONSTANT = 600;
 const VELOCITY_THRESHOLD = 0.5;
 const POLE_LIMIT = 60;
@@ -74,6 +93,38 @@ const AXIAL_TILT_DEG = 18;
 const ENABLE_RADIAL_BG = true;
 const ENABLE_EDGE_GLOW = true;
 const ENABLE_VERTEX_GLOW = true;
+
+/**
+ * Compute the auto-rotation speed multiplier at time `now` given when
+ * the current hover cycle started. Returns 1 (full speed) when no
+ * cycle is active or the cycle has fully completed; ramps to 0 (stopped)
+ * over HOVER_DECEL_MS; stays at 0 for HOVER_HOLD_MS; ramps back to 1
+ * over HOVER_RESUME_MS via ease-out cubic.
+ */
+function computeHoverSpeedMul(now: number, cycleStart: number | null): number {
+  if (cycleStart === null) return 1;
+  const elapsed = now - cycleStart;
+  if (elapsed < 0) return 1; // shouldn't happen but defensive
+  if (elapsed < HOVER_DECEL_MS) {
+    // Decelerating: ease-out cubic of (1 - p) — slows fast then settles.
+    const p = elapsed / HOVER_DECEL_MS;
+    return 1 - easeOutCubic(p);
+  }
+  const afterDecel = elapsed - HOVER_DECEL_MS;
+  if (afterDecel < HOVER_HOLD_MS) {
+    return 0; // fully stopped during hold
+  }
+  const afterHold = afterDecel - HOVER_HOLD_MS;
+  if (afterHold < HOVER_RESUME_MS) {
+    const p = afterHold / HOVER_RESUME_MS;
+    return easeOutCubic(p);
+  }
+  return 1; // cycle complete
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
 
 function bounceX(x: number): { x: number; flipped: boolean } {
   let flipped = false;
@@ -130,28 +181,29 @@ export function PolyhedronGlobe({
   }, []);
 
   // Hover state for the typed-title overlay. The vertex index here is
-  // Hover bookkeeping: count of dots currently reporting active=true.
-  // HoverDot owns the per-dot grace timer + dismissal flash; we just
-  // need to know whether ANY dot is active so we can pause auto-
-  // rotation. Counting (not a single flag) lets us survive briefly-
-  // overlapping hovers — two dots could both be active during the
-  // grace window of one and the start of another.
-  const [activeDotCount, setActiveDotCount] = useState(0);
-  // Mirror the hover state into a ref so the rAF auto-rotation loop —
-  // which closes over its environment at effect-mount time — can read
-  // current value each frame without re-mounting.
-  const activeDotCountRef = useRef(0);
-  useEffect(() => {
-    activeDotCountRef.current = activeDotCount;
-  }, [activeDotCount]);
+  // Hover-cycle bookkeeping. Each hover that lands on a dot triggers
+  // a decelerate → hold → resume animation on the sphere's auto-
+  // rotation, played out over (HOVER_DECEL_MS + HOVER_HOLD_MS +
+  // HOVER_RESUME_MS) ms. The cycle is driven by a `hoverCycleStart`
+  // timestamp ref. The rAF auto-rotate branch computes the current
+  // speed multiplier each frame from `now - hoverCycleStart`.
+  //
+  // A new hover restarts the cycle only when the current speed
+  // multiplier is ≥ HOVER_RETRIGGER_THRESHOLD — otherwise we're still
+  // inside the slow-down or hold and the new hover is treated as
+  // continuing engagement with the same moment.
+  const hoverCycleStart = useRef<number | null>(null);
 
-  // Stable per-vertex onActiveChange callback factory. Each dot calls
-  // this with active=true on engage, active=false on dismiss; we
-  // adjust the count. Stored in a ref keyed by vertex idx so the
-  // callback identity is stable across renders (React 19 set-state-in-
-  // effect lint is otherwise unhappy).
+  // Stable per-vertex onActiveChange callback. Fires from HoverDot on
+  // engage (active=true) and dismiss (active=false). We only act on
+  // engage here — that's what triggers the cycle.
   const handleDotActiveChange = useCallback((active: boolean) => {
-    setActiveDotCount((n) => (active ? n + 1 : Math.max(0, n - 1)));
+    if (!active) return;
+    const now = performance.now();
+    const currentMul = computeHoverSpeedMul(now, hoverCycleStart.current);
+    if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
+      hoverCycleStart.current = now;
+    }
   }, []);
 
   // Drag-momentum physics loop. Direct port from Globe.tsx — same time
@@ -191,16 +243,24 @@ export function PolyhedronGlobe({
             amplitudeY.current = 0;
             amplitudeX.current = 0;
           }
-        } else if (activeDotCountRef.current === 0) {
-          // Auto-rotate only when no vertex is currently engaged. While
-          // a vertex is hovered (or in its grace-period extension), the
-          // sphere holds still so the typed title stays anchored under
-          // the cursor.
-          const r = latestRotation.current;
-          applyRotation({
-            ...r,
-            y: r.y + AUTO_SPEED * (dt / 16),
-          });
+        } else {
+          // Auto-rotate, modulated by the hover cycle's speed multiplier.
+          // The multiplier is 1 at cruise, ramps to 0 over HOVER_DECEL_MS
+          // when a hover triggers a new cycle, sits at 0 through the
+          // hold, then ramps back to 1 over HOVER_RESUME_MS — see
+          // computeHoverSpeedMul. When the cycle completes, the ref is
+          // reset so subsequent frames don't keep recomputing.
+          const speedMul = computeHoverSpeedMul(now, hoverCycleStart.current);
+          if (speedMul >= 1 && hoverCycleStart.current !== null) {
+            hoverCycleStart.current = null;
+          }
+          if (speedMul > 0) {
+            const r = latestRotation.current;
+            applyRotation({
+              ...r,
+              y: r.y + AUTO_SPEED * speedMul * (dt / 16),
+            });
+          }
         }
       }
 
