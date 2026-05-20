@@ -27,6 +27,8 @@ import {
   lt,
   lte,
   ne,
+  type AnyColumn,
+  type SQL,
 } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auditLog as auditLogTable, bounties } from "@/lib/schema/jaskis";
@@ -161,26 +163,29 @@ async function countOp(
   cmd: Extract<ParsedCommand, { type: "countDocuments" }>,
   ctx: ExecuteContext,
 ): Promise<ExecuteResult> {
+  // A `count()`-only aggregate always returns exactly one row, but TS sees
+  // the result as a tuple that could be empty. Read [0] and default to 0
+  // for type-safety; the default is unreachable at runtime.
   if (cmd.collection === "bounties") {
     const conds = buildBountiesConditions(cmd.filter);
-    const [{ value: n }] = conds.length
+    const rows = conds.length
       ? await db
           .select({ value: count() })
           .from(bounties)
           .where(and(...conds))
       : await db.select({ value: count() }).from(bounties);
-    return { kind: "ok", value: n };
+    return { kind: "ok", value: rows[0]?.value ?? 0 };
   }
   if (cmd.collection === "auditLog") {
     requireEnhanced(ctx, "auditLog");
     const conds = buildAuditConditions(cmd.filter);
-    const [{ value: n }] = conds.length
+    const rows = conds.length
       ? await db
           .select({ value: count() })
           .from(auditLogTable)
           .where(and(...conds))
       : await db.select({ value: count() }).from(auditLogTable);
-    return { kind: "ok", value: n };
+    return { kind: "ok", value: rows[0]?.value ?? 0 };
   }
   return unknownCollection(cmd.collection);
 }
@@ -455,16 +460,20 @@ function buildAuditConditions(filter: Json) {
   return filterToConditions(filter, auditLogColumn, "auditLog");
 }
 
-type ColumnLookup = (
-  docField: string,
-) => ReturnType<typeof bountiesColumnByDoc>;
+/**
+ * Widened to AnyColumn so both bountiesColumnByDoc and auditLogColumn
+ * satisfy the type — their concrete column unions are different, and
+ * since the values flow into eq/gte/etc which accept AnyColumn anyway,
+ * the narrower per-table types only get in the way here.
+ */
+type ColumnLookup = (docField: string) => AnyColumn | null;
 
 function filterToConditions(
   filter: { [k: string]: Json },
   lookup: ColumnLookup,
   collectionLabel: string,
-) {
-  const conds = [];
+): SQL[] {
+  const conds: SQL[] = [];
   for (const [key, value] of Object.entries(filter)) {
     if (key === "$and") {
       if (!Array.isArray(value)) {
@@ -680,7 +689,7 @@ function toAuditDoc(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
-function bountiesColumnByDoc(docField: string) {
+function bountiesColumnByDoc(docField: string): AnyColumn | null {
   switch (docField) {
     case "id":
       return bounties.id;
@@ -705,7 +714,7 @@ function bountiesColumnByDoc(docField: string) {
   }
 }
 
-function auditLogColumn(docField: string) {
+function auditLogColumn(docField: string): AnyColumn | null {
   switch (docField) {
     case "id":
       return auditLogTable.id;
