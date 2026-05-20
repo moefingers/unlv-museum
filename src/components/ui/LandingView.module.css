@@ -101,29 +101,47 @@
     var(--space-8) * var(--app-margin, 1) * var(--room-margin, 1)
   );
   /*
-   * View toggle: when inactive, the wrapper collapses to height 0 +
-   * opacity 0 so it doesn't reserve scroll space. The inner
-   * .globeScaleHost owns the visible scale animation; keeping the
-   * Globe mounted means its ref stays live for the BreathingMesh
-   * cutout to track during the close transition.
+   * Sphere is now larger than the viewport (radius 600 → ~1400px stage).
+   * The wrapper centers the sphere; horizontal overflow is allowed so
+   * the limb can extend past the viewport's edges. Visitors drag-pan
+   * to bring off-screen faces into view (the persistent legend makes
+   * the drag affordance discoverable).
+   *
+   * Why this is more involved than `overflow-y: hidden`:
+   * CSS forces overflow-x and overflow-y to BOTH be non-visible if
+   * either is non-visible. So we can't mix "clip vertically + visible
+   * horizontally" directly. Workaround: use clip-path for the vertical
+   * collapse so neither overflow property is involved. The wrapper
+   * itself stays overflow: visible; clip-path masks the top + bottom
+   * during the view-toggle close. max-height is no longer load-bearing
+   * for the visual clip — it just constrains layout reservation.
    *
    * Duration tuned slow (900ms) so the cutout-with-globe departure
-   * reads as a deliberate move. The wrapper height and opacity ease
-   * the same so list slides in cleanly underneath.
+   * reads as a deliberate move.
    */
   --view-toggle-duration: 900ms;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
   transition:
     opacity var(--view-toggle-duration) var(--ease-out),
     max-height var(--view-toggle-duration) var(--ease-out),
+    clip-path var(--view-toggle-duration) var(--ease-out),
     margin-top var(--view-toggle-duration) var(--ease-out);
-  max-height: 1200px;
-  overflow: hidden;
+  max-height: 1500px;
+  /* clip-path with inset(0%) is a no-op — full content visible. The
+     inactive state below sets inset(50%) which collapses to a line. */
+  clip-path: inset(0% -100vw 0% -100vw);
 }
 .globeWrap[data-view-active="false"] {
   opacity: 0;
   max-height: 0;
   margin-top: 0;
   pointer-events: none;
+  /* Collapse the visible band to a horizontal line at the wrapper's
+     vertical center while keeping horizontal extent unconstrained, so
+     the close transition reads as a vertical iris. */
+  clip-path: inset(50% -100vw 50% -100vw);
 }
 
 /* Inner host that owns the scale animation. Pivots from 50% 38% to match
@@ -326,17 +344,36 @@
   transform-style: preserve-3d;
 }
 
-.projectFront {
+/*
+ * Front face — SVG triangle. Replaces the previous rounded rectangle
+ * front. The SVG hosts the white-wash-over-category-tint gradient
+ * composition that was previously two stacked linear-gradient() values
+ * on a single <div>. Positioned static (relative to layer parent) so
+ * the depth-layer SVGs can stack above/below via translateZ.
+ */
+.projectFrontSvg {
   position: relative;
-  border-radius: var(--radius-lg);
-  /* Gradient set inline because it pulls per-card hex strings, not tokens
-     — that's load-bearing (each card must read identically on dark vs light
-     globe). Switching to oklch tokens here would break the readability of
-     the white card surface. */
+  display: block;
 }
 
+/*
+ * Text overlay positioned absolutely on top of the triangle SVG. The
+ * triangle's widest extent is its bottom edge, so the body is anchored
+ * to the bottom 50% of the card height where horizontal space is
+ * adequate for the title + year stack.
+ */
 .projectFrontBody {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  /* Constrain to the lower triangle band (roughly the bottom 50% of the
+     card) so text doesn't bleed into the narrow apex region. */
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .projectTitle {
@@ -353,6 +390,17 @@
 .projectBackingLayer {
   position: absolute;
   border-radius: var(--radius-lg);
+}
+
+/*
+ * Backing layer — SVG triangle extruded behind the front face via
+ * translateZ. Same role as .projectBackingLayer (the rectangle version)
+ * but the silhouette is now triangular so the depth stack reads coherently
+ * from oblique angles.
+ */
+.projectBackingLayerSvg {
+  position: absolute;
+  display: block;
 }
 
 /* ─── List view ─────────────────────────────────── */

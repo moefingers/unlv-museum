@@ -1,10 +1,15 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Globe } from "@/components/ui/Globe";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
+import {
+  PolyhedronGlobe,
+  type FaceAssignment,
+} from "@/components/ui/PolyhedronGlobe";
+import { geodesic } from "@/lib/polyhedra";
+import { wrapTriangleText } from "@/lib/triangle-text";
 import {
   PROJECTS,
   CATEGORY_LABELS,
@@ -108,58 +113,6 @@ const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
   python: { light: "#06b6d4", dark: "#0e7490" },
   exercises: { light: "#ec4899", dark: "#be185d" },
 };
-
-const DEPTH_LAYERS = 5;
-const LAYER_STEP = 1.5;
-
-function ProjectCard({ project }: { project: Project }) {
-  const hex = CATEGORY_HEX[project.category];
-
-  return (
-    <Link
-      href={project.href ?? `/${projectPath(project)}`}
-      className={styles.projectCard}
-      draggable={false}
-      onDragStart={(e) => e.preventDefault()}
-    >
-      <div className={styles.projectCardLayer}>
-        <div
-          className={styles.projectFront}
-          style={{
-            background: `linear-gradient(315deg, rgba(255,255,255,0.97), rgba(255,255,255,0.78)), linear-gradient(315deg, ${hex.light}22, ${hex.dark}66)`,
-          }}
-        >
-          <div className={styles.projectFrontBody}>
-            <h3
-              className={`text-sm font-semibold truncate ${styles.projectTitle}`}
-            >
-              {project.title}
-            </h3>
-            <p className={`text-xs ${styles.projectYear}`}>{project.year}</p>
-          </div>
-        </div>
-
-        {Array.from({ length: DEPTH_LAYERS }, (_, i) => {
-          const t = (i + 1) / DEPTH_LAYERS;
-          const z = -(i + 1) * LAYER_STEP;
-          const grow = t * 2;
-          return (
-            <div
-              key={i}
-              className={styles.projectBackingLayer}
-              style={{
-                inset: `${-grow}px`,
-                transform: `translateZ(${z}px)`,
-                background: `linear-gradient(135deg, ${hex.light}, ${hex.dark})`,
-                opacity: 0.7 + t * 0.3,
-              }}
-            />
-          );
-        })}
-      </div>
-    </Link>
-  );
-}
 
 function ListCard({
   project,
@@ -388,15 +341,59 @@ function LandingViewInner() {
           projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
         )
       : PROJECTS;
-  const projectCards = orderedProjects.map((project) => ({
-    id: project.slug,
-    node: <ProjectCard project={project} />,
-  }));
-  const globeItems = [
-    { id: "_spacer-top", node: <div /> },
-    ...projectCards,
-    { id: "_spacer-bottom", node: <div /> },
-  ];
+
+  // Generate icosphere mesh once (frequency 2 → 80 faces) and assign
+  // each project to a face. We use a simple stable mapping: the i-th
+  // project in `orderedProjects` lands on the i-th face. With 34 projects
+  // and 80 faces, ~46 faces stay empty (rendered as quiet outlines by
+  // PolyhedronGlobe).
+  //
+  // Re-sorting (category ↔ time) reshuffles which project lives on which
+  // face, mirroring the rectangle Globe's old Fibonacci-reshuffle.
+  const ICOSPHERE_FREQUENCY = 2;
+  const meshFaceCount = useMemo(
+    () => geodesic(ICOSPHERE_FREQUENCY).faces.length,
+    [],
+  );
+
+  // Pre-wrap each project's title for the face's text band. The wrap
+  // is computed once per project (titles don't change at runtime);
+  // PolyhedronGlobe builds a fresh affine matrix each frame that maps
+  // the band's local coordinates onto the face's tangent plane,
+  // oriented to the sphere's north pole.
+  //
+  // Band dimensions are in *sphere-unit* coordinates (the unit-sphere
+  // mesh's coordinate system, where vertices are on a sphere of radius
+  // 1.0). An icosphere sub-1 face has edge length ≈ 0.546 in sphere
+  // units; the inscribed-circle radius is ≈ edge / (2√3) ≈ 0.158.
+  // We size the text band conservatively inside the inscribed circle
+  // so text rarely overflows the face silhouette, even for faces
+  // rotated relative to north (where the band's axis-alignment doesn't
+  // match the face's apex-axis).
+  const BAND_HALF_WIDTH = 0.18; // sphere units
+  const BAND_HALF_HEIGHT = 0.14;
+  const assignments: FaceAssignment[] = useMemo(() => {
+    return orderedProjects.slice(0, meshFaceCount).map((project, i) => {
+      const wrap = wrapTriangleText(project.title, {
+        bandWidth: BAND_HALF_WIDTH * 2,
+        bandHeight: BAND_HALF_HEIGHT * 2,
+        startFontSize: 0.045,
+        minFontSize: 0.022,
+      });
+      return {
+        faceIdx: i,
+        id: project.slug,
+        href: project.href ?? `/${projectPath(project)}`,
+        hex: CATEGORY_HEX[project.category],
+        title: project.title,
+        textLines: wrap.lines,
+        textFontSize: wrap.fontSize,
+        textBandHalfWidth: BAND_HALF_WIDTH,
+        textBandHalfHeight: BAND_HALF_HEIGHT,
+      };
+    });
+     
+  }, [orderedProjects, meshFaceCount]);
 
   return (
     <div className={styles.shell}>
@@ -483,7 +480,7 @@ function LandingViewInner() {
       */}
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
         <div ref={globeWrapRef} className={styles.globeScaleHost}>
-          <Globe items={globeItems} />
+          <PolyhedronGlobe assignments={assignments} radius={600} />
         </div>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>

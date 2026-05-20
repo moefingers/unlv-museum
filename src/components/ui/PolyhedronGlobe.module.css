@@ -1,0 +1,28 @@
+.stage {
+  position: relative;
+  margin: 0 auto;
+  touch-action: none;
+  cursor: grab;
+}
+.stage:active {
+  cursor: grabbing;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* SVG <a>/<Link> wrappers don't get default cursor; nudge them. */
+.faceLink {
+  cursor: pointer;
+}
+.faceLink:focus {
+  outline: none;
+}
+.faceLink:focus-visible polygon {
+  stroke: var(--ring);
+  stroke-width: 2;
+}

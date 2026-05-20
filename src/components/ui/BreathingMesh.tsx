@@ -37,6 +37,49 @@ const DRIFT_AMPLITUDE = 2.5;
 const DRIFT_PERIOD_MIN = 6000;
 const DRIFT_PERIOD_MAX = 11000;
 
+// Cascade-in choreography (first-mount only).
+// Wavefront-comb model: a single diagonal line `x + y = p(t)` sweeps
+// from upper-left to lower-right across the lattice over the intro
+// duration. Every undeposited dot rides the wavefront at its OWN
+// perpendicular coordinate (lx - ly), so the in-flight dots form a
+// diagonal band coherent with the sweep — not a scattered cloud.
+// When the wavefront's parallel position reaches a dot's target
+// projection (lx + ly), that dot deposits at (lx, ly) and stops.
+//
+// Math:
+//   parallel coord (along (1,1) sweep direction)      = x + y
+//   perpendicular coord (along the wavefront line)    = x - y
+//   wavefront at time t is the locus { (x, y) : x + y = p(t) }
+//   p(t) ramps linearly from p_min - p_min_lead to p_max
+//
+// CASCADE_LEAD_PX is how far PAST the smallest projection the
+// wavefront starts — i.e. how much "empty diagonal" exists before
+// any dot has deposited. Setting this larger means the leading
+// edge of the wavefront begins off-screen and sweeps in, rather
+// than starting with the upper-left dot already deposited.
+const CASCADE_DURATION_MS = 2200;
+const CASCADE_LEAD_PX = 400;
+// Per-dot pseudo-random jitter on cascadeDepositAt, in ms. Spreads
+// deposit times by ±this amount so dots don't all land at the same
+// moment along the strict wavefront line.
+const CASCADE_JITTER_MS = 350;
+// Per-dot offset along the SWEEP direction (variance in lx+ly basis)
+// applied during transit. The offset is maximum at cascadeElapsed=0
+// and shrinks linearly to 0 by the dot's cascadeDepositAt — so each
+// dot rides slightly AHEAD of or BEHIND the strict wavefront line,
+// easing back to the line by deposit time. Without this, every
+// undeposited dot sits exactly on `x + y = pNow`, producing a
+// knife-edge "comb spine" with no thickness in the sweep direction.
+// Spreading dots ahead/behind the line gives the wavefront a real
+// band thickness — what looks like a bunched cluster sweeping in.
+const CASCADE_PARALLEL_PX = 250;
+// Note: easing was removed when the model switched from per-dot
+// transit to wavefront-comb sweep. Eased sweeps work but require
+// redefining cascadeDepositAt against the inverse of the easing
+// curve so the visual "wavefront passes my projection" moment
+// aligns with the dot's expected deposit time. Re-add a curve here
+// and apply it to `progress` in the render-loop branch when ready.
+
 function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -58,11 +101,30 @@ interface Dot {
   phaseY: number;
   periodX: number; // ms
   periodY: number;
+  // Cascade-in: absolute time (ms from cascade-zero) at which this
+  // dot's lattice position is reached by the diagonal wavefront.
+  // Before this time, the dot rides the wavefront at its own
+  // perpendicular coordinate. After this time, it sits at its
+  // lattice position. Set at lattice build time from the dot's
+  // diagonal projection (lx + ly).
+  cascadeDepositAt: number;
+  // Per-dot offset along the SWEEP direction applied during transit.
+  // The dot rides a wavefront at pNow + cascadeParallelOffset ×
+  // remaining (where `remaining` is 1 at t=0 and 0 at deposit), so
+  // it sits slightly ahead of or behind the strict wavefront line.
+  // The offset eases back to 0 by deposit time so the dot still
+  // lands precisely at (lx, ly).
+  cascadeParallelOffset: number;
 }
 
 interface Lattice {
   dots: Dot[];
   edges: [number, number][];
+  // Wavefront sweep bounds in screen units. The wavefront's parallel
+  // position p(t) runs from pStart (off-screen leading edge) at t=0
+  // to pEnd (after the last dot deposits) at t=CASCADE_DURATION_MS.
+  pStart: number;
+  pEnd: number;
 }
 
 function buildLattice(width: number, height: number): Lattice {
@@ -90,6 +152,9 @@ function buildLattice(width: number, height: number): Lattice {
           DRIFT_PERIOD_MIN + rnd() * (DRIFT_PERIOD_MAX - DRIFT_PERIOD_MIN),
         periodY:
           DRIFT_PERIOD_MIN + rnd() * (DRIFT_PERIOD_MAX - DRIFT_PERIOD_MIN),
+        // Filled in by the normalization pass after the loop.
+        cascadeDepositAt: 0,
+        cascadeParallelOffset: 0,
       });
     }
     grid.push(row);
@@ -117,7 +182,51 @@ function buildLattice(width: number, height: number): Lattice {
         edges.push([here, nextRow[right]!]);
     }
   }
-  return { dots, edges };
+
+  // Wavefront-comb cascade: the wavefront is the line { x + y = p(t) }
+  // sweeping from upper-left to lower-right. We compute the sweep
+  // bounds (pStart, pEnd) and stamp each dot's depositAt time based
+  // on when the wavefront's parallel position reaches that dot's
+  // diagonal projection.
+  //
+  //   pStart = minProj - CASCADE_LEAD_PX
+  //     The wavefront begins behind the closest dot, so even the
+  //     upper-left dot has some lead-in time on the wave before
+  //     being deposited (otherwise it would deposit at t=0).
+  //   pEnd   = maxProj
+  //     Sweep ends exactly when the last dot deposits.
+  //
+  // depositAt = (proj - pStart) / (pEnd - pStart) × CASCADE_DURATION_MS
+  let minProj = Infinity;
+  let maxProj = -Infinity;
+  for (let i = 0; i < dots.length; i++) {
+    const d = dots[i]!;
+    const proj = d.lx + d.ly;
+    if (proj < minProj) minProj = proj;
+    if (proj > maxProj) maxProj = proj;
+  }
+  const pStart = minProj - CASCADE_LEAD_PX;
+  const pEnd = maxProj;
+  const pRange = pEnd - pStart || 1;
+  // Separate seed for cascade noise so it doesn't perturb the
+  // breathing-drift RNG state. Deterministic per-dot via index.
+  const cascadeRnd = mulberry32(7);
+  for (let i = 0; i < dots.length; i++) {
+    const d = dots[i]!;
+    const proj = d.lx + d.ly;
+    const baseDeposit = ((proj - pStart) / pRange) * CASCADE_DURATION_MS;
+    const jitter = (cascadeRnd() - 0.5) * 2 * CASCADE_JITTER_MS;
+    // Clamp: a dot's deposit time must be within the sweep window so
+    // it's never asked to "ride" the wavefront past pEnd or before
+    // pStart — either would push it off-screen permanently.
+    d.cascadeDepositAt = Math.max(
+      0,
+      Math.min(CASCADE_DURATION_MS, baseDeposit + jitter),
+    );
+    d.cascadeParallelOffset = (cascadeRnd() - 0.5) * 2 * CASCADE_PARALLEL_PX;
+  }
+
+  return { dots, edges, pStart, pEnd };
 }
 
 export function BreathingMesh({
@@ -128,6 +237,21 @@ export function BreathingMesh({
   const dotsRef = useRef<Dot[]>([]);
   const edgesRef = useRef<[number, number][]>([]);
   const dpiRef = useRef(1);
+  // Wavefront sweep bounds, updated on lattice rebuild.
+  const pStartRef = useRef(0);
+  const pEndRef = useRef(0);
+  // True once the cascade-in choreography has completed for the lifetime
+  // of this component instance. Used to suppress replays on lattice
+  // rebuild (window resize) — the cascade is a "welcome" motion, not a
+  // resize motion.
+  const cascadeCompleteRef = useRef(false);
+  // Holds the latest handleResize closure so the render loop can call
+  // it when it detects a viewport-dimension change. None of resize /
+  // visualViewport.resize / matchMedia change events fire reliably on
+  // every browser/OS combination during browser-zoom (Ctrl +/-), so
+  // we treat them as best-effort and supplement with per-frame
+  // polling of innerWidth + devicePixelRatio in the render loop.
+  const handleResizeRef = useRef<() => void>(() => {});
 
   // Dynamic inputs via refs so the rAF loop never restarts on prop change.
   // The cutout's animated radius doesn't live here anymore — the consumer
@@ -146,21 +270,72 @@ export function BreathingMesh({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const handleResize = () => {
-      const dpi = window.devicePixelRatio || 1;
+      // Floor the effective DPR at 1.0 so the canvas's backing store
+      // always has AT LEAST as many device pixels as the CSS box.
+      // Browser zoom-out drives devicePixelRatio below 1 (e.g. 0.22
+      // at extreme zoom-out), which would otherwise give the canvas
+      // a tiny backing store that the browser then UPSCALES into the
+      // CSS box — visibly blurry/smeared mesh strokes. Capping at 1
+      // means we render an oversized backing store the GPU downscales
+      // cleanly into the visible area; lines stay crisp regardless
+      // of zoom. The native DPR is still used at >=1 (HiDPI displays)
+      // so retina sharpness is preserved.
+      const dpi = Math.max(window.devicePixelRatio || 1, 1);
       dpiRef.current = dpi;
+      // window.innerWidth/Height reports the layout viewport in CSS
+      // pixels, which is what we want for canvas sizing under both
+      // window resize AND browser-level zoom (Ctrl +/-). Do NOT use
+      // visualViewport.width/height here — those report the VISUAL
+      // viewport, which on browser-zoom is smaller than the layout
+      // viewport, producing a canvas that's too small and gets
+      // stretched by `position: fixed; inset: 0` CSS, resulting in
+      // a visibly stretched mesh outside the original 100% bounds.
       const w = window.innerWidth;
       const h = window.innerHeight;
       canvas.width = w * dpi;
       canvas.height = h * dpi;
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      const { dots, edges } = buildLattice(w, h);
+      const { dots, edges, pStart, pEnd } = buildLattice(w, h);
+      // If the cascade has already played out, any rebuild (e.g. window
+      // resize) should NOT replay it. Sentinel each dot's cascadeDepositAt
+      // to a negative value so it reads as "already deposited" — the
+      // dot falls straight through to the glide system and appears at
+      // its lattice position immediately.
+      if (cascadeCompleteRef.current) {
+        for (const d of dots) d.cascadeDepositAt = -1;
+      }
       dotsRef.current = dots;
       edgesRef.current = edges;
+      pStartRef.current = pStart;
+      pEndRef.current = pEnd;
     };
+    handleResizeRef.current = handleResize;
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    // Browser zoom (Ctrl/Cmd-+/-) changes devicePixelRatio without
+    // always firing a window resize event. visualViewport.resize
+    // fires on those changes; a matchMedia listener on the current
+    // DPR covers the corner case where neither fires (recreate the
+    // listener after each handleResize so it tracks the new DPR).
+    let mqList: MediaQueryList | null = null;
+    const subscribeMq = () => {
+      if (mqList) mqList.removeEventListener("change", onMqChange);
+      mqList = window.matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+      mqList.addEventListener("change", onMqChange);
+    };
+    const onMqChange = () => {
+      handleResize();
+      subscribeMq();
+    };
+    subscribeMq();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      vv?.removeEventListener("resize", handleResize);
+      mqList?.removeEventListener("change", onMqChange);
+    };
   }, []);
 
   // Animation loop — mounted ONCE for the lifetime of the component.
@@ -180,6 +355,24 @@ export function BreathingMesh({
     const positions: number[] = []; // [x0, y0, x1, y1, ...]
     const targetPositions: number[] = [];
     let lastFrameTime = performance.now();
+    // Per-frame viewport-dimension poll. The resize/visualViewport.resize/
+    // matchMedia change listeners are best-effort: in practice they don't
+    // all fire reliably on Ctrl+/Ctrl- browser zoom across all browser/OS
+    // combos. Polling innerWidth + devicePixelRatio every frame catches
+    // any change the listeners miss. Costs two property reads per frame —
+    // negligible. The handleResizeRef.current call is the SAME logic the
+    // listeners trigger, so dimensions stay coherent across all paths.
+    let lastInnerWidth = window.innerWidth;
+    let lastInnerHeight = window.innerHeight;
+    let lastDpr = window.devicePixelRatio;
+    // First-frame timestamp for the cascade-in choreography. The
+    // wavefront's parallel position sweeps from pStart to pEnd over
+    // CASCADE_DURATION_MS, with each dot depositing at the moment
+    // the wavefront reaches its diagonal projection. Captured on the
+    // first render frame so cascade timing aligns with actual paint,
+    // not component mount (which can precede first paint by several
+    // frames during heavy initial layout).
+    let cascadeStartedAt = 0;
     // Fraction of remaining distance to close per millisecond. Higher
     // values = snappier glide. Tuned by feel: at 0.012/ms, ~80% of any
     // delta closes in ~130ms — fast enough to feel responsive when
@@ -198,16 +391,57 @@ export function BreathingMesh({
     const DODGE_PADDING = 18;
 
     const render = (now: number) => {
+      // Per-frame viewport-dimension poll. Catches Ctrl+/Ctrl- browser
+      // zoom that didn't fire any of the resize/visualViewport/matchMedia
+      // listeners — the user's particular browser+OS may emit zero
+      // resize events across a long sequence of zoom keystrokes, and
+      // without polling the canvas's backing store stays stuck at the
+      // pre-zoom dimensions while CSS stretches it to fill the new
+      // viewport, producing a smeared/repeated mesh artifact.
+      const curW = window.innerWidth;
+      const curH = window.innerHeight;
+      const curDpr = window.devicePixelRatio;
+      if (
+        curW !== lastInnerWidth ||
+        curH !== lastInnerHeight ||
+        curDpr !== lastDpr
+      ) {
+        lastInnerWidth = curW;
+        lastInnerHeight = curH;
+        lastDpr = curDpr;
+        handleResizeRef.current();
+      }
+
       const dpi = dpiRef.current;
 
       // Collect dodge rects this frame. Selector cost: one querySelectorAll
       // + N getBoundingClientRect calls. With ~28 list cards that's ~30
       // calls — well under 1ms.
+      //
+      // `checkVisibility` with opacity + visibility flags is what makes
+      // the collapsed-list case work: list cards still have full width
+      // and height when the list mount is `opacity: 0` + `max-height: 0`
+      // + `overflow: hidden` (only the ancestor clips them, not the
+      // cards themselves), so the rect-zero guard alone isn't enough.
+      // checkVisibility() returns false for elements whose ancestor
+      // chain renders them invisible, which is exactly the gate we want.
       const dodgeEls = document.querySelectorAll("[data-mesh-dodge]");
       dodgeRects = [];
       for (const el of dodgeEls) {
-        const rect = (el as HTMLElement).getBoundingClientRect();
-        // Skip elements that are collapsed (height 0 from view toggle)
+        const html = el as HTMLElement;
+        if (
+          !html.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+            contentVisibilityAuto: true,
+          })
+        ) {
+          continue;
+        }
+        const rect = html.getBoundingClientRect();
+        // Backstop for elements with zero rect (e.g. mid-collapse from
+        // an in-flight transition) — checkVisibility may still report
+        // true while the layout is settling.
         if (rect.width < 1 || rect.height < 1) continue;
         dodgeRects.push({
           left: rect.left - DODGE_PADDING,
@@ -306,21 +540,94 @@ export function BreathingMesh({
         targetPositions[i * 2 + 1] = y;
       }
 
-      // Pass 1.5: ease rendered positions toward targets. Frame-rate
-      // independent exponential decay — `factor` is the fraction of the
-      // remaining distance to close THIS frame, derived from elapsed ms
-      // and GLIDE_RATE.
+      // Capture cascade start timestamp on the very first frame. Doing
+      // this in the render loop (vs. at effect mount) aligns the cascade
+      // with first paint, so the cascade begins as the canvas appears
+      // rather than during whatever pre-paint layout work was happening.
+      if (cascadeStartedAt === 0) {
+        cascadeStartedAt = now;
+      }
+      const cascadeElapsed = now - cascadeStartedAt;
+      // Flip the "cascade complete" flag once every dot has deposited.
+      // With ±CASCADE_JITTER_MS applied to each dot's depositAt, the
+      // last dot can arrive up to CASCADE_JITTER_MS past the strict
+      // wavefront end — so wait that long before declaring done.
+      if (
+        !cascadeCompleteRef.current &&
+        cascadeElapsed >= CASCADE_DURATION_MS + CASCADE_JITTER_MS
+      ) {
+        cascadeCompleteRef.current = true;
+      }
+
+      // Pass 1.5: position each dot.
+      //   - Cascade phase: rendered position = lerp(origin → target, eased(progress)).
+      //     The glide system is bypassed for dots still in transit so
+      //     the cascade curve isn't fought by exponential decay.
+      //   - Post-cascade: standard glide toward targetPositions, with
+      //     the same first-frame "snap to target" guard as before.
+      //
+      // Edges read these rendered positions, so during cascade they
+      // connect dots at their CURRENT positions — long lines trail
+      // behind the wavefront and resolve into the final lattice as
+      // each pair of endpoints completes its transit.
       const dt = Math.max(1, Math.min(100, now - lastFrameTime));
       lastFrameTime = now;
       const factor = 1 - Math.exp(-GLIDE_RATE * dt);
       for (let i = 0; i < dots.length; i++) {
+        const dot = dots[i]!;
         const tx = targetPositions[i * 2]!;
         const ty = targetPositions[i * 2 + 1]!;
+        // Wavefront-comb: the wavefront's parallel position p(t) is
+        // a linear function of cascadeElapsed. Every undeposited dot
+        // has a rendered position determined by (a) the wavefront's
+        // current parallel position p(t), and (b) the dot's own
+        // perpendicular coordinate (lx - ly).
+        //
+        // From the system { x + y = p, x - y = lx - ly }:
+        //   x = (p + lx - ly) / 2
+        //   y = (p - lx + ly) / 2
+        //
+        // When p = lx + ly (the wavefront reaches this dot's
+        // projection), x = lx and y = ly — the dot has arrived.
+        // Before that, the dot is at the wavefront's current p,
+        // displaced along (-1, -1) from its target by (depositAt - t)
+        // worth of sweep distance.
+        if (cascadeElapsed < dot.cascadeDepositAt) {
+          // Linear wavefront sweep keeps the math symmetric: pNow is
+          // a simple linear interpolation of (pStart → pEnd), and
+          // cascadeDepositAt is a simple linear function of the dot's
+          // projection.
+          //
+          // Per-dot parallel offset adds variance in the SWEEP
+          // direction so dots aren't all co-linear on the strict
+          // wavefront. The offset is maximum at t=0 and eases to 0
+          // by this dot's depositAt (using a quadratic so the
+          // approach is gentle) — the dot lands at (lx, ly)
+          // precisely regardless of its initial offset.
+          const pStart = pStartRef.current;
+          const pEnd = pEndRef.current;
+          const progress = cascadeElapsed / CASCADE_DURATION_MS;
+          const pNow = pStart + (pEnd - pStart) * progress;
+          // remaining ∈ [0, 1]: 1 at t=0, 0 at deposit.
+          const remaining =
+            dot.cascadeDepositAt <= 0
+              ? 0
+              : 1 - cascadeElapsed / dot.cascadeDepositAt;
+          // Quadratic for a gentler approach to the wavefront line.
+          const offsetScale = remaining * remaining;
+          const offset = dot.cascadeParallelOffset * offsetScale;
+          const pEffective = pNow + offset;
+          positions[i * 2] = (pEffective + dot.lx - dot.ly) / 2;
+          positions[i * 2 + 1] = (pEffective - dot.lx + dot.ly) / 2;
+          continue;
+        }
         const cxr = positions[i * 2];
         const cyr = positions[i * 2 + 1];
         if (cxr === undefined || cyr === undefined) {
-          // First frame for this dot — start AT the target so we don't
-          // glide in from (0,0).
+          // First frame for this dot AFTER cascade window — snap to
+          // target. (Only fires for dots whose cascade window already
+          // passed before they ever rendered, which would mean a
+          // post-mount lattice resize after cascade end; safe default.)
           positions[i * 2] = tx;
           positions[i * 2 + 1] = ty;
         } else {
