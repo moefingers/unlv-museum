@@ -167,7 +167,18 @@ export function VertexHover({
         pointerEvents="all"
         onMouseEnter={onHitTargetEnter}
         onMouseLeave={onHitTargetLeave}
-        onClick={onHitTargetClick}
+        // Block pointerdown propagation so the parent stage's drag
+        // handler doesn't start a drag when the user clicks a dot.
+        // (Without this, pointerdown bubbles up, the stage starts a
+        // drag, and even a small mouse jiggle on click can be
+        // misclassified as a drag — preventing the click handler
+        // from running.) The click below also stops propagation
+        // so the parent's background-dismiss handler doesn't fire.
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onHitTargetClick?.();
+        }}
         style={{ cursor: "pointer" }}
       />
       <text

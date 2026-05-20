@@ -25,11 +25,37 @@ import { useEffect, useRef } from "react";
 interface BreathingMeshProps {
   cutoutTarget: React.RefObject<HTMLElement | null> | null;
   cutoutRadius?: number;
+  /**
+   * Optional user-controlled zoom signal. When provided, mesh dot
+   * positions are scaled outward from the cutout center by this
+   * factor — zooming in on the sphere also spreads the mesh apart,
+   * as if the camera moved closer to the whole scene.
+   *
+   * Excluded from this signal: view-toggle scale (cards should hold
+   * their lattice positions during view collapse) and anchored-state
+   * zoom (which is its own concern). Pass ONLY the wheel-driven
+   * user-zoom value here.
+   */
+  meshZoom?: React.RefObject<number | null> | null;
 }
 
 const SPACING = 68;
 const DOT_RADIUS = 1.6;
 const OFFSET_AMPLITUDE = 8;
+// Per-dot jitter applied to the cutout radius when testing whether a
+// dot sits inside the cutout. Each dot has its OWN effective cutout
+// radius (= cutoutRadius + this dot's jitter in [-CUTOUT_JITTER_PX,
+// +CUTOUT_JITTER_PX]). Result: the cutout rim isn't a clean circle —
+// dots settle along a fuzzy band instead of a perfect arc. Static
+// (computed once at lattice build), so the boundary doesn't shimmer.
+const CUTOUT_JITTER_PX = 24;
+// Tightness factor on the measured cutout radius. The cutout target's
+// bounding rect includes the full SVG viewBox padding (the polyhedron
+// only fills ~71% of its stage box), so without tightening the cutout
+// sits well outside the actual sphere silhouette. Multiplying the
+// measured radius by this factor pulls the mesh closer to the
+// polyhedron without changing the polyhedron itself.
+const CUTOUT_TIGHTNESS = 0.94;
 // Mild per-dot live drift on top of the static offset. Amplitude is in px,
 // period is in ms; each dot has its own randomized phase + period so the
 // mesh ripples instead of all dots moving in unison.
@@ -115,6 +141,10 @@ interface Dot {
   // The offset eases back to 0 by deposit time so the dot still
   // lands precisely at (lx, ly).
   cascadeParallelOffset: number;
+  // Per-dot jitter added to the cutout radius when this dot is
+  // tested against the cutout. Softens the cutout boundary so the
+  // mesh's resting rim isn't a perfect circle.
+  cutoutJitter: number;
 }
 
 interface Lattice {
@@ -127,19 +157,38 @@ interface Lattice {
   pEnd: number;
 }
 
-function buildLattice(width: number, height: number): Lattice {
+function buildLattice(
+  width: number,
+  height: number,
+  marginPx: number = 0,
+): Lattice {
   const dots: Dot[] = [];
   const rowH = SPACING * (Math.sqrt(3) / 2);
-  const cols = Math.ceil(width / SPACING) + 2;
-  const rows = Math.ceil(height / rowH) + 2;
+  // Extend the lattice symmetrically by marginPx on all four sides.
+  // Needed when the consumer compresses dot positions toward the
+  // cutout center via meshZoom < 1: at min zoom the lattice's outer
+  // ring lands well inside the viewport, leaving the perimeter bare.
+  // Pre-extending the lattice past the viewport gives those compressed
+  // dots somewhere to come from.
+  const marginCols = Math.ceil(marginPx / SPACING);
+  const marginRows = Math.ceil(marginPx / rowH);
+  const cols = Math.ceil(width / SPACING) + 2 + 2 * marginCols;
+  const rows = Math.ceil(height / rowH) + 2 + 2 * marginRows;
   const rnd = mulberry32(1);
   const grid: number[][] = [];
+  // Offset so the lattice extends from (-marginPx, -marginPx) on the
+  // top-left through (width + marginPx, height + marginPx) on the
+  // bottom-right.
+  const cOffset = -marginCols;
+  const rOffset = -marginRows;
 
-  for (let r = -1; r < rows; r++) {
+  for (let rIdx = -1; rIdx < rows; rIdx++) {
+    const r = rIdx + rOffset;
     const row: number[] = [];
     const evenRow = ((r % 2) + 2) % 2 === 0;
     const offset = evenRow ? 0 : SPACING / 2;
-    for (let c = -1; c < cols; c++) {
+    for (let cIdx = -1; cIdx < cols; cIdx++) {
+      const c = cIdx + cOffset;
       row.push(dots.length);
       dots.push({
         lx: c * SPACING + offset,
@@ -155,6 +204,7 @@ function buildLattice(width: number, height: number): Lattice {
         // Filled in by the normalization pass after the loop.
         cascadeDepositAt: 0,
         cascadeParallelOffset: 0,
+        cutoutJitter: (rnd() - 0.5) * 2 * CUTOUT_JITTER_PX,
       });
     }
     grid.push(row);
@@ -162,10 +212,11 @@ function buildLattice(width: number, height: number): Lattice {
 
   const edges: [number, number][] = [];
   // gridR is the array index into `grid`. The corresponding ORIGINAL row
-  // counter in the dot loop above was gridR - 1 (we started at r=-1).
-  // Parity uses originalR — that's what determines the lattice shift.
+  // counter in the dot loop above was rIdx (starting at -1) + rOffset.
+  // Parity uses that row's lattice index — what determines whether the
+  // row is shifted by SPACING/2.
   for (let gridR = 0; gridR < grid.length; gridR++) {
-    const originalR = gridR - 1;
+    const originalR = gridR - 1 + rOffset;
     const row = grid[gridR]!;
     const nextRow = grid[gridR + 1];
     for (let c = 0; c < row.length; c++) {
@@ -232,6 +283,7 @@ function buildLattice(width: number, height: number): Lattice {
 export function BreathingMesh({
   cutoutTarget,
   cutoutRadius,
+  meshZoom,
 }: BreathingMeshProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dotsRef = useRef<Dot[]>([]);
@@ -260,9 +312,11 @@ export function BreathingMesh({
   // having to mirror the CSS easing curve in JS.
   const cutoutTargetRef = useRef(cutoutTarget);
   const cutoutRadiusRef = useRef(cutoutRadius);
+  const meshZoomRef = useRef(meshZoom);
   useEffect(() => {
     cutoutTargetRef.current = cutoutTarget;
     cutoutRadiusRef.current = cutoutRadius;
+    meshZoomRef.current = meshZoom;
   });
 
   // Resize + lattice (re-runs only on window resize).
@@ -296,7 +350,15 @@ export function BreathingMesh({
       canvas.height = h * dpi;
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      const { dots, edges, pStart, pEnd } = buildLattice(w, h);
+      // Build the lattice with extra margin past the viewport so that
+      // when the consumer compresses dot positions toward the cutout
+      // center via meshZoom < 1, the dots at the lattice's outer ring
+      // still reach the viewport edges. Half the viewport on each
+      // side is enough for zoom ≥ 0.5 (the museum's USER_ZOOM_MIN is
+      // 0.55, so this has a small safety margin). Cheap: ~30% more
+      // dots than a fitted lattice.
+      const latticeMargin = Math.max(w, h) * 0.5;
+      const { dots, edges, pStart, pEnd } = buildLattice(w, h, latticeMargin);
       // If the cascade has already played out, any rebuild (e.g. window
       // resize) should NOT replay it. Sentinel each dot's cascadeDepositAt
       // to a negative value so it reads as "already deposited" — the
@@ -378,6 +440,22 @@ export function BreathingMesh({
     // delta closes in ~130ms — fast enough to feel responsive when
     // scrolling, slow enough to mask the hard rect-edge snap.
     const GLIDE_RATE = 0.012;
+    // Slower glide rate for the CUTOUT RADIUS specifically. The CSS
+    // scale-to-zero animation on the globe (~900ms) shrinks the
+    // measured target r linearly with scale. Without smoothing, the
+    // mesh's apparent boundary collapses as fast as the globe. We
+    // ease `r` separately so the cutout lags the globe's shrink —
+    // the perceived effect is the mesh "remembering" the globe's
+    // shape for a beat after it scales down. 0.004/ms ≈ 250ms
+    // closure time; the cutout lingers behind the globe by a few
+    // hundred ms over the course of the view toggle.
+    const CUTOUT_GLIDE_RATE = 0.004;
+    // Smoothed cutout radius, persisted across frames. Each frame
+    // eases toward the per-frame MEASURED radius via CUTOUT_GLIDE_RATE.
+    // Initialized to -1 as a "first frame" sentinel — on first read,
+    // we snap to the measured value to avoid a jarring open-from-zero
+    // on the initial paint.
+    let rSmoothed = -1;
     // Padded rects for any element tagged with [data-mesh-dodge]. Dots
     // inside these rects get pushed to the nearest edge so the foreground
     // breathes too — used by list cards. Refreshed once per frame so we
@@ -451,10 +529,24 @@ export function BreathingMesh({
         });
       }
 
+      // Frame delta (ms). Shared between the cutout-radius smoothing
+      // here and the dot-position glide pass further down. Clamped to
+      // [1, 100] so a long pause between frames (e.g. tab unfocus
+      // followed by refocus) doesn't produce a single huge frame that
+      // snaps everything to its target in one step.
+      const dt = Math.max(1, Math.min(100, now - lastFrameTime));
+      lastFrameTime = now;
+
       // Measure cutout target each frame. The target stays MOUNTED across
       // view changes — the consumer just transforms it (scale 0/1), so the
       // bounding rect shrinks/grows live. Reading it every frame gives a
       // lockstep cutout animation without any JS easing on our side.
+      //
+      // The MEASURED r tracks the CSS scale linearly. To make the
+      // perceived cutout lag the globe's shrink, we ease a separate
+      // `rSmoothed` toward the measured value via CUTOUT_GLIDE_RATE —
+      // and use `rSmoothed` for the dot push-out check below. First
+      // frame snaps (no animation from 0).
       let cx = 0;
       let cy = 0;
       let r = 0;
@@ -478,7 +570,25 @@ export function BreathingMesh({
         } else {
           r = Math.min(rect.width, rect.height) / 2;
         }
+        // Pull the cutout in toward the polyhedron — the target rect
+        // includes ~30% padding past the actual sphere.
+        r *= CUTOUT_TIGHTNESS;
       }
+      if (rSmoothed < 0) {
+        // First frame: snap so the cutout opens at its measured size
+        // rather than gliding in from zero.
+        rSmoothed = r;
+      } else {
+        const cutoutFactor = 1 - Math.exp(-CUTOUT_GLIDE_RATE * dt);
+        rSmoothed += (r - rSmoothed) * cutoutFactor;
+      }
+
+      // User-controlled zoom factor for mesh spread. Pulled from the
+      // parent's ref each frame so changing the value doesn't re-mount
+      // anything. Defaults to 1 if the consumer didn't pass a ref or
+      // hasn't set a value yet — dots render at their lattice positions
+      // unscaled.
+      const meshZoomFactor = meshZoomRef.current?.current ?? 1;
 
       const color = getComputedStyle(document.documentElement)
         .getPropertyValue("--muted-foreground")
@@ -501,17 +611,32 @@ export function BreathingMesh({
         const driftY =
           Math.sin((now / dot.periodY + dot.phaseY) * Math.PI * 2) *
           DRIFT_AMPLITUDE;
-        let x = dot.lx + dot.offsetX + driftX;
-        let y = dot.ly + dot.offsetY + driftY;
-        if (r > 0) {
+        // Apply user-controlled zoom by scaling the dot's lattice
+        // position outward from the cutout center. zoom=1 is identity
+        // (no spread); zoom>1 spreads dots away from the sphere;
+        // zoom<1 compresses dots toward it. Drift and static offset
+        // stay in viewport space — they're visual "hand-drawn"
+        // jitter that should look the same regardless of zoom level.
+        let x = (dot.lx - cx) * meshZoomFactor + cx + dot.offsetX + driftX;
+        let y = (dot.ly - cy) * meshZoomFactor + cy + dot.offsetY + driftY;
+        if (rSmoothed > 0) {
+          // Effective cutout radius for THIS dot. The per-dot jitter
+          // softens the rim — neighboring dots end up at slightly
+          // different distances from the cutout center, so the
+          // resting boundary isn't a perfect circle. `rSmoothed`
+          // (not the per-frame measured `r`) is the radius the
+          // cutout lerps toward — slower than the CSS scale so the
+          // mesh appears to "remember" the globe's prior size for
+          // a beat as the view collapses.
+          const rEff = rSmoothed + dot.cutoutJitter;
           const dx = x - cx;
           const dy = y - cy;
           const d = Math.hypot(dx, dy);
-          if (d < r) {
+          if (d < rEff) {
             if (d === 0) {
-              x = cx + r;
+              x = cx + rEff;
             } else {
-              const scale = r / d;
+              const scale = rEff / d;
               x = cx + dx * scale;
               y = cy + dy * scale;
             }
@@ -570,8 +695,8 @@ export function BreathingMesh({
       // connect dots at their CURRENT positions — long lines trail
       // behind the wavefront and resolve into the final lattice as
       // each pair of endpoints completes its transit.
-      const dt = Math.max(1, Math.min(100, now - lastFrameTime));
-      lastFrameTime = now;
+      // `dt` was computed at the top of the frame for the cutout
+      // smoothing pass; reused here for the dot-position glide.
       const factor = 1 - Math.exp(-GLIDE_RATE * dt);
       for (let i = 0; i < dots.length; i++) {
         const dot = dots[i]!;
@@ -644,7 +769,14 @@ export function BreathingMesh({
       // visually unnatural long line crossing the wrong region.
       // Threshold is generous enough to let local drift through but
       // tight enough to break edges that span outside the lattice.
-      const STRETCH_THRESHOLD_SQ = SPACING * 1.6 * (SPACING * 1.6);
+      //
+      // Scales with meshZoomFactor: at zoom > 1 the lattice spreads
+      // outward, so the natural edge length grows linearly with zoom.
+      // If the threshold stayed fixed, every edge would break at high
+      // zoom. SPACING * meshZoomFactor is the new natural length;
+      // 1.6× of that is the cutoff for "too stretched".
+      const stretchLimit = SPACING * meshZoomFactor * 1.6;
+      const STRETCH_THRESHOLD_SQ = stretchLimit * stretchLimit;
       ctx.strokeStyle = stroke;
       ctx.globalAlpha = 0.18;
       ctx.lineWidth = 1;

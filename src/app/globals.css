@@ -214,6 +214,14 @@
     height: 100dvh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /*
+     * Cap the page to 100vw — the polyhedron stage can extend past the
+     * viewport edges when zoomed or wider than the device, and we don't
+     * want that to produce a horizontal scrollbar. `overflow-x: clip` is
+     * preferred over `hidden` because it doesn't establish a scroll
+     * container (which would break `position: sticky` on descendants).
+     */
+    overflow-x: clip;
   }
 
   body {
@@ -225,6 +233,7 @@
     font-family: var(--font-sans);
     font-size: 1rem;
     line-height: 1.6;
+    overflow-x: clip;
   }
 
   h1,

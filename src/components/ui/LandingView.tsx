@@ -13,7 +13,14 @@ import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import { HelpModal } from "@/components/ui/HelpModal";
 import {
+  ANCHOR_SWING_MS,
+  ANCHOR_ZOOM_EASING,
+  ANCHOR_ZOOM_SCALE,
+  ANCHOR_ZOOM_TRANSLATE_Y_PCT,
   PolyhedronGlobe,
+  USER_ZOOM_MAX,
+  USER_ZOOM_MIN,
+  USER_ZOOM_WHEEL_SENSITIVITY,
   type VertexAssignment,
 } from "@/components/ui/PolyhedronGlobe";
 import { geodesic } from "@/lib/polyhedra";
@@ -102,6 +109,21 @@ function projectSortKey(yearText: string): string {
   return "0000-00";
 }
 
+/**
+ * Stable [0, 1) hash of a string via FNV-1a. Used for the list-card
+ * stagger delays so each card has a deterministic random offset —
+ * no flicker on re-render, but the stagger pattern reads as random
+ * rather than positional.
+ */
+function hash01(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+
 function ListCard({
   project,
   registerRef,
@@ -119,10 +141,16 @@ function ListCard({
       // in this project strips it from CSS Modules (confirmed via
       // computed-style inspection — the property was dropped from the
       // served stylesheet). Inline survives the pipeline untouched.
-      style={{
-        backdropFilter: "blur(2px) saturate(1.4)",
-        WebkitBackdropFilter: "blur(2px) saturate(1.4)",
-      }}
+      // `--i` is a per-card random in [0, 1) (hashed from slug for
+      // stability) — CSS multiplies it by a spread to derive the
+      // transition-delay for the scale-in/scale-out cascade.
+      style={
+        {
+          backdropFilter: "blur(2px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(2px) saturate(1.4)",
+          "--i": hash01(project.slug),
+        } as React.CSSProperties
+      }
       // data-category drives a faint background tint (--category-* token at
       // low alpha) so category identity is visible without section headers
       // — see .listCardLink[data-category=...] in the module CSS.
@@ -346,6 +374,80 @@ function LandingViewInner() {
   // etc.). In List view the ref is passed as null and the mesh fills.
   const globeWrapRef = useRef<HTMLDivElement | null>(null);
 
+  // ─── Sphere transform state (owned by LandingView) ──────────
+  //
+  // Both the anchored-state zoom and the user-controlled zoom are
+  // applied on globeScaleHost (the element globeWrapRef points to,
+  // which BreathingMesh measures for its cutout). The transforms
+  // live HERE — not inside PolyhedronGlobe — because the cutout
+  // calculation depends on getBoundingClientRect of the same DOM
+  // element that gets the transform. Splitting the transform across
+  // PolyhedronGlobe + globeScaleHost would either desync the cutout
+  // from the visible sphere or require manual multipliers, both of
+  // which sacrifice correctness for ease-of-implementation.
+  //
+  // PolyhedronGlobe owns the underlying state but reports it up via
+  // callbacks (onAnchoredChange, onWheelZoom). Single source of
+  // truth: the transform applied here matches the state up there.
+  const [anchored, setAnchored] = useState(false);
+  const [userZoom, setUserZoom] = useState(1);
+  const handleWheelZoom = (deltaY: number) => {
+    const ratio = Math.exp(-deltaY * USER_ZOOM_WHEEL_SENSITIVITY);
+    setUserZoom((z) =>
+      Math.max(USER_ZOOM_MIN, Math.min(USER_ZOOM_MAX, z * ratio)),
+    );
+  };
+  // Mirror userZoom into a ref so BreathingMesh's animation frame loop
+  // can read it without forcing a re-render of the mesh component each
+  // time the zoom changes. Updated in a layout effect to satisfy the
+  // React 19 lint rule prohibiting ref writes during render.
+  const userZoomRef = useRef(1);
+  useLayoutEffect(() => {
+    userZoomRef.current = userZoom;
+  }, [userZoom]);
+
+  // Window-level wheel listener so visitors can zoom by scrolling
+  // ANYWHERE on the page, not only over the sphere. The sphere has
+  // its own internal wheel listener (which also preventDefault's to
+  // suppress ctrl+wheel browser zoom on the sphere); we skip the
+  // event here when its target is inside that stage so we don't
+  // double-handle.
+  //
+  // Only active in Globe view — when in List view, the user expects
+  // the wheel to scroll the list normally.
+  useEffect(() => {
+    if (view !== "globe") return;
+    const onWheel = (e: WheelEvent) => {
+      // Skip if the sphere's own listener will handle it.
+      const target = e.target as Node | null;
+      const stage = document.querySelector(`.${styles.globeZoomLayer}`);
+      if (stage && target && stage.contains(target)) return;
+      handleWheelZoom(e.deltaY);
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [view]);
+  // Two nested transform layers, each on its own transition duration:
+  //
+  //   outer (.globeScaleHost): view-toggle + anchored zoom/translate
+  //     on the long 900ms transition matching the rotation slerp.
+  //   inner (.globeZoomLayer): user-controlled zoom on a short
+  //     transition so wheel-driven updates feel direct but smoothed.
+  //
+  // BreathingMesh measures the INNER layer's bounding rect, which
+  // accounts for both ancestor transforms (getBoundingClientRect
+  // returns viewport-space rect, post-cumulative-transform). The
+  // cutout therefore tracks the visible sphere automatically.
+  const viewToggleScale = view === "globe" ? 1 : 0;
+  const outerScale = viewToggleScale * (anchored ? ANCHOR_ZOOM_SCALE : 1);
+  const outerTranslateY = anchored ? ANCHOR_ZOOM_TRANSLATE_Y_PCT : 0;
+  // User-zoom transition duration: long enough to smooth step changes
+  // between wheel events, short enough to feel direct. ~120ms is
+  // around the lower bound of perceptual "instant" — fast enough
+  // that the cursor feels in control, slow enough that adjacent
+  // wheel events blend into a continuous motion.
+  const USER_ZOOM_TRANSITION_MS = 120;
+
   // polyhedron-hover-type: assign projects to vertices.
   //
   // Each vertex of the icosphere gets one project, in `orderedProjects`
@@ -385,7 +487,7 @@ function LandingViewInner() {
         the cutout naturally tracks it down to zero. Going back to Globe,
         the wrapper scales 0 → 1 and the cutout opens in lockstep.
       */}
-      <BreathingMesh cutoutTarget={globeWrapRef} />
+      <BreathingMesh cutoutTarget={globeWrapRef} meshZoom={userZoomRef} />
 
       {/*
         Top-left fixed back-link. Separated from the floating header
@@ -485,8 +587,36 @@ function LandingViewInner() {
         in lockstep with the globe rather than snapping at unmount.
       */}
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
-        <div ref={globeWrapRef} className={styles.globeScaleHost}>
-          <PolyhedronGlobe radius={600} assignments={vertexAssignments} />
+        <div
+          className={styles.globeScaleHost}
+          style={{
+            // Outer layer: frame offset (CSS var) + anchored translate
+            // + view-toggle and anchored scales. Long transition tied
+            // to the rotation slerp so anchor + scale move as one
+            // gesture.
+            transform: `translateY(calc(var(--globe-frame-offset-y) + ${outerTranslateY}%)) scale(${outerScale})`,
+            transition: `transform ${ANCHOR_SWING_MS}ms ${ANCHOR_ZOOM_EASING}`,
+          }}
+        >
+          <div
+            ref={globeWrapRef}
+            className={styles.globeZoomLayer}
+            style={{
+              // Inner layer: user-controlled zoom only. Short
+              // transition for smooth wheel input. BreathingMesh
+              // measures THIS element — its bounding rect reflects
+              // BOTH this scale and the ancestor scale (cumulative).
+              transform: `scale(${userZoom})`,
+              transition: `transform ${USER_ZOOM_TRANSITION_MS}ms ease-out`,
+            }}
+          >
+            <PolyhedronGlobe
+              radius={500}
+              assignments={vertexAssignments}
+              onAnchoredChange={setAnchored}
+              onWheelZoom={handleWheelZoom}
+            />
+          </div>
         </div>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>

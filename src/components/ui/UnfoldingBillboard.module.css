@@ -1,0 +1,56 @@
+.host {
+  position: relative;
+  display: inline-block;
+}
+
+.svg {
+  display: block;
+  /* The shape filters out from a center point — we want any backdrop
+     effects (blur of background through the glass) to track the
+     polygon, not the SVG's bounding box. backdrop-filter on the
+     <path> requires SVG-CSS interaction that's flaky; instead we let
+     the parent stage have a vivid background and the glass shape
+     just reads visually as "frosted." */
+}
+
+.shape {
+  /* Glassy rim — a soft white stroke that catches light. Inside
+     filled with a very-low-alpha white wash for the body. */
+  filter: drop-shadow(0 0 6px rgba(180, 200, 255, 0.45))
+    drop-shadow(0 2px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* HTML content layer — sits on top of the SVG, centered. Fades in
+   once the shape is large enough to hold it (data-visible=true). */
+.contentLayer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+  pointer-events: none;
+  color: rgba(245, 245, 250, 0.95);
+  text-align: center;
+}
+.contentLayer[data-visible="true"] {
+  opacity: 1;
+  transition-delay: 80ms;
+}
+
+/* Stage debug readout — top-center of the host. */
+.debug {
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.625rem;
+  color: rgba(180, 180, 200, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
