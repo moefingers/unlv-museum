@@ -1,5 +1,11 @@
 .stage {
   position: relative;
+  /* Sit above the BreathingMesh canvas (z-index: -1, position: fixed).
+     `.stage` lives inside `.globeWrap` which has clip-path applied,
+     creating a stacking context — without an explicit positive z-index
+     the polyhedron lines render at the parent stacking context's base
+     level, which is below the mesh's negative z. */
+  z-index: 1;
   margin: 0 auto;
   touch-action: none;
   cursor: grab;
