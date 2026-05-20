@@ -1,0 +1,752 @@
+/* MongoClient mirrors ApiClient's layout (sticky chrome header, left
+   sidebar with collapsible KB, right pane) but renders a terminal in
+   the right pane instead of a request builder. The chrome itself is
+   shared via MuseumChrome. */
+
+/* Layout invariant: the page itself does NOT scroll. The shell is exactly
+   viewport-tall, MuseumChrome takes the top, and the body fills the
+   remaining space as a two-column flex row. The sidebar fills that column
+   top-to-bottom and scrolls internally if needed; the right pane fills
+   its column and confines all scroll to the transcript region.
+
+   Critical: min-height:0 on flex children that hold scrollers. Without it,
+   the default min-content sizing inflates the column past its parent and
+   we lose the scroll cap. */
+.shell {
+  display: flex;
+  height: 100vh;
+  /* dvh handles iOS Safari's chrome-collapsing viewport better than vh.
+     Fallback above for browsers without dvh. */
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  --sidebar-w: 18rem;
+}
+
+.body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  /* Sidebar is in-flow now; no padding-left needed. */
+}
+
+.sidebar {
+  position: relative;
+  z-index: 40;
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--muted);
+  transform: translateX(0);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+
+.sidebarToggle {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--sidebar-w);
+  z-index: 41;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: -1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-0.5rem);
+  pointer-events: none;
+  transition:
+    left var(--duration-slow) var(--ease-snap),
+    opacity var(--duration-slow) var(--ease-snap),
+    transform var(--duration-slow) var(--ease-snap),
+    visibility 0s linear var(--duration-slow),
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+
+.sidebarToggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.sidebarToggleIcon {
+  transform: rotate(180deg);
+  transition: transform var(--duration-slow) var(--ease-snap);
+}
+
+.shell[data-sidebar-open="true"] .sidebarToggleIcon {
+  transform: rotate(0deg);
+}
+
+.sidebarBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: default;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-default);
+}
+
+.sidebarHeader {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebarIntro {
+  color: var(--muted-foreground);
+}
+
+/* ── Knowledge base ─────────────────────────────────────────────────── */
+
+.kbEntry {
+  border-bottom: 1px solid var(--border);
+}
+
+.kbEntryButton {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+
+.kbEntryButton:hover {
+  background: var(--accent);
+}
+
+.kbEntryButtonActive {
+  background: var(--accent);
+}
+
+.kbEntryTitle {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.kbEntryTech {
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+
+.kbDetails {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.kbDescription {
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-3);
+  line-height: 1.45;
+}
+
+.kbCollections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.kbCollectionsLabel {
+  color: var(--muted-foreground);
+  margin-right: 4px;
+}
+
+.kbCollection {
+  font-family: var(--font-mono);
+  background: var(--card);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.kbExamples {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kbExample {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+
+.kbExample:hover {
+  background: var(--card);
+}
+
+.kbExampleLabel {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+}
+
+.kbExampleDescription {
+  color: var(--muted-foreground);
+  line-height: 1.35;
+}
+
+.history {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.historyLabel {
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historyItem {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+
+.historyItem:hover {
+  background: var(--card);
+}
+
+/* ── Terminal pane ──────────────────────────────────────────────────── */
+
+.terminal {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.terminalProject {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.terminalDb {
+  color: var(--foreground);
+}
+
+.terminalSeparator {
+  opacity: 0.5;
+}
+
+.terminalTier {
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.terminalTier[data-tier="enhanced"] {
+  background: color-mix(in oklch, var(--accent), var(--success) 30%);
+  color: var(--foreground);
+}
+
+.terminalGrow {
+  flex: 1;
+}
+
+.signInInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+
+.signInInline:hover {
+  background: var(--accent);
+}
+
+.signedInBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--border);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.transcript {
+  flex: 1;
+  overflow-y: auto;
+  /* Top padding tracks the welcome banner's measured height so the first
+     command in the transcript isn't trapped under the absolutely-positioned
+     welcome surface. --welcome-h is set by MongoClient.tsx via ResizeObserver
+     so it always matches the real banner height (responsive to viewport
+     changes, multi-line content, etc.). Fallback of 9rem covers the banner
+     before the observer fires once. */
+  padding: calc(var(--welcome-h, 9rem) + var(--space-3)) var(--space-4)
+    var(--space-6);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  /* Make the scroll snap-back feel a little more like a terminal — keeps
+     the last command pinned when content grows from the bottom. */
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* ── Floating "jump to latest" chip ─────────────────────────────────── */
+
+/* Wrapper anchors the chip + gradient backdrop to the bottom edge of the
+   .terminal pane. Both pieces fade in/out together via data-visible. */
+.scrollHintWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+}
+
+.scrollHintWrap[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Radial gradient backdrop — center anchored to the chip's bottom edge,
+   fading outward and upward so the transition from the rolling transcript
+   into the chip feels like it's "rising from the floor." Sits as a sibling
+   to the chip rather than its background so the radial center is the
+   wrapper's bottom edge, not the chip itself. */
+.scrollHintGlow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 280px;
+  height: 160px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center bottom,
+    color-mix(in oklch, var(--background) 92%, transparent) 0%,
+    color-mix(in oklch, var(--background) 70%, transparent) 35%,
+    transparent 75%
+  );
+}
+
+.scrollHintButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+  padding: 6px 14px 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--card) 80%, transparent);
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: var(--radius-full);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
+  box-shadow:
+    0 4px 12px color-mix(in oklch, var(--background), oklch(0 0 0) 30%),
+    0 0 0 1px color-mix(in oklch, var(--background) 50%, transparent);
+  cursor: pointer;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+}
+
+.scrollHintButton:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+
+.scrollHintButton:focus-visible {
+  outline: 2px solid var(--accent-foreground);
+  outline-offset: 2px;
+}
+
+/* Welcome is positioned ABSOLUTELY over the top edge of the scrolling
+   transcript. It uses backdrop-filter to blur whatever scrolls beneath it
+   — visitors see the transcript text faintly through the welcome surface,
+   signalling "this header layer is hovering over the scroll region."
+
+   The transcript reserves matching top-padding so the first command row
+   isn't permanently trapped under the welcome. */
+.welcome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: var(--space-3) var(--space-4);
+  /* Translucent token-derived background so light/dark themes both work.
+     color-mix lets us set explicit alpha on the existing background token
+     without hardcoding hex values. */
+  background: color-mix(in oklch, var(--background) 60%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px dashed color-mix(in oklch, var(--border) 70%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  pointer-events: none;
+}
+
+/* Allow text-selection / link clicks inside the welcome but don't block
+   pointer events from passing through the welcome's padding edges to the
+   scroll surface — pointer-events:none above + auto here gives that. */
+.welcome > * {
+  pointer-events: auto;
+}
+
+.welcomeAscii {
+  color: color-mix(in oklch, var(--foreground), var(--success) 40%);
+  font-family: var(--font-mono);
+  margin: 0 0 var(--space-2);
+}
+
+.welcomeLine {
+  color: var(--muted-foreground);
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.welcomeDb,
+.welcomeProject,
+.welcomeTier {
+  color: var(--foreground);
+}
+
+.welcomeHint {
+  color: var(--muted-foreground);
+  margin: var(--space-2) 0 0;
+  font-size: 0.75rem;
+}
+
+.welcomeCode {
+  font-family: var(--font-mono);
+  background: var(--card);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.welcomeKbd {
+  font-family: var(--font-mono);
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+}
+
+.welcomeLink {
+  color: var(--accent-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.echoRow,
+.promptRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 2px 0;
+}
+
+.promptPrefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+
+.promptDb {
+  color: color-mix(in oklch, var(--foreground), var(--success) 50%);
+}
+
+.promptArrow {
+  color: var(--muted-foreground);
+}
+
+.promptInput {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: none;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  padding: 4px 0;
+}
+
+.promptInput::placeholder {
+  color: var(--muted-foreground);
+}
+
+.runButton {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.runButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.echoCommand {
+  flex: 1;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground);
+  padding: 4px 0;
+}
+
+.pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  padding: 4px 0 4px var(--space-6);
+  font-size: 0.8rem;
+}
+
+/* ── Per-result scroll container ───────────────────────────────────── */
+
+/* Each command output lands in its own bordered box so a 100-doc query
+   stays self-contained: vertical scrolling caps the box at ~30vh, and
+   horizontal scrolling lets long compact-print lines extend instead of
+   wrapping into illegible blobs. */
+.resultBox {
+  position: relative;
+  margin: 4px 0 var(--space-2) var(--space-6);
+  padding: 8px 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--background), var(--muted) 60%);
+  max-height: 30vh;
+  overflow: auto;
+}
+
+.resultBox[data-kind="error"] {
+  border-color: color-mix(
+    in oklch,
+    var(--border),
+    var(--destructive, oklch(0.55 0.18 25)) 50%
+  );
+  background: color-mix(
+    in oklch,
+    var(--background),
+    var(--destructive, oklch(0.55 0.18 25)) 6%
+  );
+}
+
+.resultBox[data-kind="info"] {
+  border-style: dashed;
+}
+
+/* Small label in the corner ("7 docs") so visitors can read the result
+   count without parsing the box. Pinned absolute so the <pre> body keeps
+   its scroll-from-zero behavior. */
+.resultMeta {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background: var(--background);
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.cursorOutput,
+.shellInfo {
+  margin: 0;
+  /* `pre` (not pre-wrap) — preserve formatting AND allow horizontal scroll
+     for long compact lines. The outer .resultBox handles overflow. */
+  white-space: pre;
+  color: var(--foreground);
+}
+
+.shellInfo {
+  color: color-mix(in oklch, var(--foreground), var(--success) 30%);
+}
+
+.error {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--destructive, oklch(0.55 0.18 25));
+}
+
+/* ── Pretty toggle (in terminal header) ───────────────────────────── */
+
+.prettyToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+
+.prettyToggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.prettyToggle[data-on="true"] {
+  background: color-mix(in oklch, var(--accent), var(--success) 25%);
+  color: var(--foreground);
+  border-color: color-mix(in oklch, var(--border), var(--success) 30%);
+}
+
+/* ── Narrow viewport ────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  /* Narrow viewport: the sidebar overlays the terminal as a drawer.
+     Switch it to position:absolute (inside .body) so it occupies no flow
+     space — the terminal pane reclaims full width — and translate it
+     in/out as a drawer. */
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+  }
+
+  .shell[data-sidebar-open="true"] .sidebar {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebarToggle {
+    left: 0;
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+    transition:
+      left var(--duration-slow) var(--ease-snap),
+      opacity var(--duration-slow) var(--ease-snap),
+      transform var(--duration-slow) var(--ease-snap),
+      background var(--duration-normal) var(--ease-default),
+      color var(--duration-normal) var(--ease-default);
+  }
+
+  .shell[data-sidebar-open="true"] .sidebarToggle {
+    left: var(--sidebar-w);
+  }
+
+  .sidebarBackdrop {
+    pointer-events: none;
+  }
+
+  .shell[data-sidebar-open="true"] .sidebarBackdrop {
+    background: oklch(0 0 0 / 0.4);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

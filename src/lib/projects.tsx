@@ -5,6 +5,34 @@ import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { ApiOriginal } from "@/components/originals/ApiOriginal";
 import sourcesGenerated from "./sources.generated.json";
 
+/**
+ * One navigable page inside a multi-page original. The label appears in
+ * the per-project page rail; `src` is the iframe URL (typically a
+ * /originals/<slug>/... static asset path). See <MultiPageOriginal> and
+ * the `pages` field on Project below.
+ */
+export interface ProjectPage {
+  label: string;
+  src: string;
+}
+
+/**
+ * URL-safe slug derived from a page's label. Used as the `?page=<slug>`
+ * query-param value so multi-page originals are shareable / bookmarkable
+ * (mirrors api-client's `?api=<id>` pattern). Lowercase, kebab-cased,
+ * non-alphanumerics collapsed to single hyphens, with trim.
+ *
+ * Stability: the slug shifts if a label is reworded, which is acceptable
+ * — labels are stable in practice, and the route-level normalization
+ * (unknown ?page= redirects to the first page) recovers any stale link.
+ */
+export function pageSlug(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export type ViewMode = "original" | "enhanced" | "reimagined";
 
 /**
@@ -124,12 +152,20 @@ export interface Project {
   /** Override link destination (e.g. /api-client?api=X) */
   href?: string;
   /**
-   * GitHub "owner/repo" slug for the project's source repository, when
-   * one exists. Used by the /github-banners endpoint to fetch live repo
-   * facts (fork status, languages, commits) even before sync:source has
-   * populated sources.generated.json.
+   * GitHub "owner/repo" slug for the project's ORIGINAL-tier source
+   * repository, when one exists. Used by the /github-banners endpoint
+   * to fetch live repo facts (fork status, languages, commits) even
+   * before sync:source has populated sources.generated.json, and by
+   * `resolveTierRepoUrl` to render the chrome's source link.
+   *
+   * `repoEnhanced` / `repoReimagined` carry the same idea for the
+   * later tiers, which often live in independent repos. Each tier's
+   * URL is resolved independently — surface only the link for the
+   * tier the user is currently viewing.
    */
   repo?: string;
+  repoEnhanced?: string;
+  repoReimagined?: string;
   /**
    * Which tiers are part of this project's museum journey. Banner tier
    * indicators only show the entries listed here. Defaults to all three;
@@ -151,6 +187,14 @@ export interface Project {
   progression?: boolean;
   /** Per-mode contextual notes shown in collapsible header */
   notes?: Partial<Record<ViewMode, string>>;
+  /**
+   * Multi-page originals: sibling HTML files that form a tour or
+   * walkthrough. When set, render the project's `original` as
+   * `<MultiPageOriginal pages={p.pages} />` so the viewer gets a page
+   * picker beside the iframe. Order in the array is the order shown
+   * in the rail (and the page-1 default is `pages[0]`).
+   */
+  pages?: ProjectPage[];
 }
 
 export type Category =
@@ -200,6 +244,60 @@ const COMING_SOON = <Placeholder label="Coming soon" />;
 export function getSourceRef(slug: string): SourceRef | undefined {
   const sources = sourcesGenerated as Record<string, SourceRef>;
   return sources[slug];
+}
+
+/**
+ * One row in the chrome's source-links panel. A `label` (used as the
+ * link text — "Original source", "Enhanced source", "main branch",
+ * etc.) and the absolute GitHub URL it points to.
+ */
+export interface TierSource {
+  label: string;
+  url: string;
+}
+
+/**
+ * Source links to surface in the chrome for a specific tier. Returns
+ * an array so a single tier can carry multiple pointers — today it's
+ * one entry per tier, but the shape is forward-compatible with
+ * museum-ready vs. main, monorepo subdirectories, etc., which will
+ * land here as additional rows without touching the consumer.
+ *
+ * Original tier: when a SourceRef exists, the URL targets the pinned
+ * museum-ready branch (sources.generated.json's `branch`) so the link
+ * lands on the same code the iframe serves. Without a SourceRef, falls
+ * back to the repo root — branch is the upstream default.
+ *
+ * Enhanced/Reimagined: use the tier-specific `repoEnhanced` /
+ * `repoReimagined` field directly. No branch suffix — these repos
+ * aren't museum-pinned. `enhancedExternal` / `reimaginedExternal`
+ * are deployment URLs and intentionally NOT consulted here; they
+ * point to live sites, not source code.
+ */
+export function resolveTierSources(
+  project: Project,
+  tier: ViewMode,
+): TierSource[] {
+  if (tier === "original") {
+    if (!project.repo) return [];
+    const ref = getSourceRef(project.slug);
+    if (ref?.branch) {
+      return [
+        {
+          label: "Original source",
+          url: `https://github.com/${project.repo}/tree/${ref.branch}`,
+        },
+      ];
+    }
+    return [
+      { label: "Original source", url: `https://github.com/${project.repo}` },
+    ];
+  }
+  const tierRepo =
+    tier === "enhanced" ? project.repoEnhanced : project.repoReimagined;
+  if (!tierRepo) return [];
+  const label = tier === "enhanced" ? "Enhanced source" : "Reimagined source";
+  return [{ label, url: `https://github.com/${tierRepo}` }];
 }
 
 /**
@@ -538,15 +636,25 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "jaskis",
-    href: "/api-client?api=jaskis",
+    repo: "moefingers/API-JASKIS",
+    href: "/mongo-client?project=jaskis",
     title: "JASKIS",
-    description: "Snack spot discovery and CRUD.",
+    description: "Animal-bounties registry — MongoDB shell tutorial.",
+    synopsis:
+      "Animal-bounties registry from the UNLV MongoDB shell tutorial — the museum runs real Mongo shell syntax (find, insertOne, updateMany, $set, $gte, $and) against a Postgres-backed translator so visitors can type the same commands the original exercise used.",
     year: "Feb 2024",
     category: "api",
-    techOriginal: ["MongoDB", "Express"],
-    original: <ApiOriginal startWith="JASKIS API" />,
-    enhanced: COMING_SOON,
+    techOriginal: ["MongoDB shell"],
+    techEnhanced: ["Postgres", "Drizzle", "Audit log"],
+    original: <OriginalFrame src="/mongo-client?project=jaskis" />,
+    enhanced: <OriginalFrame src="/mongo-client/enhanced?project=jaskis" />,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "JASKIS was never an HTTP API — it was a MongoDB shell exercise from FSWD Lesson 6.7.3. The museum exposes it via /mongo-client, where visitors type real Mongo shell commands and a hand-written parser (no eval) translates them to Drizzle queries against the same data shape the original tutorial used.",
+      enhanced:
+        "Adds an auditLog collection that records every mutation across both Original and Enhanced tiers — author (GitHub login), operation, before/after, timestamp. Sign-in required for writes on both tiers; the audit log makes mutations publicly attributable.",
+    },
   },
 
   // PYTHON
@@ -612,11 +720,37 @@ export const PROJECTS: Project[] = [
     category: "exercises",
     plannedTiers: ["original", "enhanced"],
     techOriginal: ["JavaScript", "DOM API", "Fetch"],
-    original: (
-      <OriginalFrame src="/originals/js-dom-events/events-demo/1. The Target Element.html" />
-    ),
+    // `pages` is the single source of truth; the route auto-wraps it
+    // with <MultiPageOriginal> when `original` is unset, so the entry
+    // doesn't need to duplicate the list in JSX. See [...path]/page.tsx.
+    pages: [
+      {
+        label: "The Target Element",
+        src: "/originals/js-dom-events/events-demo/1. The Target Element.html",
+      },
+      {
+        label: "Event Bubbling",
+        src: "/originals/js-dom-events/events-demo/2. Event Bubbling.html",
+      },
+      {
+        label: "Event Capturing",
+        src: "/originals/js-dom-events/events-demo/3. Event Capturing.html",
+      },
+      {
+        label: "Prevent Default",
+        src: "/originals/js-dom-events/events-demo/4. Prevent Default.html",
+      },
+      {
+        label: "Stop Propagation",
+        src: "/originals/js-dom-events/events-demo/5. Stop Propagation.html",
+      },
+    ],
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original is a five-page walkthrough of DOM event mechanics — target resolution, bubbling, capturing, preventDefault, and stopPropagation. Each concept lives on its own HTML file; use the page rail to step through. Behavior is preserved byte-for-byte from the museum-ready branch; only hosting-compatibility fixes were applied.",
+    },
   },
   {
     slug: "music-search",

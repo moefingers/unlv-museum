@@ -52,3 +52,6 @@ dev.log
 
 # Pre-refactor visual baseline (Tailwind → zcanon migration)
 .refactor-baseline/
+
+# Local scratch dir (screenshots, ad-hoc artifacts from Chrome MCP)
+.tmp/

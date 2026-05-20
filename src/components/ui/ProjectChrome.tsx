@@ -3,10 +3,32 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
+import { siGithub } from "simple-icons";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
-import { projectPath, type Project, type ViewMode } from "@/lib/projects";
+import {
+  projectPath,
+  resolveTierSources,
+  type Project,
+  type ViewMode,
+} from "@/lib/projects";
 import styles from "./ProjectChrome.module.css";
+
+// Inline GitHub mark via simple-icons' CC0 path — same approach as
+// SignInChip, since lucide-react 1.x doesn't ship brand glyphs.
+function GithubMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d={siGithub.path} />
+    </svg>
+  );
+}
 
 const TIERS: { mode: ViewMode; label: string }[] = [
   { mode: "original", label: "Original" },
@@ -59,6 +81,13 @@ export function ProjectChrome({ project }: { project: Project }) {
     current: currentTier === mode,
   }));
 
+  const tierSources = resolveTierSources(project, currentTier);
+  // The notes panel hosts both the per-tier note and the source links.
+  // Show the toggle (and the panel) when ANY piece of content exists
+  // for this tier — a project might have a repo to link to even without
+  // a tier-specific note, and vice versa.
+  const hasPanelContent = Boolean(note) || tierSources.length > 0;
+
   return (
     <MuseumChrome
       title={project.title}
@@ -69,7 +98,7 @@ export function ProjectChrome({ project }: { project: Project }) {
         </>
       }
       titleExtra={
-        note && (
+        hasPanelContent && (
           <button
             onClick={() => setNotesOpen(!notesOpen)}
             className={styles.notesToggle}
@@ -84,9 +113,28 @@ export function ProjectChrome({ project }: { project: Project }) {
       }
       tiers={tiers}
       belowRow={
-        note && (
+        hasPanelContent && (
           <Collapsible open={notesOpen} duration={200}>
-            <p className={`text-sm ${styles.notesPanel}`}>{note}</p>
+            <div className={`text-sm ${styles.notesPanel}`}>
+              {note && <p className={styles.notesText}>{note}</p>}
+              {tierSources.length > 0 && (
+                <ul className={styles.repoLinkList}>
+                  {tierSources.map((source) => (
+                    <li key={source.url}>
+                      <a
+                        href={source.url}
+                        className={styles.repoLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <GithubMark size={14} />
+                        <span>{source.label} on GitHub</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Collapsible>
         )
       }

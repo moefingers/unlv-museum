@@ -1,6 +1,12 @@
 import { ViewTransition } from "react";
 import { notFound, redirect } from "next/navigation";
-import { findByPath, projectPath, type ViewMode } from "@/lib/projects";
+import {
+  findByPath,
+  pageSlug,
+  projectPath,
+  type ViewMode,
+} from "@/lib/projects";
+import { MultiPageOriginal } from "@/components/ui/MultiPageOriginal";
 import {
   ExternalTierCard,
   UnavailableSlot,
@@ -23,10 +29,10 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ path: string[] }>;
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; page?: string }>;
 }) {
   const { path } = await params;
-  const { mode } = await searchParams;
+  const { mode, page } = await searchParams;
 
   // Last segment may be a tier ("enhanced" or "reimagined"); peel it off so
   // findByPath can match against the project path alone.
@@ -78,6 +84,17 @@ export default async function ProjectPage({
     ) : (
       (project.reimagined ?? <UnavailableSlot tier="reimagined" />)
     );
+  } else if (project.pages && project.pages.length > 0) {
+    // Multi-page original: auto-wrap with <MultiPageOriginal> and
+    // normalize `?page=` so the client component never has to render
+    // a "no page selected" state. Same shape as api-client's
+    // server-side ?api= redirect — see /api-client/page.tsx.
+    const knownSlugs = new Set(project.pages.map((p) => pageSlug(p.label)));
+    if (!page || !knownSlugs.has(page)) {
+      const first = pageSlug(project.pages[0]!.label);
+      redirect(`/${projectPath(project)}?page=${first}`);
+    }
+    body = <MultiPageOriginal pages={project.pages} />;
   } else {
     body = project.original ?? <UnavailableSlot tier="original" />;
   }

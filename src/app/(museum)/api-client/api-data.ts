@@ -66,60 +66,6 @@ export const APIS_ORIGINAL: ApiProject[] = [
     ],
   },
   {
-    id: "jaskis",
-    title: "JASKIS API",
-    baseUrl: "/api/jaskis",
-    description:
-      "Animal-bounties registry from the JASKIS MongoDB exercise. Original was a MongoDB shell tutorial — same data shape (name, species, location, wantedFor, client, reward, captured), surfaced here as a REST API.",
-    tech: "Originally MongoDB shell exercise; museum port runs on Postgres",
-    endpoints: [
-      {
-        label: "List bounties",
-        method: "GET",
-        path: "/",
-        description: "Returns all bounties (newest first)",
-      },
-      {
-        label: "Get bounty",
-        method: "GET",
-        path: "/1",
-        description: "Returns a single bounty by ID",
-      },
-      {
-        label: "Create bounty",
-        method: "POST",
-        path: "/",
-        description: "Creates a new bounty",
-        body: JSON.stringify(
-          {
-            name: "Thanoceros",
-            species: "Rhinoceros",
-            location: "Grasslands",
-            wantedFor: "Eating too much grass",
-            client: "Songbird",
-            reward: 10000,
-            captured: false,
-          },
-          null,
-          2,
-        ),
-      },
-      {
-        label: "Mark captured",
-        method: "PUT",
-        path: "/1",
-        description: "Update a bounty (any subset of fields)",
-        body: JSON.stringify({ captured: true }, null, 2),
-      },
-      {
-        label: "Delete bounty",
-        method: "DELETE",
-        path: "/2",
-        description: "Removes a bounty",
-      },
-    ],
-  },
-  {
     id: "admin-portal",
     title: "Admin Portal",
     baseUrl: "/api/admin-portal",
@@ -338,92 +284,19 @@ export const APIS_ORIGINAL: ApiProject[] = [
   },
 ];
 
-export const APIS_REIMAGINED: ApiProject[] = [
-  {
-    id: "music-tour-v2",
-    title: "Music Tour v2",
-    baseUrl: "/api/v2/music-tour",
-    description:
-      "Reimagined: paginated results, search, filtering, OpenAPI spec. Coming soon.",
-    tech: "Next.js API Routes + Drizzle + OpenAPI",
-    endpoints: [
-      {
-        label: "List bands (paginated)",
-        method: "GET",
-        path: "/?page=1&limit=10",
-        description: "Paginated band listing",
-      },
-      {
-        label: "Search bands",
-        method: "GET",
-        path: "/?search=rock",
-        description: "Full-text search",
-      },
-    ],
-  },
-  {
-    id: "jaskis-v2",
-    title: "JASKIS v2",
-    baseUrl: "/api/v2/jaskis",
-    description:
-      "Reimagined: geolocation-aware, ratings, photo uploads. Coming soon.",
-    tech: "Next.js API Routes + Drizzle + Blob Storage",
-    endpoints: [
-      {
-        label: "List nearby spots",
-        method: "GET",
-        path: "/?lat=36.1&lng=-115.1",
-        description: "Location-based filtering",
-      },
-      {
-        label: "Top rated",
-        method: "GET",
-        path: "/?sort=rating",
-        description: "Sort by rating",
-      },
-    ],
-  },
-  {
-    id: "admin-portal-v2",
-    title: "Admin Portal v2",
-    baseUrl: "/api/v2/admin-portal",
-    description:
-      "Reimagined: auth-gated, audit log, bulk operations. Coming soon.",
-    tech: "Next.js API Routes + Drizzle + Better Auth",
-    endpoints: [
-      {
-        label: "List books",
-        method: "GET",
-        path: "/",
-        description: "Same endpoint, auth required in v2",
-      },
-    ],
-  },
-  {
-    id: "sql-demo-v2",
-    title: "SQL Demo v2",
-    baseUrl: "/api/v2/sql-demo",
-    description:
-      "Reimagined: sandboxed execution, query explain plans, injection taxonomy. Coming soon.",
-    tech: "Next.js API Routes + Sandbox",
-    endpoints: [
-      {
-        label: "Explain query",
-        method: "POST",
-        path: "/",
-        description: "Returns query plan alongside result",
-        body: JSON.stringify(
-          { username: "admin", password: "test", mode: "safe" },
-          null,
-          2,
-        ),
-      },
-    ],
-  },
-];
+/**
+ * Enhanced tier — same Original surface, augmented with what the era's
+ * tooling couldn't have offered. For backend ports that allow mutations
+ * without observability in the Original, the floor of Enhanced is an
+ * audit log over the same data + GitHub sign-in on writes (see
+ * /mongo-client/enhanced for the pattern). Entries here land as each
+ * Original gets its Enhanced surface; the tab is intentionally empty
+ * until real Enhanced work ships.
+ */
+export const APIS_ENHANCED: ApiProject[] = [];
 
-export type Tier = "original" | "reimagined";
+export type Tier = "original" | "enhanced";
 
 export function getApisForTier(tier: Tier): ApiProject[] {
-  return tier === "reimagined" ? APIS_REIMAGINED : APIS_ORIGINAL;
+  return tier === "enhanced" ? APIS_ENHANCED : APIS_ORIGINAL;
 }

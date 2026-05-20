@@ -7,7 +7,7 @@ import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome } from "@/components/ui/MuseumChrome";
 import {
   APIS_ORIGINAL,
-  APIS_REIMAGINED,
+  APIS_ENHANCED,
   type Endpoint,
   type Method,
   type Tier,
@@ -22,8 +22,8 @@ export type { Tier } from "./api-data";
    color cascades automatically — no JS lookup table needed. */
 
 /**
- * Shared shell used by /api-client (Original) and /api-client/reimagined
- * (Reimagined). Tier is fixed per-route; switching tiers is a real navigation
+ * Shared shell used by /api-client (Original) and /api-client/enhanced
+ * (Enhanced). Tier is fixed per-route; switching tiers is a real navigation
  * (`<Link>` in the header strip), matching the rest of the museum's tier
  * pattern in ProjectChrome.
  */
@@ -37,7 +37,7 @@ export default function ApiClient({ tier }: { tier: Tier }) {
 
 function ApiClientInner({ tier }: { tier: Tier }) {
   const searchParams = useSearchParams();
-  const apis = tier === "reimagined" ? APIS_REIMAGINED : APIS_ORIGINAL;
+  const apis = tier === "enhanced" ? APIS_ENHANCED : APIS_ORIGINAL;
   // Server already redirected the bare URL to ?api=<first>; null means a
   // typo'd query param survived (or browser back to a hand-edited URL).
   const initialApi = searchParams.get("api") ?? apis[0]!.id;
@@ -164,12 +164,11 @@ function ApiClientInner({ tier }: { tier: Tier }) {
   return (
     <div className={styles.shell} data-sidebar-open={sidebarOpen}>
       {/*
-        Shared museum chrome. These api-client projects skip the Enhanced
-        tier entirely; only Original and Reimagined are surfaced. Each
-        tier href is a real route so navigation participates in the
-        view-transition system (the tier-pill highlight slides across
-        tiers, the back arrow holds position, etc. — same as
-        ProjectChrome via the same primitive).
+        Shared museum chrome. /api-client surfaces Original + Enhanced
+        tiers (same request/response shape, augmented with era-impossible
+        additions like audit logs). Reimagined for any given project lives
+        at that project's own slug (different stack, different surface) —
+        it's not a tab here.
       */}
       <MuseumChrome
         title="API Client"
@@ -181,9 +180,9 @@ function ApiClientInner({ tier }: { tier: Tier }) {
             current: tier === "original",
           },
           {
-            label: "Reimagined",
-            href: "/api-client/reimagined",
-            current: tier === "reimagined",
+            label: "Enhanced",
+            href: "/api-client/enhanced",
+            current: tier === "enhanced",
           },
         ]}
       />
