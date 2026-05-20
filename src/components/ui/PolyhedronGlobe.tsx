@@ -15,6 +15,7 @@ const HOVER_DOT_IDLE_GLOW = 8;
 const HOVER_DOT_EXPANDED_GLOW = 10;
 const HOVER_DOT_FONT_FAMILY =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
+const HOVER_DOT_FONT_SIZE = 17;
 
 /**
  * Tessellated icosphere with optional per-vertex project assignments.
@@ -194,15 +195,35 @@ export function PolyhedronGlobe({
   // continuing engagement with the same moment.
   const hoverCycleStart = useRef<number | null>(null);
 
-  // Stable per-vertex onActiveChange callback. Fires from HoverDot on
-  // engage (active=true) and dismiss (active=false). We only act on
-  // engage here — that's what triggers the cycle.
-  const handleDotActiveChange = useCallback((active: boolean) => {
-    if (!active) return;
-    const now = performance.now();
-    const currentMul = computeHoverSpeedMul(now, hoverCycleStart.current);
-    if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
-      hoverCycleStart.current = now;
+  // Which vertex idx is currently engaged (active=true). null when no
+  // dot is engaged. Used to enforce "only one dot active at a time" —
+  // when a new dot reports active=true, we set this to its idx, which
+  // causes every OTHER dot to receive forceClose=true and run its
+  // dismissal sequence immediately. This handles the case where the
+  // previous dot's onMouseLeave never fired because the sphere
+  // rotation moved its hit target out from under a motionless cursor.
+  const [activeVertexIdx, setActiveVertexIdx] = useState<number | null>(null);
+
+  // Per-vertex onActiveChange handler. The HoverDot at vertex `vi`
+  // calls this with active=true on engage, active=false on dismiss.
+  //
+  // On engage: start a new hover cycle (subject to threshold) and
+  // record this vertex as the active one — which force-closes any
+  // other dot via the forceClose prop wiring below.
+  //
+  // On dismiss: clear activeVertexIdx if it was us. (No cycle change.)
+  const handleDotActiveChange = useCallback((vi: number, active: boolean) => {
+    if (active) {
+      const now = performance.now();
+      const currentMul = computeHoverSpeedMul(now, hoverCycleStart.current);
+      if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
+        hoverCycleStart.current = now;
+      }
+      setActiveVertexIdx(vi);
+    } else {
+      // Use the functional updater so concurrent dismiss/engage events
+      // from different dots don't clobber a more-recent engagement.
+      setActiveVertexIdx((curr) => (curr === vi ? null : curr));
     }
   }, []);
 
@@ -609,9 +630,15 @@ export function PolyhedronGlobe({
                   idleGlowRadius={HOVER_DOT_IDLE_GLOW}
                   expandedGlowRadius={HOVER_DOT_EXPANDED_GLOW}
                   titleFontFamily={HOVER_DOT_FONT_FAMILY}
+                  titleFontSize={HOVER_DOT_FONT_SIZE}
                   showCaret={true}
                   flickerStyle="subtle"
-                  onActiveChange={handleDotActiveChange}
+                  onActiveChange={(active) =>
+                    handleDotActiveChange(v.vi, active)
+                  }
+                  forceClose={
+                    activeVertexIdx !== null && activeVertexIdx !== v.vi
+                  }
                 />
               );
             }

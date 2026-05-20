@@ -86,6 +86,18 @@ export interface HoverDotProps {
    * reports active=true. Fires on both true→false and false→true.
    */
   onActiveChange?: (active: boolean) => void;
+  /**
+   * External force-dismiss trigger. When this flips to true while the
+   * dot is active, the dot immediately runs its dismissal sequence
+   * (flash + untype) without waiting for the hover-grace timer.
+   *
+   * Used by parent components to enforce "only one dot active at a
+   * time" — when a new dot's mouseenter fires, the parent sets
+   * forceClose=true on every OTHER dot. This handles the case where
+   * the browser doesn't fire mouseleave on the previous dot because
+   * its hit target was already moved by sphere rotation.
+   */
+  forceClose?: boolean;
 }
 
 const DEFAULT_TEXT_SHADOW = [
@@ -113,6 +125,7 @@ export function HoverDot({
   titleFontFamily,
   flickerStyle = "none",
   onActiveChange,
+  forceClose = false,
 }: HoverDotProps) {
   // active = browser currently considers cursor hovering (between
   // onMouseEnter and onMouseLeave). Sphere pauses + typing kicks off
@@ -168,16 +181,41 @@ export function HoverDot({
     }
     if (graceTimer.current) clearTimeout(graceTimer.current);
     graceTimer.current = setTimeout(() => {
-      // Blink + contract: flash class on for 80ms, then start the
-      // untype animation by setting active=false.
-      setBlinking(true);
-      setTimeout(() => {
-        setBlinking(false);
-        setActive(false);
-      }, 80);
+      runDismissalSequence();
       graceTimer.current = null;
     }, graceMs);
   };
+
+  // The blink-then-untype dismissal sequence, used by both the grace
+  // timer (normal mouseleave) and by forceClose (parent-triggered
+  // dismiss when a different dot was engaged).
+  const runDismissalSequence = () => {
+    // Cancel any pending grace timer first — we're dismissing now,
+    // not waiting for grace.
+    if (graceTimer.current) {
+      clearTimeout(graceTimer.current);
+      graceTimer.current = null;
+    }
+    setBlinking(true);
+    setTimeout(() => {
+      setBlinking(false);
+      setActive(false);
+    }, 80);
+  };
+
+  // Force-close trigger from the parent. When forceClose flips to true
+  // while the dot is currently engaged, run the dismissal immediately.
+  // This handles the "user moused to another dot but our mouseleave
+  // never fired" case — the parent knows because the other dot's
+  // mouseenter fired, and tells us to clean up.
+  useEffect(() => {
+    if (forceClose && active) {
+      runDismissalSequence();
+    }
+    // We only want to act on forceClose changes; active is a downstream
+    // state we already manage internally.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceClose]);
 
   // rAF-driven typing animation.
   //
