@@ -220,6 +220,52 @@
   );
 }
 
+/*
+ * Input-mode toggle — segmented pill matching the landing view's
+ * view/sort toggles. Two tabs: Mouse | Touch. Defaults to the
+ * matchMedia-detected mode; selecting locks the user's choice for
+ * the session.
+ */
+.modeToggle {
+  display: inline-flex;
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.modeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  border-radius: var(--radius-md);
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.modeButtonActive {
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+.modeButtonIdle {
+  color: var(--muted-foreground);
+}
+.modeButtonIdle:hover {
+  color: var(--foreground);
+}
+
 .steps {
   list-style: none;
   padding: 0;
