@@ -5,7 +5,9 @@ import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { type Project } from "@/lib/projects";
 import {
   fromAxisAngle,
+  fromUnitVectors,
   multiply as quatMultiply,
+  slerp as quatSlerp,
   toMatrix3,
   type Quat,
 } from "@/lib/quaternion";
@@ -98,6 +100,27 @@ const TIME_CONSTANT = 600;
 // keep similar value in radians.
 const VELOCITY_THRESHOLD = 0.01;
 const AXIAL_TILT_DEG = 18;
+
+// ─── Anchor (click-to-anchor) ────────────────────────────────
+// Clicking an assigned vertex anchors the sphere: the clicked vertex
+// swings to a fixed screen position (the "anchor pose"), and auto-
+// rotation continues around the AXIS THROUGH THAT VERTEX at a reduced
+// speed — so the anchored point stays put while the rest of the globe
+// spins around it.
+//
+// ANCHOR_NDC_X/Y is the target screen position in normalized (-1, 1)
+// sphere-radius units. (-0.15, 0.35) reads as "upper-center, slightly
+// left" against the viewBox. Leaves the lower-right area free for the
+// hex billboard (Stage 3) to project upward.
+const ANCHOR_NDC_X = -0.15;
+const ANCHOR_NDC_Y = 0.35;
+// Duration of the swing-in slerp from the user's current orientation
+// to the anchor pose. Slow enough to read as a deliberate gesture.
+const ANCHOR_SWING_MS = 900;
+// Auto-rotation speed multiplier once anchored. The sphere keeps
+// spinning, but slower — so the anchored vertex feels still while
+// surrounding geometry drifts behind it.
+const ANCHOR_AUTO_SPEED_MUL = 0.6;
 
 // ─── Glow toggles ─────────────────────────────────────────────
 // Flip these constants to A/B individual visual effects in isolation
@@ -259,6 +282,117 @@ export function PolyhedronGlobe({
     // noop
   }, []);
 
+  // ─── Anchor (click-to-anchor) state ──────────────────────────
+  //
+  // anchoredVertexIdx is non-null in two situations:
+  //   - During the swing-in slerp (anchorAnim active): the value
+  //     names the vertex being swung to.
+  //   - After settle: same value, but anchorAnim is null and the
+  //     auto-rotate is now circling around the vertex's axis at
+  //     ANCHOR_AUTO_SPEED_MUL.
+  // The component is "anchored" for the purposes of input gating and
+  // the Stage 3 billboard whenever this is non-null.
+  const [anchoredVertexIdx, setAnchoredVertexIdx] = useState<number | null>(
+    null,
+  );
+  const anchoredVertexIdxRef = useRef<number | null>(null);
+  useEffect(() => {
+    anchoredVertexIdxRef.current = anchoredVertexIdx;
+  }, [anchoredVertexIdx]);
+
+  // Swing animation state. When set, the rAF loop interpolates `q`
+  // from `fromQ` to `toQ` over [startedAt, startedAt + ANCHOR_SWING_MS]
+  // via slerp and ignores the normal drag/auto-rotate update.
+  const anchorAnim = useRef<{
+    startedAt: number;
+    fromQ: Quat;
+    toQ: Quat;
+  } | null>(null);
+
+  // After settle, this holds the world-space axis through the
+  // anchored vertex (used by the auto-rotate path in the rAF loop in
+  // place of the default world-Y axis). It's the unit vector that
+  // `q · v_mesh` produces after the swing-in completes.
+  const anchoredAxis = useRef<{ x: number; y: number; z: number } | null>(null);
+
+  // Compute the target quaternion that puts mesh vertex `v` at the
+  // ANCHOR_NDC_(X,Y) screen position. Decomposes the projection
+  // pipeline backward:
+  //   1. Pick a target post-rotation point on the unit sphere that
+  //      projects (under axial tilt + perspective + scale) to the
+  //      desired NDC. Here we approximate: ignore perspective scaling
+  //      (~5% effect at our cameraZ), reverse only the axial tilt,
+  //      and snap to the unit sphere via z = sqrt(1 - x² - y²).
+  //   2. The rotation that takes `v` to that target point IS the
+  //      target quaternion (via fromUnitVectors).
+  // Returns both the target quaternion AND the world-space axis the
+  // vertex lands on (== the target point itself), which the auto-
+  // rotate uses post-settle.
+  const computeAnchorTarget = useCallback(
+    (vMesh: {
+      x: number;
+      y: number;
+      z: number;
+    }): { toQ: Quat; axis: { x: number; y: number; z: number } } => {
+      // Reverse the axial Z tilt. Forward tilt is (x,y) → (x·cosZ -
+      // y·sinZ, x·sinZ + y·cosZ); inverse is (x·cosZ + y·sinZ,
+      // -x·sinZ + y·cosZ).
+      const angZ = (AXIAL_TILT_DEG * Math.PI) / 180;
+      const cZ = Math.cos(angZ);
+      const sZ = Math.sin(angZ);
+      // Screen NDC y is FLIPPED relative to math y (sy = -y · ...).
+      // So a target screen NDC of +0.35 ("upper" on screen) maps to
+      // math y = +0.35 (a positive y above the equator after the
+      // axial tilt). We pass the math-y directly here.
+      const ndcX = ANCHOR_NDC_X;
+      const ndcY = ANCHOR_NDC_Y;
+      // Inverse axial-tilt → the post-rotation, pre-tilt (x,y).
+      const px = ndcX * cZ + ndcY * sZ;
+      const py = -ndcX * sZ + ndcY * cZ;
+      // Snap to the front-facing hemisphere of the unit sphere.
+      const r2 = px * px + py * py;
+      const pz = r2 >= 1 ? 0 : Math.sqrt(1 - r2);
+      // Target point on the unit sphere in pre-tilt world space.
+      const tx = px;
+      const ty = py;
+      const tz = pz;
+      // Rotation that takes vMesh → target.
+      const toQ = fromUnitVectors(vMesh.x, vMesh.y, vMesh.z, tx, ty, tz);
+      return { toQ, axis: { x: tx, y: ty, z: tz } };
+    },
+    [],
+  );
+
+  // Click on an assigned vertex. Kicks off the swing-in animation
+  // toward the anchor pose. If the same vertex is already anchored,
+  // ignore (no jitter from double clicks). If a different vertex was
+  // anchored, retarget the swing from the current `q` to the new
+  // target — the slerp will smoothly redirect.
+  const handleDotClick = useCallback(
+    (vi: number) => {
+      const v = mesh.vertices[vi];
+      if (!v) return;
+      if (anchoredVertexIdxRef.current === vi && !anchorAnim.current) {
+        // Already settled on this vertex — nothing to do.
+        return;
+      }
+      const { toQ } = computeAnchorTarget(v);
+      anchorAnim.current = {
+        startedAt: performance.now(),
+        fromQ: latestQ.current,
+        toQ,
+      };
+      setAnchoredVertexIdx(vi);
+      // Clear any pending hover-cycle accel/decel — the anchor swing
+      // takes over the rotation entirely.
+      hoverCycleStart.current = null;
+      // Anchored axis isn't settled yet; the rAF loop fills it in on
+      // animation completion.
+      anchoredAxis.current = null;
+    },
+    [mesh.vertices, computeAnchorTarget],
+  );
+
   // SVG-level pointer handlers.
   //
   // pointermove tracks two things:
@@ -333,6 +467,45 @@ export function PolyhedronGlobe({
       lastTick = now;
       const dtSec = dt / 1000;
 
+      // ─── Anchor swing-in (slerp) ───────────────────────────
+      // While the anchor animation is active, it OWNS the rotation
+      // entirely. Drag momentum is suppressed; auto-rotate is paused.
+      // The slerp progress is ease-in-out (cubic) so the swing
+      // feels deliberate at both ends instead of mechanically linear.
+      const anim = anchorAnim.current;
+      if (anim) {
+        const elapsed = now - anim.startedAt;
+        const tRaw = Math.min(1, elapsed / ANCHOR_SWING_MS);
+        // ease-in-out cubic: slow at both ends, fast in the middle.
+        const t =
+          tRaw < 0.5
+            ? 4 * tRaw * tRaw * tRaw
+            : 1 - Math.pow(-2 * tRaw + 2, 3) / 2;
+        applyQ(quatSlerp(anim.fromQ, anim.toQ, t));
+        if (tRaw >= 1) {
+          // Settle: the rotated vertex's world-space position becomes
+          // the new auto-rotate axis. Recompute it (instead of trusting
+          // the stored target) so the axis is exactly q · v_mesh — no
+          // drift from numerical slerp.
+          const vi = anchoredVertexIdxRef.current;
+          if (vi !== null) {
+            const vMesh = mesh.vertices[vi];
+            if (vMesh) {
+              const m = toMatrix3(latestQ.current);
+              anchoredAxis.current = {
+                x: m[0] * vMesh.x + m[1] * vMesh.y + m[2] * vMesh.z,
+                y: m[3] * vMesh.x + m[4] * vMesh.y + m[5] * vMesh.z,
+                z: m[6] * vMesh.x + m[7] * vMesh.y + m[8] * vMesh.z,
+              };
+              autoRotateAxis.current = anchoredAxis.current;
+            }
+          }
+          anchorAnim.current = null;
+        }
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+
       if (!dragging.current) {
         const speed =
           Math.abs(amplitudeYaw.current) + Math.abs(amplitudePitch.current);
@@ -370,12 +543,19 @@ export function PolyhedronGlobe({
           // driven by the hover cycle (decelerates on hover-engage,
           // holds, then ramps back up). When the cycle completes,
           // hoverCycleStart resets so we stop recomputing.
+          //
+          // When anchored to a vertex (anchoredAxis non-null + no
+          // active swing animation), the axis is the world-space
+          // direction through the anchored vertex, and the base speed
+          // drops by ANCHOR_AUTO_SPEED_MUL — so the anchored point
+          // stays put while the rest of the globe wheels behind it.
           const speedMul = computeHoverSpeedMul(now, hoverCycleStart.current);
           if (speedMul >= 1 && hoverCycleStart.current !== null) {
             hoverCycleStart.current = null;
           }
           if (speedMul > 0) {
-            const angle = AUTO_ANGULAR_SPEED * speedMul * dtSec;
+            const anchorMul = anchoredAxis.current ? ANCHOR_AUTO_SPEED_MUL : 1;
+            const angle = AUTO_ANGULAR_SPEED * speedMul * anchorMul * dtSec;
             const axis = autoRotateAxis.current;
             const delta = fromAxisAngle(axis.x, axis.y, axis.z, angle);
             applyQ(quatMultiply(delta, latestQ.current));
@@ -388,6 +568,11 @@ export function PolyhedronGlobe({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
+    // mesh.vertices is intentionally not a dep: it's stable for the
+    // lifetime of the component (mesh is memoized on `frequency`).
+    // Listing it would re-mount the rAF loop on every render that
+    // happens to re-create the dep array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyQ]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -785,6 +970,7 @@ export function PolyhedronGlobe({
                   engaged={engagedVertexIdx === v.vi}
                   onHitTargetEnter={() => handleDotEnter(v.vi)}
                   onHitTargetLeave={handleDotLeave}
+                  onHitTargetClick={() => handleDotClick(v.vi)}
                   typeDuration={HOVER_DOT_TYPE_DURATION}
                   idleGlowRadius={HOVER_DOT_IDLE_GLOW}
                   expandedGlowRadius={HOVER_DOT_EXPANDED_GLOW}

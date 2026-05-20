@@ -175,6 +175,57 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
 }
 
 /**
+ * Build a quaternion that rotates unit vector `from` onto unit vector
+ * `to`. Both vectors MUST be unit length — the caller normalizes.
+ *
+ * The standard construction is: axis = from × to (normalized), angle
+ * = acos(from · to). We use the half-angle form to avoid an explicit
+ * acos + sin: the unnormalized quaternion (cross, 1 + dot) represents
+ * twice the desired rotation, so normalizing it yields the right one.
+ *
+ * Antipodal case (from ≈ -to, dot ≈ -1): the rotation is 180°
+ * around any axis perpendicular to `from`. Pick a stable perpendicular
+ * and build the half-turn quaternion directly.
+ */
+export function fromUnitVectors(
+  fx: number,
+  fy: number,
+  fz: number,
+  tx: number,
+  ty: number,
+  tz: number,
+): Quat {
+  const dot = fx * tx + fy * ty + fz * tz;
+  if (dot < -0.999999) {
+    // Antipodal — pick any perpendicular axis. Use X unless `from` is
+    // nearly aligned with X (then use Y) to avoid a degenerate cross.
+    const ax = Math.abs(fx);
+    let px: number, py: number, pz: number;
+    if (ax < 0.9) {
+      // Cross with world X.
+      px = 0;
+      py = fz;
+      pz = -fy;
+    } else {
+      // Cross with world Y.
+      px = -fz;
+      py = 0;
+      pz = fx;
+    }
+    const len = Math.hypot(px, py, pz);
+    return { x: px / len, y: py / len, z: pz / len, w: 0 };
+  }
+  // Standard half-angle construction. The unnormalized quaternion
+  // (cross, 1 + dot) doubles the rotation; normalize to get the
+  // half-rotation we actually want.
+  const cx = fy * tz - fz * ty;
+  const cy = fz * tx - fx * tz;
+  const cz = fx * ty - fy * tx;
+  const w = 1 + dot;
+  return normalize({ x: cx, y: cy, z: cz, w });
+}
+
+/**
  * Apply a quaternion's rotation matrix to a single vector. Most code
  * should use toMatrix3 + manual application across many vectors (one
  * matrix compute per frame, many vectors), but this is convenient for

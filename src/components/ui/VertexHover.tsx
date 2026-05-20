@@ -40,6 +40,8 @@ export interface VertexHoverProps {
   onHitTargetEnter?: () => void;
   /** Mouse left the hit target. */
   onHitTargetLeave?: () => void;
+  /** Click on the hit target — used by the parent to trigger anchor-to-vertex. */
+  onHitTargetClick?: () => void;
 
   // ─── Visual tuning ───────────────────────────────────────
   typeDuration?: number;
@@ -69,6 +71,7 @@ export function VertexHover({
   engaged,
   onHitTargetEnter,
   onHitTargetLeave,
+  onHitTargetClick,
   typeDuration = 800,
   contractSpeedRatio = 3,
   idleGlowRadius = 8,
@@ -164,6 +167,7 @@ export function VertexHover({
         pointerEvents="all"
         onMouseEnter={onHitTargetEnter}
         onMouseLeave={onHitTargetLeave}
+        onClick={onHitTargetClick}
         style={{ cursor: "pointer" }}
       />
       <text
