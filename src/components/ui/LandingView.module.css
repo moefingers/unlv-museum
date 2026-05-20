@@ -10,9 +10,13 @@
 }
 
 .portfolioLink {
-  margin-bottom: calc(
-    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
+  /* Floats at the top-left corner of the viewport, independent of the
+     centered floating header. Stays put across view toggles and across
+     the header's collapsed state. */
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  left: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  z-index: 21;
   color: var(--muted-foreground);
   transition: color var(--duration-normal) var(--ease-default);
 }
@@ -20,29 +24,72 @@
   color: var(--foreground);
 }
 
-/* Hero heading — clamp to mid-mobile then jump to display-size on >= sm. */
-.heroTitle {
-  font-size: calc(
-    var(--font-size-4xl) * var(--app-size, 1) * var(--room-size, 1)
-  );
-  letter-spacing: var(--tracking-tight);
-}
-@media (min-width: 640px) {
-  .heroTitle {
-    font-size: calc(
-      var(--font-size-5xl) * var(--app-size, 1) * var(--room-size, 1)
-    );
-  }
+/* Top-right help button now lives inside HelpModal as its own closed
+   state — see HelpModal.module.css. The morph-from-button-to-card
+   animation needs both states on the same DOM element, so the button
+   isn't standalone here anymore. */
+
+/* ─── Floating header ────────────────────────────── */
+
+/*
+ * Top-center floating header. Mirrors the floating-legend pattern at
+ * the opposite edge of the viewport — same fixed-position, radial-
+ * gradient-backed pill, chevron toggle for collapse, inline backdrop
+ * filter (Lightning CSS strips it from CSS modules in this project).
+ *
+ * Stacking: pointer-events: none on the wrapper so it doesn't intercept
+ * pointer events outside its visible pill; .headerBody and .headerToggle
+ * re-enable pointer-events on themselves.
+ */
+.floatingHeader {
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
 }
 
-.heroLede {
-  margin-top: calc(
-    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+.headerBody {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
+  max-width: min(92vw, 40rem);
+  user-select: none;
+  -webkit-user-select: none;
+  /* Same radial-gradient backing as the legend so the panel reads
+     cleanly against the breathing mesh underneath. */
+  background: radial-gradient(
+    ellipse at center,
+    oklch(from var(--background) l c h / 0.92) 0%,
+    oklch(from var(--background) l c h / 0.78) 55%,
+    oklch(from var(--background) l c h / 0) 100%
   );
-  max-width: 32rem;
-  text-align: center;
-  color: var(--muted-foreground);
+  border-radius: var(--radius-lg);
+  transition:
+    opacity var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+  transform-origin: top center;
 }
+
+/*
+ * Collapsible title + lede block. Grid 0fr → 1fr trick: the wrapper
+ * row interpolates between 0 and 1 fractional units, the inner content
+ * has overflow:hidden + min-height:0 to clip during the transition.
+ * Animates to the content's natural height without an arbitrary
+ * max-height bound. Same idiom as .legendHintRow.
+ */
+/* Hero title + lede moved to HelpModal — the floating header is now
+   purely a control surface (view + sort toggles). Collapsible row /
+   header toggle removed; the help button morph in HelpModal carries
+   the intro content. */
 
 /* View toggle — segmented pill group, same vocabulary as the tier picker
    in ProjectChrome. Active button gets a card-surface fill; inactive
@@ -54,9 +101,7 @@
  * (they each have `margin-top` on .viewToggle, which would compound here).
  */
 .toggleRow {
-  margin-top: calc(
-    var(--space-6) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
+  /* No top margin: lives inside .headerBody with its own flex gap. */
   display: inline-flex;
   gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
   flex-wrap: wrap;
@@ -97,45 +142,80 @@
 /* ─── Globe view ─────────────────────────────────── */
 
 .globeWrap {
-  margin-top: calc(
-    var(--space-8) * var(--app-margin, 1) * var(--room-margin, 1)
-  );
   /*
-   * View toggle: when inactive, the wrapper collapses to height 0 +
-   * opacity 0 so it doesn't reserve scroll space. The inner
-   * .globeScaleHost owns the visible scale animation; keeping the
-   * Globe mounted means its ref stays live for the BreathingMesh
-   * cutout to track during the close transition.
+   * Viewport-fixed framing. The globe stage is larger than the
+   * viewport and is positioned so the sphere's UPPER PORTION sits at
+   * the viewport's vertical center — the lower hemisphere extends
+   * below the visible area, the rest is centered. This puts the
+   * sphere's "eye contact" zone in the upper-mid of the viewport
+   * rather than dead center, leaving comfortable headroom for the
+   * floating header above and visual weight that anchors the page.
    *
-   * Duration tuned slow (900ms) so the cutout-with-globe departure
-   * reads as a deliberate move. The wrapper height and opacity ease
-   * the same so list slides in cleanly underneath.
+   * Why fixed instead of in-flow: the user doesn't get to scroll the
+   * page to bring different sphere faces into view (that's what the
+   * sphere's auto-rotation + future user-zoom is for). Holding the
+   * sphere at a known viewport position simplifies every downstream
+   * concern (the hex billboard / cone math, BreathingMesh cutout
+   * alignment, view transition coordination).
+   *
+   * Horizontal: 100vw wide, sphere centered horizontally. The stage
+   * may be wider than 100vw at high zoom — html/body overflow-x:clip
+   * (in globals.css) hides whatever extends past viewport edges.
+   *
+   * View-toggle (Globe ↔ List): the wrapper fades + scales its
+   * inner host to 0 on inactive. The list view runs in normal flow
+   * underneath; making the globe `fixed` doesn't break the list's
+   * layout because the globe never reserved flow space anyway in
+   * this layout (the list's margin-top is independent).
    */
   --view-toggle-duration: 900ms;
-  transition:
-    opacity var(--view-toggle-duration) var(--ease-out),
-    max-height var(--view-toggle-duration) var(--ease-out),
-    margin-top var(--view-toggle-duration) var(--ease-out);
-  max-height: 1200px;
-  overflow: hidden;
+  --globe-frame-offset-y: 20%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity var(--view-toggle-duration) var(--ease-out);
+}
+.globeWrap > * {
+  pointer-events: auto;
 }
 .globeWrap[data-view-active="false"] {
   opacity: 0;
-  max-height: 0;
-  margin-top: 0;
   pointer-events: none;
 }
 
-/* Inner host that owns the scale animation. Pivots from 50% 38% to match
-   the apparent visual center of the globe (sphere sits slightly above
-   the wrapper's vertical middle because of legend + hint below). */
+/*
+ * Two nested layers, each owning a transform that runs on its own
+ * transition duration:
+ *
+ *   .globeScaleHost (outer): view-toggle scale + anchored translate
+ *     + anchored zoom. Long transition (900ms) matched to the
+ *     rotation slerp duration so the anchor swing reads as a single
+ *     gesture.
+ *
+ *   .globeZoomLayer (inner): user-controlled zoom. Short transition
+ *     (120ms) so wheel-driven updates feel direct but smoothed.
+ *
+ * BreathingMesh measures the INNER layer's bounding rect, which
+ * (because getBoundingClientRect accounts for all ancestor
+ * transforms) reflects the cumulative effect of both layers. Single
+ * source of truth: one DOM tree, one read, the cutout matches the
+ * visible sphere automatically — no manual multipliers.
+ *
+ * Inline transforms in LandingView.tsx populate the actual values
+ * per render; these rules pin the origin and the timing.
+ */
 .globeScaleHost {
-  transform-origin: 50% 38%;
-  transform: scale(1);
-  transition: transform 900ms var(--ease-out);
+  transform-origin: 50% 50%;
 }
-.globeWrap[data-view-active="false"] .globeScaleHost {
-  transform: scale(0);
+.globeZoomLayer {
+  transform-origin: 50% 0%;
 }
 
 /* List mount mirrors the wrapper pattern. */
@@ -326,17 +406,36 @@
   transform-style: preserve-3d;
 }
 
-.projectFront {
+/*
+ * Front face — SVG triangle. Replaces the previous rounded rectangle
+ * front. The SVG hosts the white-wash-over-category-tint gradient
+ * composition that was previously two stacked linear-gradient() values
+ * on a single <div>. Positioned static (relative to layer parent) so
+ * the depth-layer SVGs can stack above/below via translateZ.
+ */
+.projectFrontSvg {
   position: relative;
-  border-radius: var(--radius-lg);
-  /* Gradient set inline because it pulls per-card hex strings, not tokens
-     — that's load-bearing (each card must read identically on dark vs light
-     globe). Switching to oklch tokens here would break the readability of
-     the white card surface. */
+  display: block;
 }
 
+/*
+ * Text overlay positioned absolutely on top of the triangle SVG. The
+ * triangle's widest extent is its bottom edge, so the body is anchored
+ * to the bottom 50% of the card height where horizontal space is
+ * adequate for the title + year stack.
+ */
 .projectFrontBody {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  /* Constrain to the lower triangle band (roughly the bottom 50% of the
+     card) so text doesn't bleed into the narrow apex region. */
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .projectTitle {
@@ -353,6 +452,17 @@
 .projectBackingLayer {
   position: absolute;
   border-radius: var(--radius-lg);
+}
+
+/*
+ * Backing layer — SVG triangle extruded behind the front face via
+ * translateZ. Same role as .projectBackingLayer (the rectangle version)
+ * but the silhouette is now triangular so the depth stack reads coherently
+ * from oblique angles.
+ */
+.projectBackingLayerSvg {
+  position: absolute;
+  display: block;
 }
 
 /* ─── List view ─────────────────────────────────── */
@@ -433,10 +543,31 @@
     0 1px 3px oklch(from var(--foreground) l c h / 0.08),
     0 6px 16px oklch(from var(--foreground) l c h / 0.05);
   color: var(--card-foreground);
+  /*
+   * Scale-from-0 entrance + exit. Each card has a `--i` custom
+   * property set inline by the TSX (a stable per-slug random in
+   * [0, 1)). The card's scale transitions between 0 and 1, with a
+   * per-card delay of `var(--i) * spread` — cards arrive and leave
+   * at random offsets rather than in source order.
+   *
+   * Using the standalone `scale` property (not `transform: scale()`)
+   * so the FLIP transform-translate that drives sort-reordering
+   * doesn't fight this entrance — `scale` and `transform` are
+   * independent properties in modern CSS.
+   */
+  scale: 0;
+  transform-origin: center center;
   transition:
     border-color var(--duration-normal) var(--ease-default),
     --card-tint var(--duration-normal) var(--ease-default),
-    --card-bg-alpha var(--duration-normal) var(--ease-default);
+    --card-bg-alpha var(--duration-normal) var(--ease-default),
+    scale 450ms var(--ease-out);
+  /* Per-property delays must align with the transition list above.
+     Only `scale` is staggered; the others fire immediately. */
+  transition-delay: 0s, 0s, 0s, calc(var(--i, 0) * 800ms);
+}
+.listMount[data-view-active="true"] .listCardLink {
+  scale: 1;
 }
 .listCardLink[data-category="games"] {
   --card-tint: oklch(from var(--category-games) l c h / 0.14);

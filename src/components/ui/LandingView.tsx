@@ -1,10 +1,29 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Globe } from "@/components/ui/Globe";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
+import { HelpModal } from "@/components/ui/HelpModal";
+import {
+  ANCHOR_SWING_MS,
+  ANCHOR_ZOOM_EASING,
+  ANCHOR_ZOOM_SCALE,
+  ANCHOR_ZOOM_TRANSLATE_Y_PCT,
+  PolyhedronGlobe,
+  USER_ZOOM_MAX,
+  USER_ZOOM_MIN,
+  USER_ZOOM_WHEEL_SENSITIVITY,
+  type VertexAssignment,
+} from "@/components/ui/PolyhedronGlobe";
+import { geodesic } from "@/lib/polyhedra";
 import {
   PROJECTS,
   CATEGORY_LABELS,
@@ -27,6 +46,7 @@ type SortMode = "category" | "time";
 
 const VIEW_DEFAULT: ViewMode = "globe";
 const SORT_DEFAULT: SortMode = "category";
+const HELP_DISMISSED_KEY = "unlv-museum.help-dismissed";
 
 /**
  * Mirror landing view + sort selections into the URL as `?view=` and
@@ -90,75 +110,18 @@ function projectSortKey(yearText: string): string {
 }
 
 /**
- * Globe-card hex pairs. Kept as literal hex (not zcanon tokens) because
- * the globe cards force a white-ish surface for legibility regardless of
- * museum theme — the category accent only shows through as a faint
- * gradient tint blended over a white front face. Token-based oklch
- * mixing would break that contrast guarantee on dark backgrounds.
- *
- * The category-color identity for non-globe surfaces (list cards, legend
- * dots, etc.) uses the `--category-*` tokens in globals.css instead,
- * accessed via the `.categoryDot[data-category=...]` CSS Module rule.
+ * Stable [0, 1) hash of a string via FNV-1a. Used for the list-card
+ * stagger delays so each card has a deterministic random offset —
+ * no flicker on re-render, but the stagger pattern reads as random
+ * rather than positional.
  */
-const CATEGORY_HEX: Record<Category, { light: string; dark: string }> = {
-  games: { light: "#22c55e", dark: "#15803d" },
-  "full-stack": { light: "#3b82f6", dark: "#1d4ed8" },
-  frontend: { light: "#a855f7", dark: "#7e22ce" },
-  api: { light: "#f59e0b", dark: "#b45309" },
-  python: { light: "#06b6d4", dark: "#0e7490" },
-  exercises: { light: "#ec4899", dark: "#be185d" },
-};
-
-const DEPTH_LAYERS = 5;
-const LAYER_STEP = 1.5;
-
-function ProjectCard({ project }: { project: Project }) {
-  const hex = CATEGORY_HEX[project.category];
-
-  return (
-    <Link
-      href={project.href ?? `/${projectPath(project)}`}
-      className={styles.projectCard}
-      draggable={false}
-      onDragStart={(e) => e.preventDefault()}
-    >
-      <div className={styles.projectCardLayer}>
-        <div
-          className={styles.projectFront}
-          style={{
-            background: `linear-gradient(315deg, rgba(255,255,255,0.97), rgba(255,255,255,0.78)), linear-gradient(315deg, ${hex.light}22, ${hex.dark}66)`,
-          }}
-        >
-          <div className={styles.projectFrontBody}>
-            <h3
-              className={`text-sm font-semibold truncate ${styles.projectTitle}`}
-            >
-              {project.title}
-            </h3>
-            <p className={`text-xs ${styles.projectYear}`}>{project.year}</p>
-          </div>
-        </div>
-
-        {Array.from({ length: DEPTH_LAYERS }, (_, i) => {
-          const t = (i + 1) / DEPTH_LAYERS;
-          const z = -(i + 1) * LAYER_STEP;
-          const grow = t * 2;
-          return (
-            <div
-              key={i}
-              className={styles.projectBackingLayer}
-              style={{
-                inset: `${-grow}px`,
-                transform: `translateZ(${z}px)`,
-                background: `linear-gradient(135deg, ${hex.light}, ${hex.dark})`,
-                opacity: 0.7 + t * 0.3,
-              }}
-            />
-          );
-        })}
-      </div>
-    </Link>
-  );
+function hash01(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
 }
 
 function ListCard({
@@ -178,10 +141,16 @@ function ListCard({
       // in this project strips it from CSS Modules (confirmed via
       // computed-style inspection — the property was dropped from the
       // served stylesheet). Inline survives the pipeline untouched.
-      style={{
-        backdropFilter: "blur(2px) saturate(1.4)",
-        WebkitBackdropFilter: "blur(2px) saturate(1.4)",
-      }}
+      // `--i` is a per-card random in [0, 1) (hashed from slug for
+      // stability) — CSS multiplies it by a spread to derive the
+      // transition-delay for the scale-in/scale-out cascade.
+      style={
+        {
+          backdropFilter: "blur(2px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(2px) saturate(1.4)",
+          "--i": hash01(project.slug),
+        } as React.CSSProperties
+      }
       // data-category drives a faint background tint (--category-* token at
       // low alpha) so category identity is visible without section headers
       // — see .listCardLink[data-category=...] in the module CSS.
@@ -371,32 +340,141 @@ function LandingViewInner() {
   // breathes when the user wants it out of the way. Not URL-backed —
   // private chrome behavior, not a shareable view dimension.
   const [legendOpen, setLegendOpen] = useState(true);
+  // Help modal — defaults closed so the SSR render matches the
+  // first-paint client render (avoids hydration mismatch). On mount,
+  // if localStorage doesn't have the dismissed flag, open it. Manual
+  // re-open via the help button in the header.
+  //
+  // The setHelpOpen call is deferred via queueMicrotask so it doesn't
+  // run synchronously inside the effect body — React 19's lint rule
+  // flags synchronous setState there (see CLAUDE.md note). Microtask
+  // scheduling drops the call onto the next tick, which is enough to
+  // pass the rule while keeping the behavior identical.
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    queueMicrotask(() => {
+      if (localStorage.getItem(HELP_DISMISSED_KEY) !== "1") {
+        setHelpOpen(true);
+      }
+    });
+  }, []);
+  const closeHelp = () => {
+    setHelpOpen(false);
+    try {
+      localStorage.setItem(HELP_DISMISSED_KEY, "1");
+    } catch {
+      // localStorage can throw in private-browsing / disabled-storage
+      // environments. Silently fail — the modal still closes; it'll
+      // just reappear next visit, which is acceptable.
+    }
+  };
 
   // Ref on the globe wrapper. BreathingMesh measures it each frame to align
   // its circular cutout to wherever the globe is rendered (centers, scrolls,
   // etc.). In List view the ref is passed as null and the mesh fills.
   const globeWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // Apply the sort axis to BOTH List and Globe. For Globe this changes which
-  // Fibonacci-sphere index each project maps to, so toggling re-shuffles
-  // positions. With `key={item.id}` stable, React reuses each card's DOM
-  // node and only its transform changes — CSS transition on .item handles
-  // the flight across the sphere.
-  const orderedProjects =
-    sort === "time"
-      ? [...PROJECTS].sort((a, b) =>
-          projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
-        )
-      : PROJECTS;
-  const projectCards = orderedProjects.map((project) => ({
-    id: project.slug,
-    node: <ProjectCard project={project} />,
-  }));
-  const globeItems = [
-    { id: "_spacer-top", node: <div /> },
-    ...projectCards,
-    { id: "_spacer-bottom", node: <div /> },
-  ];
+  // ─── Sphere transform state (owned by LandingView) ──────────
+  //
+  // Both the anchored-state zoom and the user-controlled zoom are
+  // applied on globeScaleHost (the element globeWrapRef points to,
+  // which BreathingMesh measures for its cutout). The transforms
+  // live HERE — not inside PolyhedronGlobe — because the cutout
+  // calculation depends on getBoundingClientRect of the same DOM
+  // element that gets the transform. Splitting the transform across
+  // PolyhedronGlobe + globeScaleHost would either desync the cutout
+  // from the visible sphere or require manual multipliers, both of
+  // which sacrifice correctness for ease-of-implementation.
+  //
+  // PolyhedronGlobe owns the underlying state but reports it up via
+  // callbacks (onAnchoredChange, onWheelZoom). Single source of
+  // truth: the transform applied here matches the state up there.
+  const [anchored, setAnchored] = useState(false);
+  const [userZoom, setUserZoom] = useState(1);
+  const handleWheelZoom = (deltaY: number) => {
+    const ratio = Math.exp(-deltaY * USER_ZOOM_WHEEL_SENSITIVITY);
+    setUserZoom((z) =>
+      Math.max(USER_ZOOM_MIN, Math.min(USER_ZOOM_MAX, z * ratio)),
+    );
+  };
+  // Mirror userZoom into a ref so BreathingMesh's animation frame loop
+  // can read it without forcing a re-render of the mesh component each
+  // time the zoom changes. Updated in a layout effect to satisfy the
+  // React 19 lint rule prohibiting ref writes during render.
+  const userZoomRef = useRef(1);
+  useLayoutEffect(() => {
+    userZoomRef.current = userZoom;
+  }, [userZoom]);
+
+  // Window-level wheel listener so visitors can zoom by scrolling
+  // ANYWHERE on the page, not only over the sphere. The sphere has
+  // its own internal wheel listener (which also preventDefault's to
+  // suppress ctrl+wheel browser zoom on the sphere); we skip the
+  // event here when its target is inside that stage so we don't
+  // double-handle.
+  //
+  // Only active in Globe view — when in List view, the user expects
+  // the wheel to scroll the list normally.
+  useEffect(() => {
+    if (view !== "globe") return;
+    const onWheel = (e: WheelEvent) => {
+      // Skip if the sphere's own listener will handle it.
+      const target = e.target as Node | null;
+      const stage = document.querySelector(`.${styles.globeZoomLayer}`);
+      if (stage && target && stage.contains(target)) return;
+      handleWheelZoom(e.deltaY);
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [view]);
+  // Two nested transform layers, each on its own transition duration:
+  //
+  //   outer (.globeScaleHost): view-toggle + anchored zoom/translate
+  //     on the long 900ms transition matching the rotation slerp.
+  //   inner (.globeZoomLayer): user-controlled zoom on a short
+  //     transition so wheel-driven updates feel direct but smoothed.
+  //
+  // BreathingMesh measures the INNER layer's bounding rect, which
+  // accounts for both ancestor transforms (getBoundingClientRect
+  // returns viewport-space rect, post-cumulative-transform). The
+  // cutout therefore tracks the visible sphere automatically.
+  const viewToggleScale = view === "globe" ? 1 : 0;
+  const outerScale = viewToggleScale * (anchored ? ANCHOR_ZOOM_SCALE : 1);
+  const outerTranslateY = anchored ? ANCHOR_ZOOM_TRANSLATE_Y_PCT : 0;
+  // User-zoom transition duration: long enough to smooth step changes
+  // between wheel events, short enough to feel direct. ~120ms is
+  // around the lower bound of perceptual "instant" — fast enough
+  // that the cursor feels in control, slow enough that adjacent
+  // wheel events blend into a continuous motion.
+  const USER_ZOOM_TRANSITION_MS = 120;
+
+  // polyhedron-hover-type: assign projects to vertices.
+  //
+  // Each vertex of the icosphere gets one project, in `orderedProjects`
+  // order. Frequency-2 icosphere has 42 vertices (12 degree-5 + 30
+  // degree-6). With ~30-50 projects, first 42 win their vertex; the
+  // rest aren't on the sphere this phase (still accessible via list
+  // view).
+  //
+  // Reshuffling on sort change is intentional — same as the legacy
+  // Fibonacci-globe behavior, where sort changes re-mapped which
+  // project occupied which Fibonacci slot.
+  const orderedProjects = useMemo(
+    () =>
+      sort === "time"
+        ? [...PROJECTS].sort((a, b) =>
+            projectSortKey(b.year).localeCompare(projectSortKey(a.year)),
+          )
+        : PROJECTS,
+    [sort],
+  );
+  const vertexAssignments: VertexAssignment[] = useMemo(() => {
+    const vertexCount = geodesic(2).vertices.length;
+    return orderedProjects.slice(0, vertexCount).map((project, i) => ({
+      vertexIdx: i,
+      project,
+    }));
+  }, [orderedProjects]);
 
   return (
     <div className={styles.shell}>
@@ -409,67 +487,94 @@ function LandingViewInner() {
         the cutout naturally tracks it down to zero. Going back to Globe,
         the wrapper scales 0 → 1 and the cutout opens in lockstep.
       */}
-      <BreathingMesh cutoutTarget={globeWrapRef} />
+      <BreathingMesh cutoutTarget={globeWrapRef} meshZoom={userZoomRef} />
+
+      {/*
+        Top-left fixed back-link. Separated from the floating header
+        because conventionally the back-arrow lives at the page corner,
+        not as a member of the centered header panel. Persists across
+        view toggles and the header's collapsed state.
+      */}
       <a
         href="https://software.infinite-syndicate.com"
         className={`text-sm ${styles.portfolioLink}`}
       >
         ← Software Portfolio
       </a>
-      <h1 className={`font-bold ${styles.heroTitle}`}>UNLV Museum</h1>
-      <p className={styles.heroLede}>
-        Projects from UNLV&apos;s software development course, rebuilt across
-        three tiers: original, enhanced, and reimagined.
-      </p>
 
-      <div className={styles.toggleRow}>
-        <div className={styles.viewToggle}>
-          <button
-            onClick={() => setView("globe")}
-            className={`${styles.viewButton} ${
-              view === "globe" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <GlobeIcon size={14} />
-            Globe
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`${styles.viewButton} ${
-              view === "list" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <List size={14} />
-            List
-          </button>
-        </div>
-        {/*
-          Sort axis: applies to both views. In List it swaps section
-          grouping; in Globe it re-shuffles Fibonacci-sphere positions
-          and cards fly to their new spots (stable `key={item.id}` +
-          a CSS transition on .item's transform).
-        */}
-        <div className={styles.viewToggle}>
-          <button
-            onClick={() => setSort("category")}
-            className={`${styles.viewButton} ${
-              sort === "category"
-                ? styles.viewButtonActive
-                : styles.viewButtonIdle
-            }`}
-          >
-            <FolderTree size={14} />
-            Category
-          </button>
-          <button
-            onClick={() => setSort("time")}
-            className={`${styles.viewButton} ${
-              sort === "time" ? styles.viewButtonActive : styles.viewButtonIdle
-            }`}
-          >
-            <Clock size={14} />
-            Time
-          </button>
+      {/*
+        Floating header: position: fixed, top-center, persists across
+        both views. Now purely a control surface — view + sort toggles.
+        The museum title + lede moved to the HelpModal welcome card so
+        the header stays compact and the intro content lives in the
+        same place visitors can summon it from later.
+      */}
+      <div className={styles.floatingHeader}>
+        <div
+          className={styles.headerBody}
+          // Inline backdrop-filter (Lightning CSS strips it from CSS
+          // modules in this project). Same workaround as .legendBody.
+          style={{
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        >
+          <div className={styles.toggleRow}>
+            <div className={styles.viewToggle}>
+              <button
+                onClick={() => setView("globe")}
+                className={`${styles.viewButton} ${
+                  view === "globe"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <GlobeIcon size={14} />
+                Globe
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`${styles.viewButton} ${
+                  view === "list"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <List size={14} />
+                List
+              </button>
+            </div>
+            {/*
+              Sort axis: applies to both views. In List it swaps section
+              grouping; in Globe it re-shuffles Fibonacci-sphere positions
+              and cards fly to their new spots (stable `key={item.id}` +
+              a CSS transition on .item's transform).
+            */}
+            <div className={styles.viewToggle}>
+              <button
+                onClick={() => setSort("category")}
+                className={`${styles.viewButton} ${
+                  sort === "category"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <FolderTree size={14} />
+                Category
+              </button>
+              <button
+                onClick={() => setSort("time")}
+                className={`${styles.viewButton} ${
+                  sort === "time"
+                    ? styles.viewButtonActive
+                    : styles.viewButtonIdle
+                }`}
+              >
+                <Clock size={14} />
+                Time
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -482,8 +587,36 @@ function LandingViewInner() {
         in lockstep with the globe rather than snapping at unmount.
       */}
       <div className={styles.globeWrap} data-view-active={view === "globe"}>
-        <div ref={globeWrapRef} className={styles.globeScaleHost}>
-          <Globe items={globeItems} />
+        <div
+          className={styles.globeScaleHost}
+          style={{
+            // Outer layer: frame offset (CSS var) + anchored translate
+            // + view-toggle and anchored scales. Long transition tied
+            // to the rotation slerp so anchor + scale move as one
+            // gesture.
+            transform: `translateY(calc(var(--globe-frame-offset-y) + ${outerTranslateY}%)) scale(${outerScale})`,
+            transition: `transform ${ANCHOR_SWING_MS}ms ${ANCHOR_ZOOM_EASING}`,
+          }}
+        >
+          <div
+            ref={globeWrapRef}
+            className={styles.globeZoomLayer}
+            style={{
+              // Inner layer: user-controlled zoom only. Short
+              // transition for smooth wheel input. BreathingMesh
+              // measures THIS element — its bounding rect reflects
+              // BOTH this scale and the ancestor scale (cumulative).
+              transform: `scale(${userZoom})`,
+              transition: `transform ${USER_ZOOM_TRANSITION_MS}ms ease-out`,
+            }}
+          >
+            <PolyhedronGlobe
+              radius={500}
+              assignments={vertexAssignments}
+              onAnchoredChange={setAnchored}
+              onWheelZoom={handleWheelZoom}
+            />
+          </div>
         </div>
       </div>
       <div className={styles.listMount} data-view-active={view === "list"}>
@@ -557,6 +690,18 @@ function LandingViewInner() {
           {legendOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
         </button>
       </div>
+
+      {/*
+        Help modal. Auto-opens on first visit (when no
+        unlv-museum.help-dismissed flag in localStorage); manual reopen
+        via the top-right help button. Any close path (X, ESC, backdrop
+        click, "Got it") persists the dismissal flag.
+      */}
+      <HelpModal
+        open={helpOpen}
+        onOpen={() => setHelpOpen(true)}
+        onClose={closeHelp}
+      />
     </div>
   );
 }
