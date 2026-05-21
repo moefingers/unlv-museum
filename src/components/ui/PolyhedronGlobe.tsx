@@ -17,6 +17,25 @@ import { VertexHover } from "./VertexHover";
 import { UnfoldingBillboard } from "./UnfoldingBillboard";
 import styles from "./PolyhedronGlobe.module.css";
 
+/**
+ * Mirror a reactive value (state/prop) into a ref so side-effect
+ * callbacks (rAF ticks, pointer-event handlers, etc.) can read the
+ * LATEST value without depending on it — listing the value as a
+ * dep would re-create the callback on every change, which we don't
+ * want for the rAF loop or memoized event handlers.
+ *
+ * The pattern is "useRef + useEffect to sync"; this hook just
+ * names the pattern so the four usages in PolyhedronGlobe don't
+ * each redeclare it inline.
+ */
+function useLatestRef<T>(value: T) {
+  const ref = useRef(value);
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref;
+}
+
 // Locked tuning from the /hover-dot sandbox in svg-experiments. Mono
 // font + slow typing + caret + dismissal flash + subtle hologram
 // flicker. See commit history of svg-experiments for the rationale.
@@ -481,10 +500,7 @@ export function PolyhedronGlobe({
     | { kind: "unswinging" };
 
   const [phase, setPhase] = useState<AnchorPhase>({ kind: "idle" });
-  const phaseRef = useRef<AnchorPhase>(phase);
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
+  const phaseRef = useLatestRef(phase);
 
   // Helper: anchored vi for the CURRENT phase (read from the ref so
   // side-effect callbacks like the rAF tick get the latest value
@@ -1300,18 +1316,12 @@ export function PolyhedronGlobe({
   // gated on (touchMode === "hover" && crosshairPos) in the JSX,
   // so switching to Tap mode hides the crosshair visually
   // without needing an effect to clear state.
-  const touchModeRef = useRef(touchMode);
-  useEffect(() => {
-    touchModeRef.current = touchMode;
-  }, [touchMode]);
+  const touchModeRef = useLatestRef(touchMode);
   // userZoom mirror: lets the drag handler scale its per-pixel
   // rotation rate inversely with zoom (so dragging a fixed pixel
   // distance always rotates the sphere the same amount visually,
   // not the same amount of underlying degrees).
-  const userZoomRef = useRef(userZoom);
-  useEffect(() => {
-    userZoomRef.current = userZoom;
-  }, [userZoom]);
+  const userZoomRef = useLatestRef(userZoom);
 
   // Compute the centroid + average radius of all active pointers.
   // For 1 pointer: centroid = that pointer's pos, radius = 0.
@@ -1370,6 +1380,13 @@ export function PolyhedronGlobe({
   // viewBox units, which is the same coord space as projected[].sx/sy).
   // Restricted to ASSIGNED vertices since those are the only
   // ones a hover should engage / a tap should open.
+  //
+  // Doesn't use useLatestRef here because the value being mirrored
+  // (`visibleVertices`) is computed much later in the component
+  // body via useMemo on `projected`, and we need the ref available
+  // up here so findNearestAssignedVertex (used in pointer handlers
+  // below) can close over it. The mirror happens in a useEffect
+  // further down, where visibleVertices is in scope.
   const visibleVerticesRef = useRef<
     Array<{ vi: number; sx: number; sy: number }>
   >([]);
