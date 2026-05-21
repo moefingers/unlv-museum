@@ -445,18 +445,52 @@ export function PolyhedronGlobe({
     setQ(next);
   }, []);
 
-  const dragging = useRef(false);
-  const lastMouse = useRef({ x: 0, y: 0 });
-  const lastTime = useRef(0);
-  const didDrag = useRef(false);
-  // Angular velocity components (radians/sec) accumulated during drag,
-  // decayed via TIME_CONSTANT after release. Replaces the prior
-  // velocityX/velocityY scalars that targeted Euler angles directly.
-  const angularVelocityYaw = useRef(0);
-  const angularVelocityPitch = useRef(0);
-  const releaseTime = useRef(0);
-  const amplitudeYaw = useRef(0);
-  const amplitudePitch = useRef(0);
+  // ─── Drag-momentum bookkeeping ──────────────────────────────
+  //
+  // Single ref bundling all per-gesture drag state — none of these
+  // fields render, and they all live for the lifetime of one
+  // gesture (pointerdown → pointermove → pointerup → momentum
+  // decay → settled). Bundled (vs. 8 separate refs) so the
+  // gesture's full state is visible at one declaration and the
+  // related fields can't drift out of sync with each other.
+  //
+  // Field roles:
+  //   dragging          — true between pointerdown and pointerup
+  //   didDrag           — set true once pointermove exceeds 3px;
+  //                       distinguishes drag-then-release from
+  //                       click-without-motion in the click handler
+  //   lastMouse         — most recent pointer position (client coords)
+  //   lastTime          — performance.now() of last pointermove
+  //   angularVelocity{Yaw,Pitch} — accumulated angular velocity
+  //                       during drag (radians/sec), EMA-smoothed
+  //                       so a sudden flick doesn't dominate
+  //   releaseTime       — when the user lifted; the rAF loop uses
+  //                       (now - releaseTime) to compute decay
+  //   amplitude{Yaw,Pitch} — initial momentum at release; decays
+  //                       via exp(-elapsed / TIME_CONSTANT) each
+  //                       rAF tick until VELOCITY_THRESHOLD
+  type DragGesture = {
+    dragging: boolean;
+    didDrag: boolean;
+    lastMouse: { x: number; y: number };
+    lastTime: number;
+    angularVelocityYaw: number;
+    angularVelocityPitch: number;
+    releaseTime: number;
+    amplitudeYaw: number;
+    amplitudePitch: number;
+  };
+  const drag = useRef<DragGesture>({
+    dragging: false,
+    didDrag: false,
+    lastMouse: { x: 0, y: 0 },
+    lastTime: 0,
+    angularVelocityYaw: 0,
+    angularVelocityPitch: 0,
+    releaseTime: 0,
+    amplitudeYaw: 0,
+    amplitudePitch: 0,
+  });
 
   // ─── Anchor state machine: TYPE + state + accessor ──────────
   //
@@ -1098,18 +1132,19 @@ export function PolyhedronGlobe({
         return;
       }
 
-      if (!dragging.current) {
+      if (!drag.current.dragging) {
         const speed =
-          Math.abs(amplitudeYaw.current) + Math.abs(amplitudePitch.current);
+          Math.abs(drag.current.amplitudeYaw) +
+          Math.abs(drag.current.amplitudePitch);
 
         if (speed > VELOCITY_THRESHOLD) {
           // Drag-release momentum: decay the angular velocity and apply
           // an incremental rotation each frame.
-          const elapsed = now - releaseTime.current;
+          const elapsed = now - drag.current.releaseTime;
           const decay = Math.exp(-elapsed / TIME_CONSTANT);
 
-          const yawRate = amplitudeYaw.current * decay;
-          const pitchRate = amplitudePitch.current * decay;
+          const yawRate = drag.current.amplitudeYaw * decay;
+          const pitchRate = drag.current.amplitudePitch * decay;
 
           // Compose two world-axis rotations: yaw around world Y,
           // pitch around world X. Order matches the prior Euler model
@@ -1127,8 +1162,8 @@ export function PolyhedronGlobe({
           applyQ(next);
 
           if (Math.abs(yawRate) < 0.01 && Math.abs(pitchRate) < 0.01) {
-            amplitudeYaw.current = 0;
-            amplitudePitch.current = 0;
+            drag.current.amplitudeYaw = 0;
+            drag.current.amplitudePitch = 0;
           }
         } else {
           // Auto-rotate around autoRotateAxis. Gated by phase:
@@ -1469,19 +1504,19 @@ export function PolyhedronGlobe({
       // produce a snap-rotation. lastMouse is always the
       // CURRENT centroid; subsequent moves compute delta from
       // here.
-      lastMouse.current = { x: c.x, y: c.y };
+      drag.current.lastMouse = { x: c.x, y: c.y };
       // If we now have 2+ pointers, capture pinch baseline.
       // Otherwise leave it null — 1-pointer moves never read it.
       lastPinchDistance.current = c.count >= 2 ? c.radius : null;
-      if (!dragging.current) {
+      if (!drag.current.dragging) {
         // Fresh gesture: clear momentum from any prior release.
-        dragging.current = true;
-        didDrag.current = false;
-        angularVelocityYaw.current = 0;
-        angularVelocityPitch.current = 0;
-        amplitudeYaw.current = 0;
-        amplitudePitch.current = 0;
-        lastTime.current = performance.now();
+        drag.current.dragging = true;
+        drag.current.didDrag = false;
+        drag.current.angularVelocityYaw = 0;
+        drag.current.angularVelocityPitch = 0;
+        drag.current.amplitudeYaw = 0;
+        drag.current.amplitudePitch = 0;
+        drag.current.lastTime = performance.now();
       }
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
@@ -1533,14 +1568,14 @@ export function PolyhedronGlobe({
         }
         return;
       }
-      if (!dragging.current) return;
+      if (!drag.current.dragging) return;
       const pt = activePointers.current.get(e.pointerId);
       if (!pt) return; // unknown pointer (shouldn't happen)
       pt.x = e.clientX;
       pt.y = e.clientY;
 
       const now = performance.now();
-      const dt = now - lastTime.current;
+      const dt = now - drag.current.lastTime;
       if (dt === 0) return;
 
       const c = pointerCentroid();
@@ -1549,9 +1584,9 @@ export function PolyhedronGlobe({
       // world axes. Same DRAG_RATE/momentum tracking as before;
       // the midpoint of multi-touch behaves identically to a
       // single cursor for the rotation pipeline.
-      const dx = c.x - lastMouse.current.x;
-      const dy = c.y - lastMouse.current.y;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
+      const dx = c.x - drag.current.lastMouse.x;
+      const dy = c.y - drag.current.lastMouse.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.current.didDrag = true;
 
       // Scale drag rate inversely with userZoom so the perceived
       // rotation per finger-pixel feels constant across zoom
@@ -1563,10 +1598,10 @@ export function PolyhedronGlobe({
       const pitchAngle = dy * dragRate;
       const yawRate = (1000 * yawAngle) / (1 + dt);
       const pitchRate = (1000 * pitchAngle) / (1 + dt);
-      angularVelocityYaw.current =
-        0.8 * yawRate + 0.2 * angularVelocityYaw.current;
-      angularVelocityPitch.current =
-        0.8 * pitchRate + 0.2 * angularVelocityPitch.current;
+      drag.current.angularVelocityYaw =
+        0.8 * yawRate + 0.2 * drag.current.angularVelocityYaw;
+      drag.current.angularVelocityPitch =
+        0.8 * pitchRate + 0.2 * drag.current.angularVelocityPitch;
 
       let next = latestQ.current;
       if (yawAngle !== 0) {
@@ -1606,8 +1641,8 @@ export function PolyhedronGlobe({
         }
       }
 
-      lastMouse.current = { x: c.x, y: c.y };
-      lastTime.current = now;
+      drag.current.lastMouse = { x: c.x, y: c.y };
+      drag.current.lastTime = now;
     },
     [applyQ, onWheelZoom, clientToViewBox, findNearestAssignedVertex],
   );
@@ -1673,23 +1708,23 @@ export function PolyhedronGlobe({
         // Gesture ended. Apply release momentum the same way the
         // single-pointer path used to. Stationary-finger guard
         // kept identical.
-        if (!dragging.current) return;
-        dragging.current = false;
-        if (performance.now() - lastTime.current > 50) {
-          angularVelocityYaw.current = 0;
-          angularVelocityPitch.current = 0;
+        if (!drag.current.dragging) return;
+        drag.current.dragging = false;
+        if (performance.now() - drag.current.lastTime > 50) {
+          drag.current.angularVelocityYaw = 0;
+          drag.current.angularVelocityPitch = 0;
         }
-        amplitudeYaw.current = angularVelocityYaw.current;
-        amplitudePitch.current = angularVelocityPitch.current;
-        releaseTime.current = performance.now();
+        drag.current.amplitudeYaw = drag.current.angularVelocityYaw;
+        drag.current.amplitudePitch = drag.current.angularVelocityPitch;
+        drag.current.releaseTime = performance.now();
         lastPinchDistance.current = null;
         return;
       }
       // Still 1+ pointers on the stage — gesture continues with the
       // remaining set. Re-anchor the drag origin to the new
       // centroid so the next move doesn't jump-rotate.
-      lastMouse.current = { x: c.x, y: c.y };
-      lastTime.current = performance.now();
+      drag.current.lastMouse = { x: c.x, y: c.y };
+      drag.current.lastTime = performance.now();
       // Re-baseline the pinch reference: if we still have 2+
       // pointers (3→2 case), capture the new radius; if down to 1,
       // null the baseline since pinch is no longer active.
@@ -1697,8 +1732,8 @@ export function PolyhedronGlobe({
       // Clear momentum — we want a clean delta-from-here on the
       // next move; otherwise the inherited velocity would feed
       // back through the EMA after a finger-lift.
-      angularVelocityYaw.current = 0;
-      angularVelocityPitch.current = 0;
+      drag.current.angularVelocityYaw = 0;
+      drag.current.angularVelocityPitch = 0;
     },
     [findNearestAssignedVertex, handleDotClick],
   );
@@ -1983,7 +2018,7 @@ export function PolyhedronGlobe({
       // Link's React onClick, and Next's delegated handler
       // would bail).
       onClick={() => {
-        if (didDrag.current) return;
+        if (drag.current.didDrag) return;
         if (getAnchoredVi() !== null) releaseAnchor();
       }}
     >
@@ -2462,7 +2497,7 @@ export function PolyhedronGlobe({
                   // native-click delegation. The previous version was
                   // brittle for two combined reasons: (1) the stage
                   // div's onClickCapture preventDefaulted clicks when
-                  // didDrag.current was true, which finger-jitter could
+                  // drag.current.didDrag was true, which finger-jitter could
                   // flip on; (2) clicks on the hex card also stopped
                   // propagation in capture phase, blocking React's
                   // delegated onClick from running at all.
