@@ -111,6 +111,102 @@
   color: var(--muted-foreground);
 }
 
+/*
+ * Each sibling entry is a Link header + a Collapsible holding the
+ * page list (when the leaf has multi-page originals). Mirrors the
+ * api-client kbEntry shape exactly — the api-client uses a button
+ * header instead of a Link, but the surrounding flex column +
+ * Collapsible-below-header pattern is the same.
+ */
+.entry {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Page list, nested under the active sibling. Numbers + labels in
+ * a left-padded indent so the rows read as sub-rows of the parent
+ * leaf, not as another rail. Visually keyed to the api-client's
+ * .kbEndpoints list (smaller rows, muted text, current row
+ * highlighted with the same card-surface fill SiblingRail uses).
+ */
+.pageList {
+  list-style: none;
+  margin: 0;
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1)) 0;
+  background: oklch(from var(--muted) calc(l * 0.97) c h);
+  border-bottom: 1px solid var(--border);
+}
+
+.pageItem {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+  text-align: left;
+  color: var(--muted-foreground);
+  transition:
+    background var(--duration-normal) var(--ease-default),
+    color var(--duration-normal) var(--ease-default);
+}
+.pageItem:hover {
+  background: oklch(from var(--muted) calc(l * 0.93) c h);
+  color: var(--foreground);
+}
+
+.pageItemActive {
+  background: var(--card);
+  color: var(--foreground);
+  /* Intentionally NOT naming with view-transition-name. The rail's
+     overall morph (driven by `sibling-rail-host` on .host and
+     `sibling-current` on .itemCurrent) wants the rail to feel like
+     a single stable element across navigations. Adding a third
+     named element here makes the browser fire an exit animation
+     on it whenever the user navigates to a sibling that doesn't
+     currently have ?page= set — the named element vanishes from
+     the new DOM, the exit animation runs full-duration, and the
+     rail reads as jittery. The trade-off: the page-highlight pops
+     instead of sliding. Acceptable; the sibling-level slide is
+     what visitors feel most. */
+}
+.pageItemActive:hover {
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.pageNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: var(--radius-full);
+  background: oklch(from var(--muted-foreground) l c h / 0.15);
+  font-size: calc(
+    var(--font-size-xs) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+.pageItemActive .pageNumber {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.pageLabel {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Toggle button — pinned to the right edge of the rail's open position.
    Hidden above the breakpoint. */
 .toggle {

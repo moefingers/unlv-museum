@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { Collapsible } from "@/components/ui/Collapsible";
 import {
   CONTAINERS,
+  pageSlug,
   projectPath,
   type ContainerId,
   type Project,
@@ -15,19 +17,42 @@ import styles from "./SiblingRail.module.css";
 /**
  * Vertical sibling navigation for containerized projects.
  *
- * Layout pattern mirrors /api-client's sidebar:
- *   - Above the responsive breakpoint, the rail is permanent at the left
- *     edge of the viewport row.
- *   - Below it, the rail detaches into a drawer that slides over the
- *     content. A toggle button rides the rail's right edge in both
- *     positions; a backdrop catches taps outside the open drawer.
- *   - Esc closes the drawer.
+ * Mirrors /api-client's sidebar (the canonical in-museum pattern for
+ * grouped navigation): one rail, the active entry expands to reveal
+ * its sub-items inline. Here:
+ *   - Each sibling is a top-level row (title + description).
+ *   - The active sibling expands underneath to show its `pages` list
+ *     when one is declared (multi-page originals). MultiPageOriginal
+ *     no longer renders its own rail — pages live here, in one place.
+ *   - Clicking a page navigates to ?page=<slug> on the active sibling.
+ *   - Clicking a different sibling routes to its leaf URL; the page
+ *     list re-renders for the new active sibling.
  *
- * The component renders only when there are siblings to show — the
- * layout already filters by `project.container`, so this just guards
- * against a one-leaf container slipping through.
+ * State is URL-driven:
+ *   - Active sibling = current path segment (from usePathname).
+ *   - Active page    = `?page=<slug>` (from useSearchParams).
+ *
+ * Both are read here AND in MultiPageOriginal independently — no
+ * shared context needed. SiblingRail is a Suspense boundary because
+ * useSearchParams requires one.
+ *
+ * Drawer behavior at narrow viewports (or on the reimagined tier
+ * regardless of width) — same as before: rail slides over content,
+ * toggle button pinned at the left edge, backdrop catches outside taps.
  */
-export function SiblingRail({
+export function SiblingRail(props: {
+  container: ContainerId;
+  current: string;
+  siblings: Project[];
+}) {
+  return (
+    <Suspense>
+      <SiblingRailInner {...props} />
+    </Suspense>
+  );
+}
+
+function SiblingRailInner({
   container,
   current,
   siblings,
@@ -38,6 +63,8 @@ export function SiblingRail({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activePageSlug = searchParams.get("page");
   // Tier is the last path segment when it's "enhanced" or "reimagined";
   // anything else means we're on the original tier. The rail's CSS uses
   // data-tier to decide whether to apply drawer-mode at wide viewports
@@ -82,23 +109,65 @@ export function SiblingRail({
         <nav className={styles.list}>
           {siblings.map((sib) => {
             const isCurrent = sib.slug === current;
+            const sibUrl = `/${projectPath(sib)}`;
             return (
-              <Link
-                key={sib.slug}
-                href={`/${projectPath(sib)}`}
-                className={`${styles.item} ${
-                  isCurrent ? styles.itemCurrent : ""
-                }`}
-                aria-current={isCurrent ? "page" : undefined}
-                onClick={() => setOpen(false)}
-              >
-                <span className={styles.itemTitle}>{sib.title}</span>
-                {sib.description && (
-                  <span className={`text-xs ${styles.itemDescription}`}>
-                    {sib.description}
-                  </span>
+              <div key={sib.slug} className={styles.entry}>
+                <Link
+                  href={sibUrl}
+                  className={`${styles.item} ${
+                    isCurrent ? styles.itemCurrent : ""
+                  }`}
+                  aria-current={isCurrent ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                >
+                  <span className={styles.itemTitle}>{sib.title}</span>
+                  {sib.description && (
+                    <span className={`text-xs ${styles.itemDescription}`}>
+                      {sib.description}
+                    </span>
+                  )}
+                </Link>
+                {/*
+                  Page list — only the active sibling's Collapsible
+                  opens. Pages are URL-driven via ?page=<slug>; clicking
+                  routes to the same leaf with a new ?page= value, which
+                  MultiPageOriginal also reads to swap the iframe.
+                */}
+                {sib.pages && sib.pages.length > 0 && (
+                  <Collapsible open={isCurrent}>
+                    <ol className={styles.pageList}>
+                      {sib.pages.map((page, i) => {
+                        const slug = pageSlug(page.label);
+                        // Default-page heuristic: the route-level
+                        // redirect lands bare/unknown ?page= on the
+                        // first page's slug. So "active page is page
+                        // 0" when the param is missing OR matches.
+                        const isFirstPage = i === 0;
+                        const isActivePage =
+                          activePageSlug === slug ||
+                          (!activePageSlug && isFirstPage);
+                        return (
+                          <li key={slug}>
+                            <Link
+                              href={`${sibUrl}?page=${slug}`}
+                              className={`${styles.pageItem} ${
+                                isActivePage ? styles.pageItemActive : ""
+                              }`}
+                              aria-current={isActivePage ? "page" : undefined}
+                              onClick={() => setOpen(false)}
+                            >
+                              <span className={styles.pageNumber}>{i + 1}</span>
+                              <span className={styles.pageLabel}>
+                                {page.label}
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </Collapsible>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>
