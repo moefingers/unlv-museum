@@ -149,7 +149,23 @@
   transform: rotate(0deg);
 }
 
-/* Narrow-viewport drawer behavior. */
+/*
+ * Drawer-mode rules. Active when EITHER:
+ *   (a) viewport is narrow (max-width: 768px) — the original responsive
+ *       behavior, drawer slides over content because there isn't room
+ *       for a permanent in-flow rail.
+ *   (b) tier is reimagined — drawer mode regardless of viewport width
+ *       so the polished surface gets the full viewport. The rail is
+ *       still recoverable via the toggle button (chevron); it's
+ *       collapsed-by-default rather than locked-shut.
+ *
+ * Selectors duplicated rather than factored — CSS has no "OR" between
+ * media query and attribute selector that compiles cleanly across the
+ * Lightning CSS / browser matrix, and the duplication is mechanical
+ * (every block has paired @media and [data-tier] forms).
+ */
+
+/* (a) narrow viewport */
 @media (max-width: 768px) {
   .host {
     /* Reclaim the row width — rail becomes absolutely positioned. */
@@ -184,4 +200,34 @@
     opacity: 1;
     pointer-events: auto;
   }
+}
+
+/* (b) reimagined tier — same drawer-mode rules, scoped via data-tier. */
+.host[data-tier="reimagined"] {
+  width: 0;
+}
+.host[data-tier="reimagined"] .rail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 40;
+  transform: translateX(-100%);
+}
+.host[data-tier="reimagined"][data-rail-open="true"] .rail {
+  transform: translateX(0);
+}
+.host[data-tier="reimagined"] .toggle {
+  display: inline-flex;
+  left: 0;
+}
+.host[data-tier="reimagined"][data-rail-open="true"] .toggle {
+  left: var(--rail-w);
+}
+.host[data-tier="reimagined"] .backdrop {
+  display: block;
+}
+.host[data-tier="reimagined"][data-rail-open="true"] .backdrop {
+  opacity: 1;
+  pointer-events: auto;
 }

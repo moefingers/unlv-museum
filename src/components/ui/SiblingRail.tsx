@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import {
   CONTAINERS,
@@ -36,6 +37,16 @@ export function SiblingRail({
   siblings: Project[];
 }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  // Tier is the last path segment when it's "enhanced" or "reimagined";
+  // anything else means we're on the original tier. The rail's CSS uses
+  // data-tier to decide whether to apply drawer-mode at wide viewports
+  // (reimagined gets drawer mode so the polished surface has the room).
+  const lastSegment = pathname.split("/").filter(Boolean).pop();
+  const tier =
+    lastSegment === "enhanced" || lastSegment === "reimagined"
+      ? lastSegment
+      : "original";
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +60,7 @@ export function SiblingRail({
   const containerTitle = CONTAINERS[container].title;
 
   return (
-    <div className={styles.host} data-rail-open={open}>
+    <div className={styles.host} data-rail-open={open} data-tier={tier}>
       <button
         type="button"
         className={styles.backdrop}
