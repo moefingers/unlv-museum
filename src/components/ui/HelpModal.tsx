@@ -259,7 +259,7 @@ export function HelpModal({
           </h1>
           <p className={styles.lede}>
             A retrospective of coursework from UNLV&apos;s software development
-            program. Each project is preserved in three tiers —{" "}
+            program. Each project is preserved in three tiers:{" "}
             <strong>original</strong> (as turned in), <strong>enhanced</strong>{" "}
             (cleaned up), and <strong>reimagined</strong> (rebuilt with what
             I&apos;d know now).
