@@ -10,9 +10,10 @@ const PUBLIC_DIR = path.join(
   process.cwd(),
   "public",
   "originals",
+  "js-exercises",
   "admin-portal",
 );
-const BASE_HREF = '<base href="/originals/admin-portal/">';
+const BASE_HREF = '<base href="/originals/js-exercises/admin-portal/">';
 
 export async function GET() {
   let html: string;

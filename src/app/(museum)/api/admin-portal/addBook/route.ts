@@ -68,11 +68,13 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  // Rename `imageUrl` → `imageURL` and fall back to a deterministic
-  // placeholder cover so the frontend always has an image to render.
+  // Rename `imageUrl` → `imageURL` on the wire to match the source's
+  // db.json shape. No synthesis: if the visitor didn't pass an imageURL,
+  // the field comes back null — same as the source returned for any row
+  // that didn't have one set in db.json.
   const { imageUrl, ...rest } = book!;
   return NextResponse.json({
     ...rest,
-    imageURL: imageUrl ?? `/api/admin-portal/covers/${rest.id}`,
+    imageURL: imageUrl,
   });
 }

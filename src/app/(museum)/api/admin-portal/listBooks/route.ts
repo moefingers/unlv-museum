@@ -4,22 +4,28 @@ import { db } from "@/lib/db";
 import { books } from "../_schema";
 
 /**
- * Wire shape matches the original Express server (capital `imageURL`). The
- * frontend's admin.js reads `book.imageURL` and skips rendering the <img>
- * when it's falsy — and editBook() then crashes because the image element
- * doesn't exist. The drizzle column is `imageUrl`; we rename at the boundary.
+ * Mirrors the original Express `GET /listBooks` from server.js: returns
+ * whatever's in storage with the source's wire shape — `imageURL`
+ * (capitalized, like the source's db.json). The Drizzle column is
+ * `imageUrl`; we rename only at the response boundary.
  *
- * When a book has no stored imageUrl, we synthesize a deterministic
- * placeholder cover URL pointing at /api/admin-portal/covers/<id>. That
- * keeps the original frontend (which has a latent crash on imageless
- * books) working as-is without seeding image URLs into the database.
+ * The source returned exactly what was in `db.json` for each book;
+ * fields that weren't set were absent (or null). The museum matches:
+ * no synthesis, no fallbacks. A book inserted via POST /addBook with
+ * no imageURL stays imageless on the wire. The original admin.js
+ * handles imageless rows by skipping the <img> render, and that's the
+ * source's actual behavior preserved verbatim.
+ *
+ * If you want auto-generated cover art, that goes on the Enhanced or
+ * Reimagined tier — Original stays a faithful reflection of the
+ * source's data flow.
  */
 export async function GET() {
   const all = await db.select().from(books).orderBy(desc(books.createdAt));
   return NextResponse.json(
     all.map(({ imageUrl, ...rest }) => ({
       ...rest,
-      imageURL: imageUrl ?? `/api/admin-portal/covers/${rest.id}`,
+      imageURL: imageUrl,
     })),
   );
 }

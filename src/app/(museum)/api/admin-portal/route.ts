@@ -6,8 +6,9 @@
  * `/index.html` returned the read-only list. Museum-side that becomes
  * `GET /api/admin-portal` and `GET /api/admin-portal/index.html`.
  *
- * We read the HTML straight from public/originals/admin-portal/ (the same
- * static mount the iframe uses) and inject `<base href="/originals/admin-portal/">`
+ * We read the HTML straight from public/originals/js-exercises/admin-portal/
+ * (the same static mount the iframe uses) and inject
+ * `<base href="/originals/js-exercises/admin-portal/">`
  * into <head> so relative asset URLs (admin.js, assets/*) resolve correctly
  * when the page is loaded directly from /api/admin-portal — keeping the
  * "hit the endpoint in your browser and get content" promise intact.
@@ -19,9 +20,10 @@ const PUBLIC_DIR = path.join(
   process.cwd(),
   "public",
   "originals",
+  "js-exercises",
   "admin-portal",
 );
-const BASE_HREF = '<base href="/originals/admin-portal/">';
+const BASE_HREF = '<base href="/originals/js-exercises/admin-portal/">';
 
 async function serveHtml(file: string): Promise<Response> {
   let html: string;

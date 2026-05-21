@@ -64,11 +64,12 @@ export async function PATCH(request: Request) {
     .where(eq(books.id, body.id))
     .returning();
 
-  // Rename `imageUrl` → `imageURL` and fall back to a deterministic
-  // placeholder cover so the frontend always has an image to render.
+  // Rename `imageUrl` → `imageURL` on the wire to match the source's
+  // db.json shape. No fallback — source returned whatever was in the
+  // row, null included.
   const { imageUrl, ...rest } = updated!;
   return NextResponse.json({
     ...rest,
-    imageURL: imageUrl ?? `/api/admin-portal/covers/${rest.id}`,
+    imageURL: imageUrl,
   });
 }

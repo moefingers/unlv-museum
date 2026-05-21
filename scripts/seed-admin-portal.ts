@@ -40,15 +40,19 @@ interface SourceBook {
 
 /**
  * Translate a source-repo imageURL to the museum-hosted equivalent. The
- * museum mounts the source repo's `public/` at /originals/admin-portal/,
- * so `/assets/foo.jpg` from db.json becomes `/originals/admin-portal/assets/foo.jpg`
+ * museum mounts the source repo's `public/` at
+ * /originals/js-exercises/admin-portal/, so `/assets/foo.jpg` from
+ * db.json becomes `/originals/js-exercises/admin-portal/assets/foo.jpg`
  * here. External URLs (e.g. libreshot) pass through untouched.
+ *
+ * Keep this prefix in sync with sync.config.ts's `to` field for the
+ * admin-portal recipe — they target the same static-mount path.
  */
 function museumImageUrl(src: string | undefined): string | null {
   if (!src) return null;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  if (src.startsWith("/")) return `/originals/admin-portal${src}`;
-  return `/originals/admin-portal/${src}`;
+  if (src.startsWith("/")) return `/originals/js-exercises/admin-portal${src}`;
+  return `/originals/js-exercises/admin-portal/${src}`;
 }
 
 function toIntOrNull(v: string | number | undefined): number | null {
