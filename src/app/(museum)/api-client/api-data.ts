@@ -31,37 +31,128 @@ export const APIS_ORIGINAL: ApiProject[] = [
     title: "Music Tour API",
     baseUrl: "/api/music-tour",
     description:
-      "REST API for music tour management. CRUD operations for bands and their tour events.",
+      "REST API for music tour management — bands, events, stages, and the cross-references between them. Mirrors the UNLV exercise's three controllers verbatim: lookups go by NAME, mutations go by integer ID, and the GET-by-name responses include the nested join data the source's Sequelize `include` chain produced.",
     tech: "Originally Express + PostgreSQL + Sequelize",
     endpoints: [
+      // ── bands ───────────────────────────────────────────────────────
       {
         label: "List bands",
         method: "GET",
-        path: "/",
-        description: "Returns all bands",
+        path: "/bands",
+        description: "Returns all bands (optional ?name=<like> filter)",
       },
       {
-        label: "Get band",
+        label: "Filter bands by name",
         method: "GET",
-        path: "/1",
-        description: "Returns a band with its events",
+        path: "/bands?name=jin",
+        description: "Case-insensitive LIKE filter (Sequelize Op.like)",
+      },
+      {
+        label: "Get band (by name)",
+        method: "GET",
+        path: "/bands/Jingle Jongle",
+        description: "Returns the band + nested meet_greets + set_times",
       },
       {
         label: "Create band",
         method: "POST",
-        path: "/",
+        path: "/bands",
         description: "Creates a new band",
         body: JSON.stringify(
-          { name: "Midnight Rodeo", genre: "Country Rock", formedYear: 2022 },
+          {
+            name: "Midnight Rodeo",
+            genre: "Country Rock",
+            availableStartTime: "2024-06-01T18:00:00Z",
+            endTime: "2024-06-01T23:00:00Z",
+          },
           null,
           2,
         ),
       },
       {
-        label: "Delete band",
+        label: "Update band (by id)",
+        method: "PUT",
+        path: "/bands/69",
+        description:
+          "Update by integer band_id (mutating endpoints use id, not name)",
+        body: JSON.stringify({ genre: "Updated Genre" }, null, 2),
+      },
+      {
+        label: "Delete band (by id)",
         method: "DELETE",
-        path: "/4",
-        description: "Deletes a band and its events",
+        path: "/bands/420",
+        description:
+          "Delete by integer band_id — cascades meet_greets + set_times",
+      },
+      // ── events ──────────────────────────────────────────────────────
+      {
+        label: "List events",
+        method: "GET",
+        path: "/events",
+        description: "Returns all events (optional ?name=<like> filter)",
+      },
+      {
+        label: "Get event (by name)",
+        method: "GET",
+        path: "/events/Jinglefest",
+        description: "Returns the event + nested meet_greets/set_times/stages",
+      },
+      {
+        label: "Create event",
+        method: "POST",
+        path: "/events",
+        description: "Creates a new event",
+        body: JSON.stringify(
+          {
+            name: "Summer Slam",
+            date: "2024-07-15T00:00:00Z",
+            startTime: "2024-07-15T17:00:00Z",
+            endTime: "2024-07-15T23:00:00Z",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Update event (by id)",
+        method: "PUT",
+        path: "/events/1",
+        description: "Update by integer event_id",
+        body: JSON.stringify({ name: "Jinglefest 2024" }, null, 2),
+      },
+      {
+        label: "Delete event (by id)",
+        method: "DELETE",
+        path: "/events/9",
+        description: "Delete by integer event_id — cascades junctions",
+      },
+      // ── stages ──────────────────────────────────────────────────────
+      {
+        label: "List stages",
+        method: "GET",
+        path: "/stages",
+        description: "Returns all stages (optional ?stage_name=<like> filter)",
+      },
+      {
+        label: "Get stage (by name)",
+        method: "GET",
+        path: "/stages/Main Stage",
+        description:
+          "Returns the stage + every event it's at (M:M via stage_events)",
+      },
+      {
+        label: "Create stage",
+        method: "POST",
+        path: "/stages",
+        description: "Creates a new stage",
+        body: JSON.stringify({ stageName: "Acoustic Tent" }, null, 2),
+      },
+      {
+        label: "Delete stage (by id)",
+        method: "DELETE",
+        path: "/stages/80",
+        description:
+          "Delete by integer stage_id — cascades set_times + stage_events",
       },
     ],
   },

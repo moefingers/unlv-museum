@@ -12,6 +12,7 @@
     "sync:source": "tsx scripts/sync-source.ts",
     "sync:source-meta": "node -r ./scripts/lib/register-css-stub.cjs --import tsx scripts/sync-source-meta.ts",
     "seed:admin-portal": "tsx --env-file=.env.local scripts/seed-admin-portal.ts",
+    "seed:music-tour": "tsx --env-file=.env.local scripts/seed-music-tour.ts",
     "pat:generate": "tsx --env-file=.env.local scripts/generate-pat.ts",
     "db:push": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs studio",

@@ -1,35 +1,99 @@
 import {
   pgSchema,
-  serial,
+  smallserial,
   text,
-  integer,
-  date,
+  smallint,
   timestamp,
 } from "drizzle-orm/pg-core";
 
+/**
+ * Music Tour API — faithful Postgres translation of the original UNLV
+ * Sequelize exercise (`moefingers/SQL-Music-Tour-API`).
+ *
+ * Six tables, mirroring the source's `models/` directory:
+ *
+ *   bands ← (1:M) → meet_greets ← (M:1) → events
+ *   bands ← (1:M) → set_times   ← (M:1) → events
+ *                                 ↑
+ *                               (M:1)
+ *                                 ↓
+ *                               stages ← (M:M via stage_events) → events
+ *
+ * Original used Sequelize with SMALLINT primary keys, `timestamps: false`,
+ * and resource-specific column names (`band_id`, `event_id`, `stage_id`)
+ * matching the model's own primary-key column. Drizzle's TypeScript field
+ * names use camelCase but the database columns preserve the source's
+ * snake_case identifiers exactly.
+ *
+ * Source lookups go BY NAME (not id) — `GET /bands/Coldplay` returns the
+ * band's row with nested meet_greets + set_times → events. The museum's
+ * routes preserve that pattern; mutating endpoints (PUT/DELETE) still
+ * take an integer id in the same URL slot, mirroring the original's
+ * routing quirk.
+ */
 export const musicTourSchema = pgSchema("music_tour");
 
 export const bands = musicTourSchema.table("bands", {
-  id: serial("id").primaryKey(),
+  bandId: smallserial("band_id").primaryKey(),
   name: text("name").notNull(),
   genre: text("genre").notNull(),
-  formedYear: integer("formed_year"),
-  imageUrl: text("image_url"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  availableStartTime: timestamp("available_start_time", {
+    withTimezone: true,
+  }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }).notNull(),
 });
 
 export const events = musicTourSchema.table("events", {
-  id: serial("id").primaryKey(),
-  bandId: integer("band_id")
+  eventId: smallserial("event_id").primaryKey(),
+  name: text("name").notNull(),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }).notNull(),
+});
+
+export const stages = musicTourSchema.table("stages", {
+  stageId: smallserial("stage_id").primaryKey(),
+  stageName: text("stage_name").notNull(),
+});
+
+/** M:M between bands and events (the meet-and-greet sessions per event). */
+export const meetGreets = musicTourSchema.table("meet_greets", {
+  meetGreetId: smallserial("meet_greet_id").primaryKey(),
+  eventId: smallint("event_id")
     .notNull()
-    .references(() => bands.id, { onDelete: "cascade" }),
-  venue: text("venue").notNull(),
-  city: text("city").notNull(),
-  date: date("date").notNull(),
-  ticketPriceCents: integer("ticket_price_cents"),
-  createdAt: timestamp("created_at", { withTimezone: true })
+    .references(() => events.eventId, { onDelete: "cascade" }),
+  bandId: smallint("band_id")
     .notNull()
-    .defaultNow(),
+    .references(() => bands.bandId, { onDelete: "cascade" }),
+  meetStartTime: timestamp("meet_start_time", {
+    withTimezone: true,
+  }).notNull(),
+  meetEndTime: timestamp("meet_end_time", { withTimezone: true }).notNull(),
+});
+
+/** Three-way junction: which band plays which stage at which event, when. */
+export const setTimes = musicTourSchema.table("set_times", {
+  setTimeId: smallserial("set_time_id").primaryKey(),
+  eventId: smallint("event_id")
+    .notNull()
+    .references(() => events.eventId, { onDelete: "cascade" }),
+  stageId: smallint("stage_id")
+    .notNull()
+    .references(() => stages.stageId, { onDelete: "cascade" }),
+  bandId: smallint("band_id")
+    .notNull()
+    .references(() => bands.bandId, { onDelete: "cascade" }),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }).notNull(),
+});
+
+/** Pure M:M junction between stages and events. */
+export const stageEvents = musicTourSchema.table("stage_events", {
+  stageEventsId: smallserial("stage_events_id").primaryKey(),
+  stageId: smallint("stage_id")
+    .notNull()
+    .references(() => stages.stageId, { onDelete: "cascade" }),
+  eventId: smallint("event_id")
+    .notNull()
+    .references(() => events.eventId, { onDelete: "cascade" }),
 });
