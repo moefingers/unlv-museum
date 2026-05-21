@@ -117,6 +117,12 @@ function formatDateRange(firstIso: string, lastIso: string): string {
  * `react-exercises` and `bootstrap` under some other series wouldn't collide.
  */
 export const CONTAINERS = {
+  // UNLV curriculum chapter 2 (HTML). Leaves: restaurant-menu (2.3.2),
+  // bird-songs (2.4.1), improved-form (2.5.2), layouts (2.x).
+  "html-fundamentals": { title: "HTML Fundamentals" },
+  // UNLV curriculum chapter 3 (CSS). Leaves: css-demo, hacker-times
+  // (3.2.4), animations (3.3.2), responsive-boxes (3.4.3).
+  "css-fundamentals": { title: "CSS Fundamentals" },
   // UNLV curriculum chapter 5 (JavaScript). Leaves are array-ordered by
   // chapter number so the future Globe graph layout (curriculum-curve on
   // sphere surface — see project notes 2026-05-21) can read leaf
@@ -549,6 +555,139 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
 
+  // HTML FUNDAMENTALS (chapter 2.x)
+  // Container leaves in curriculum-chapter order.
+  {
+    slug: "restaurant-menu",
+    container: "html-fundamentals",
+    repo: "moefingers/html-1-restaurant-menu-activity",
+    title: "Restaurant Menu",
+    description: "Multi-page restaurant website (chapter 2.3.2).",
+    year: "Oct 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS"],
+    original: (
+      <OriginalFrame src="/originals/html-fundamentals/restaurant-menu/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "bird-songs",
+    container: "html-fundamentals",
+    repo: "moefingers/HTML-Bird-Songs",
+    title: "Bird Songs",
+    description: "Five-page bird gallery (chapter 2.4.1).",
+    year: "Oct 2023",
+    category: "exercises",
+    techOriginal: ["HTML"],
+    original: (
+      <OriginalFrame src="/originals/html-fundamentals/bird-songs/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "improved-form",
+    container: "html-fundamentals",
+    repo: "moefingers/HTML-Improved-Form",
+    title: "Improved Sign-up Form",
+    description: "Form with validation + results page (chapter 2.5.2).",
+    year: "Oct 2023",
+    category: "exercises",
+    techOriginal: ["HTML"],
+    original: (
+      <OriginalFrame src="/originals/html-fundamentals/improved-form/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "layouts",
+    container: "html-fundamentals",
+    repo: "moefingers/UNLV-html-layouts-activity",
+    title: "HTML Layouts",
+    description: "Layouts activity (chapter 2.x).",
+    year: "Oct 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS"],
+    original: (
+      <OriginalFrame src="/originals/html-fundamentals/layouts/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+
+  // CSS FUNDAMENTALS (chapter 3.x)
+  // Container leaves in curriculum-chapter order. css-demo (own, no specific
+  // chapter) leads as the introductory sketch; the rest are graded labs.
+  {
+    slug: "css-demo",
+    container: "css-fundamentals",
+    repo: "moefingers/css-demo",
+    title: "CSS Demo",
+    description: "Early CSS sketch (own, pre-chapter-3 labs).",
+    year: "Nov 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS"],
+    original: (
+      <OriginalFrame src="/originals/css-fundamentals/css-demo/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "hacker-times",
+    container: "css-fundamentals",
+    repo: "moefingers/CSS-The-Hacker-Times-Part-1",
+    title: "Hacker Times",
+    description: "Newspaper-styled CSS practice (chapter 3.2.4).",
+    year: "Nov 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS"],
+    original: (
+      <OriginalFrame src="/originals/css-fundamentals/hacker-times/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "animations",
+    container: "css-fundamentals",
+    repo: "moefingers/CSS-Transform-Transition-and-Animations-Oh-My",
+    title: "CSS Transforms, Transitions & Animations",
+    description: "Three-activity sampler (chapter 3.3.2).",
+    year: "Nov 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS"],
+    // Three sub-activities live in the artifact tree (animation/transform/
+    // transition); default iframe is the first. A `pages` rail with all
+    // three is a candidate for the next audit pass.
+    original: (
+      <OriginalFrame src="/originals/css-fundamentals/animations/animation-activity/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "responsive-boxes",
+    container: "css-fundamentals",
+    repo: "moefingers/CSS-Responsive-Boxes",
+    title: "Responsive Boxes",
+    description: "Media queries + flexbox (chapter 3.4.3).",
+    year: "Nov 2023",
+    category: "exercises",
+    techOriginal: ["HTML", "CSS", "Media Queries"],
+    // Three media-query sub-exercises live in the artifact tree
+    // (medial-queries1/2/3); default iframe is the first. Pages-rail
+    // candidate for the next audit pass.
+    original: (
+      <OriginalFrame src="/originals/css-fundamentals/responsive-boxes/medial-queries1/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+
   // JS EXERCISES (chapter 5.x)
   // Container leaves are array-ordered by curriculum chapter so the future
   // Globe graph layout (curriculum-curve on sphere surface) can read leaf
@@ -909,19 +1048,6 @@ export const PROJECTS: Project[] = [
 
   // EXERCISES
   {
-    slug: "html-css-fundamentals",
-    title: "HTML & CSS Fundamentals",
-    description: "Layouts, forms, responsive design, animations.",
-    year: "Oct – Dec 2023",
-    category: "exercises",
-    techOriginal: ["HTML", "CSS", "Media Queries"],
-    original: (
-      <OriginalFrame src="/originals/html-css-fundamentals/hacker-times/index.html" />
-    ),
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-  },
-  {
     slug: "music-search",
     container: "react-exercises",
     repo: "moefingers/RR-Music-Search",
@@ -1001,17 +1127,6 @@ export const PROJECTS: Project[] = [
     category: "exercises",
     techOriginal: ["HTML", "CSS", "JavaScript"],
     original: <OriginalFrame src="/originals/css-responsive-nav/index.html" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-  },
-  {
-    slug: "restaurant-menu",
-    title: "Restaurant Menu",
-    description: "Multi-page restaurant website.",
-    year: "Oct 2023",
-    category: "exercises",
-    techOriginal: ["HTML", "CSS"],
-    original: <OriginalFrame src="/originals/restaurant-menu/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },

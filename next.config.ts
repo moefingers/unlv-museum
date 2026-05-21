@@ -33,6 +33,21 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
     {
+      // html-fundamentals container — defaults to restaurant-menu (the
+      // chronologically-first leaf at chapter 2.3.2).
+      source: "/html-fundamentals",
+      destination: "/html-fundamentals/restaurant-menu",
+      permanent: false,
+    },
+    {
+      // css-fundamentals container — defaults to css-demo (the
+      // chronologically-first leaf, an own/sketch leading into the
+      // graded chapter-3 labs).
+      source: "/css-fundamentals",
+      destination: "/css-fundamentals/css-demo",
+      permanent: false,
+    },
+    {
       // js-exercises container — defaults to web-game (chapter 5.3-5.6,
       // the chronologically-first leaf). When the Globe graph layout
       // lands, this default leaf becomes the natural "start of the
