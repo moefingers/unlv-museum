@@ -1230,50 +1230,66 @@ export function PolyhedronGlobe({
   // label engagement (preview-on-hover). A tap-release with
   // minimal movement opens that vertex's card.
   //
-  // crosshairPos is stage-local viewBox coords (same space as the
-  // SVG's projected vertex coords); null = no crosshair shown.
-  // crosshairEngagedVi = the vertex currently engaged by proximity.
-  // crosshairStartedAt = pointerdown timestamp, used to detect taps
-  //   (release within TAP_MAX_MS and TAP_MAX_PX of start = tap).
-  // crosshairVisible drives the mount/unmount + opacity of the
-  // crosshair <g>; coordinate updates skip React entirely and go
-  // straight to the DOM via crosshairGroupRef.setAttribute. Going
-  // through React state for every pointermove introduced laggy
-  // tracking (one render per move, batched + reconciled).
+  // State is split between two stores because they have different
+  // update patterns:
   //
-  // When `visible` transitions false → true, it carries the first
-  // position so the SVG group's `transform` attribute is correct
-  // on initial paint. Subsequent move updates bypass React and
-  // write straight to setAttribute.
-  const [crosshairVisible, setCrosshairVisible] = useState<{
+  //   crosshairView (React state): drives mount/unmount + opacity
+  //     fade. Updated only on gesture START (open), gesture END
+  //     (begin linger), and linger TIMER expiry (fully unmount).
+  //     3 updates per gesture, not per move — keeps reconciliation
+  //     cost low. Carries `initialX/Y` so the SVG group's first
+  //     paint has the right transform attribute.
+  //
+  //   crosshairGesture (ref, no re-render): per-move bookkeeping.
+  //     Includes the current position, the pointerdown timestamp
+  //     + start position + max movement (used to classify the
+  //     gesture as a tap vs drag on release), and the linger
+  //     timer. Updated on every pointermove without going through
+  //     React.
+  //
+  //   crosshairGroupRef (DOM ref): the live <g> element. Each
+  //     pointermove writes `transform="translate(x y)"` directly
+  //     via setAttribute — bypasses React reconciliation so the
+  //     crosshair tracks the finger at native event rate.
+  type CrosshairGesture = {
+    /** Latest crosshair position in viewBox units (read by the
+     *  pointerup handler to find the nearest vertex). null while
+     *  no gesture is active. */
+    pos: { x: number; y: number } | null;
+    /** performance.now() at pointerdown — for tap-vs-drag timing. */
+    startedAt: number;
+    /** Client-coord position at pointerdown — for movement delta. */
+    startPos: { x: number; y: number } | null;
+    /** Max movement distance during the current gesture (px). */
+    maxMovement: number;
+    /** Post-release linger timer. */
+    lingerTimer: ReturnType<typeof setTimeout> | null;
+  };
+  const crosshairGesture = useRef<CrosshairGesture>({
+    pos: null,
+    startedAt: 0,
+    startPos: null,
+    maxMovement: 0,
+    lingerTimer: null,
+  });
+  const [crosshairView, setCrosshairView] = useState<{
+    /** Mount/unmount gate for the <g>. */
     visible: boolean;
+    /** Post-release fade — true during the CROSSHAIR_LINGER_MS
+     *  window between pointerup and unmount. */
+    releasing: boolean;
+    /** Position carried from gesture start so the initial paint
+     *  of the <g> is at the right place. Subsequent moves bypass
+     *  React entirely. */
     initialX: number;
     initialY: number;
-  }>({ visible: false, initialX: 0, initialY: 0 });
-  // releasing = true during the 1-second post-pointerup linger.
-  // Triggers a CSS opacity fade on the crosshair group while still
-  // rendered.
-  const [crosshairReleasing, setCrosshairReleasing] = useState(false);
-  // Imperative DOM ref so we can update the crosshair's transform
-  // attribute on every pointermove without going through React.
+  }>({ visible: false, releasing: false, initialX: 0, initialY: 0 });
   const crosshairGroupRef = useRef<SVGGElement | null>(null);
-  // Latest crosshair position in viewBox units. Read by the
-  // pointerup handler to find the nearest vertex; also written
-  // by every pointermove (alongside the imperative DOM update).
-  const crosshairPosRef = useRef<{ x: number; y: number } | null>(null);
-  const crosshairStartedAt = useRef<number>(0);
-  const crosshairStartPos = useRef<{ x: number; y: number } | null>(null);
-  const crosshairMaxMovement = useRef<number>(0);
-  // Timer for the 1-second post-release linger before the
-  // crosshair fully unmounts.
-  const crosshairLingerTimer = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
   // Update crosshair: writes the DOM transform directly (no React
-  // re-render) and mirrors into the ref. The mount/unmount happens
-  // separately via setCrosshairVisible.
+  // re-render) and mirrors the position into the gesture ref so
+  // pointerup's tap-target calc can read it back.
   const writeCrosshair = (pos: { x: number; y: number } | null) => {
-    crosshairPosRef.current = pos;
+    crosshairGesture.current.pos = pos;
     const g = crosshairGroupRef.current;
     if (g && pos) {
       g.setAttribute("transform", `translate(${pos.x} ${pos.y})`);
@@ -1389,16 +1405,17 @@ export function PolyhedronGlobe({
       if (touchModeRef.current === "hover") {
         const vbPoint = clientToViewBox(e.clientX, e.clientY);
         if (vbPoint) {
+          const g = crosshairGesture.current;
           // Cancel any in-flight linger from a prior release so a
           // new tap doesn't fade out partway through.
-          if (crosshairLingerTimer.current) {
-            clearTimeout(crosshairLingerTimer.current);
-            crosshairLingerTimer.current = null;
+          if (g.lingerTimer) {
+            clearTimeout(g.lingerTimer);
+            g.lingerTimer = null;
           }
           writeCrosshair(vbPoint);
-          setCrosshairReleasing(false);
-          setCrosshairVisible({
+          setCrosshairView({
             visible: true,
+            releasing: false,
             initialX: vbPoint.x,
             initialY: vbPoint.y,
           });
@@ -1409,9 +1426,9 @@ export function PolyhedronGlobe({
           if (vi !== null && getAnchoredVi() !== vi) {
             setEngagedVertexIdx(vi);
           }
-          crosshairStartedAt.current = performance.now();
-          crosshairStartPos.current = { x: e.clientX, y: e.clientY };
-          crosshairMaxMovement.current = 0;
+          g.startedAt = performance.now();
+          g.startPos = { x: e.clientX, y: e.clientY };
+          g.maxMovement = 0;
         }
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
         return;
@@ -1463,9 +1480,10 @@ export function PolyhedronGlobe({
       // ── Touch hover mode ─────────────────────────────────
       // Finger movement updates the crosshair + re-engages the
       // nearest vertex. We also track total movement distance
-      // (via crosshairMaxMovement) so the up handler can decide
-      // whether the gesture was a "tap" (movement < TAP_MAX_PX,
-      // open the card) or a "drag" (just a preview).
+      // (via crosshairGesture.maxMovement) so the up handler
+      // can decide whether the gesture was a "tap" (movement
+      // < TAP_MAX_PX, open the card) or a "drag" (just a
+      // preview).
       if (touchModeRef.current === "hover") {
         const vbPoint = clientToViewBox(e.clientX, e.clientY);
         if (!vbPoint) return;
@@ -1473,12 +1491,13 @@ export function PolyhedronGlobe({
         // so the crosshair tracks the finger at the pointermove
         // event rate without per-frame state updates.
         writeCrosshair(vbPoint);
-        if (crosshairStartPos.current) {
-          const dx = e.clientX - crosshairStartPos.current.x;
-          const dy = e.clientY - crosshairStartPos.current.y;
+        const g = crosshairGesture.current;
+        if (g.startPos) {
+          const dx = e.clientX - g.startPos.x;
+          const dy = e.clientY - g.startPos.y;
           const movement = Math.hypot(dx, dy);
-          if (movement > crosshairMaxMovement.current) {
-            crosshairMaxMovement.current = movement;
+          if (movement > g.maxMovement) {
+            g.maxMovement = movement;
           }
         }
         const vi = findNearestAssignedVertex(
@@ -1585,13 +1604,12 @@ export function PolyhedronGlobe({
       // any active label engagement so the user gets a clean
       // visual handoff.
       if (touchModeRef.current === "hover") {
-        const duration = performance.now() - crosshairStartedAt.current;
-        const wasTap =
-          duration < TAP_MAX_MS && crosshairMaxMovement.current < TAP_MAX_PX;
-        const pos = crosshairPosRef.current;
-        if (wasTap && pos) {
+        const g = crosshairGesture.current;
+        const duration = performance.now() - g.startedAt;
+        const wasTap = duration < TAP_MAX_MS && g.maxMovement < TAP_MAX_PX;
+        if (wasTap && g.pos) {
           const vi = findNearestAssignedVertex(
-            pos,
+            g.pos,
             CROSSHAIR_ENGAGEMENT_RADIUS,
           );
           if (vi !== null) {
@@ -1600,25 +1618,27 @@ export function PolyhedronGlobe({
         }
         // Linger: keep the crosshair rendered for an additional
         // CROSSHAIR_LINGER_MS after lift, fading out via CSS
-        // opacity transition (crosshairReleasing → true triggers
-        // the fade). This gives the user a moment of visual
-        // confirmation that their gesture registered before the
-        // crosshair disappears entirely.
-        setCrosshairReleasing(true);
-        if (crosshairLingerTimer.current) {
-          clearTimeout(crosshairLingerTimer.current);
-        }
-        crosshairLingerTimer.current = setTimeout(() => {
-          setCrosshairVisible({ visible: false, initialX: 0, initialY: 0 });
-          setCrosshairReleasing(false);
-          crosshairPosRef.current = null;
-          crosshairLingerTimer.current = null;
+        // opacity transition (releasing → true triggers the fade).
+        // Gives the user a moment of visual confirmation that
+        // their gesture registered before the crosshair
+        // disappears entirely.
+        setCrosshairView((v) => ({ ...v, releasing: true }));
+        if (g.lingerTimer) clearTimeout(g.lingerTimer);
+        g.lingerTimer = setTimeout(() => {
+          setCrosshairView({
+            visible: false,
+            releasing: false,
+            initialX: 0,
+            initialY: 0,
+          });
+          crosshairGesture.current.pos = null;
+          crosshairGesture.current.lingerTimer = null;
         }, CROSSHAIR_LINGER_MS);
         // Dismiss engagement on release whether it was a tap or
         // drag — the crosshair is gone, the label should go too.
         setEngagedVertexIdx(null);
-        crosshairStartPos.current = null;
-        crosshairMaxMovement.current = 0;
+        g.startPos = null;
+        g.maxMovement = 0;
         return;
       }
       // Remove the lifted pointer from the active map. If `e` is
@@ -2204,7 +2224,7 @@ export function PolyhedronGlobe({
             the input event rate without per-frame re-renders.
             Children are drawn at origin (0,0); the group's
             transform places them at the cursor position. */}
-        {touchMode === "hover" && crosshairVisible.visible && (
+        {touchMode === "hover" && crosshairView.visible && (
           <g
             ref={crosshairGroupRef}
             pointerEvents="none"
@@ -2213,9 +2233,9 @@ export function PolyhedronGlobe({
             // React entirely via writeCrosshair → setAttribute on
             // this same element, so the position can update at the
             // pointermove rate without re-rendering.
-            transform={`translate(${crosshairVisible.initialX} ${crosshairVisible.initialY})`}
+            transform={`translate(${crosshairView.initialX} ${crosshairView.initialY})`}
             style={{
-              opacity: crosshairReleasing ? 0 : 1,
+              opacity: crosshairView.releasing ? 0 : 1,
               transition: `opacity ${CROSSHAIR_LINGER_MS}ms ease-out`,
             }}
           >
