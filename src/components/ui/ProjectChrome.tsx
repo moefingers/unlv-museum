@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ArrowRightLeft, ChevronDown } from "lucide-react";
 import { siGithub } from "simple-icons";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
 import {
   projectPath,
+  resolveSiblingLink,
   resolveTierSources,
   type Project,
   type ViewMode,
@@ -56,7 +58,14 @@ export function ProjectChrome({ project }: { project: Project }) {
   const currentTier = deriveTier(pathname, path);
 
   const available: Record<ViewMode, boolean> = {
-    original: project.original != null,
+    // `pages` is also a valid original source — [...path]/page.tsx
+    // auto-wraps it with <MultiPageOriginal> when `original` is unset.
+    // Without this, multi-page projects (admin-portal, js-dom-events)
+    // would render the Original tier toggle as disabled even though
+    // the route serves it correctly.
+    original:
+      project.original != null ||
+      (project.pages != null && project.pages.length > 0),
     enhanced: project.enhanced != null || project.enhancedExternal != null,
     reimagined:
       project.reimagined != null || project.reimaginedExternal != null,
@@ -82,11 +91,13 @@ export function ProjectChrome({ project }: { project: Project }) {
   }));
 
   const tierSources = resolveTierSources(project, currentTier);
-  // The notes panel hosts both the per-tier note and the source links.
-  // Show the toggle (and the panel) when ANY piece of content exists
-  // for this tier — a project might have a repo to link to even without
-  // a tier-specific note, and vice versa.
-  const hasPanelContent = Boolean(note) || tierSources.length > 0;
+  const siblingLink = resolveSiblingLink(project);
+  // The notes panel hosts the per-tier note, the GitHub source links,
+  // and the cross-link to the api-client/frontend counterpart when
+  // this project is half of an api+client pair. Show the toggle (and
+  // the panel) when ANY piece of content exists for this tier.
+  const hasPanelContent =
+    Boolean(note) || tierSources.length > 0 || siblingLink !== null;
 
   return (
     <MuseumChrome
@@ -117,7 +128,7 @@ export function ProjectChrome({ project }: { project: Project }) {
           <Collapsible open={notesOpen} duration={200}>
             <div className={`text-sm ${styles.notesPanel}`}>
               {note && <p className={styles.notesText}>{note}</p>}
-              {tierSources.length > 0 && (
+              {(tierSources.length > 0 || siblingLink) && (
                 <ul className={styles.repoLinkList}>
                   {tierSources.map((source) => (
                     <li key={source.url}>
@@ -132,6 +143,21 @@ export function ProjectChrome({ project }: { project: Project }) {
                       </a>
                     </li>
                   ))}
+                  {siblingLink && (
+                    <li>
+                      {/*
+                        Internal navigation — use next/link so the
+                        cross-link participates in the view-transition
+                        pipeline rather than triggering a full reload,
+                        and so the api-client's own client-side state
+                        (sidebar, history) initializes cleanly.
+                      */}
+                      <Link href={siblingLink.url} className={styles.repoLink}>
+                        <ArrowRightLeft size={14} aria-hidden="true" />
+                        <span>{siblingLink.label}</span>
+                      </Link>
+                    </li>
+                  )}
                 </ul>
               )}
             </div>

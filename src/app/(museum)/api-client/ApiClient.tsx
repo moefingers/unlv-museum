@@ -299,101 +299,113 @@ function ApiClientInner({ tier }: { tier: Tier }) {
 
         {/* Right: Client. Named page-content so tier swaps fade+blur the
             body the same way project pages do. Sidebar (left) and header
-            (above) stay pinned via their own names. */}
+            (above) stay pinned via their own names.
+
+            The .client itself is the scroll container; the controls
+            block (api switcher + request builder + body editor +
+            response header) is wrapped in .controlsSticky which uses
+            `position: sticky; top: 0` so the controls stay glued to
+            the top of the pane while the response body underneath
+            scrolls. The sticky group has a translucent backdrop so the
+            scrolling response is visibly sliding under it. */}
         <main
           className={styles.client}
           style={{ viewTransitionName: "page-content" }}
         >
-          <div className={styles.apiSwitchRow}>
-            {apis.map((api, i) => (
-              <div key={api.id} className={styles.apiSwitchGroup}>
-                {i > 0 && <span className={styles.apiSwitchSeparator}>•</span>}
-                <button
-                  onClick={() => switchApi(api.id)}
-                  className={`${styles.apiSwitchButton} ${
-                    activeApiId === api.id ? "" : styles.apiSwitchInactive
-                  }`}
-                >
-                  {api.title}
-                </button>
-                <Collapsible
-                  open={activeApiId === api.id}
-                  direction="horizontal"
-                  duration={200}
-                >
-                  <span className={`text-xs ${styles.apiSwitchBaseUrl}`}>
-                    {api.baseUrl}
-                  </span>
-                </Collapsible>
+          <div className={styles.controlsSticky}>
+            <div className={styles.apiSwitchRow}>
+              {apis.map((api, i) => (
+                <div key={api.id} className={styles.apiSwitchGroup}>
+                  {i > 0 && (
+                    <span className={styles.apiSwitchSeparator}>•</span>
+                  )}
+                  <button
+                    onClick={() => switchApi(api.id)}
+                    className={`${styles.apiSwitchButton} ${
+                      activeApiId === api.id ? "" : styles.apiSwitchInactive
+                    }`}
+                  >
+                    {api.title}
+                  </button>
+                  <Collapsible
+                    open={activeApiId === api.id}
+                    direction="horizontal"
+                    duration={200}
+                  >
+                    <span className={`text-xs ${styles.apiSwitchBaseUrl}`}>
+                      {api.baseUrl}
+                    </span>
+                  </Collapsible>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.requestRow}>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as Method)}
+                className={`method-button ${styles.methodSelect}`}
+                data-method={method}
+                aria-label="HTTP method"
+              >
+                {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map(
+                  (m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ),
+                )}
+              </select>
+              {/*
+                baseUrl prefix is a per-API segment glued to the path input.
+                Rendering ALL candidates side-by-side (each wrapped in a
+                horizontal Collapsible, only the active one open) makes
+                switching APIs cross-fade the prefix — old one slides closed
+                while the new one slides open in the same row — rather than
+                swap text in place.
+              */}
+              <div className={styles.pathGroup}>
+                {apis.map((api) => (
+                  <Collapsible
+                    key={api.id}
+                    open={api.id === activeApiId}
+                    direction="horizontal"
+                    duration={300}
+                  >
+                    <span className={`text-sm ${styles.baseUrlPrefix}`}>
+                      {api.baseUrl}
+                    </span>
+                  </Collapsible>
+                ))}
+                <input
+                  value={path}
+                  onChange={(e) => setPath(e.target.value)}
+                  className={`text-sm ${styles.pathInput}`}
+                  placeholder="/endpoint"
+                />
               </div>
-            ))}
-          </div>
-
-          <div className={styles.requestRow}>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as Method)}
-              className={`method-button ${styles.methodSelect}`}
-              data-method={method}
-              aria-label="HTTP method"
-            >
-              {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            {/*
-              baseUrl prefix is a per-API segment glued to the path input.
-              Rendering ALL candidates side-by-side (each wrapped in a
-              horizontal Collapsible, only the active one open) makes
-              switching APIs cross-fade the prefix — old one slides closed
-              while the new one slides open in the same row — rather than
-              swap text in place.
-            */}
-            <div className={styles.pathGroup}>
-              {apis.map((api) => (
-                <Collapsible
-                  key={api.id}
-                  open={api.id === activeApiId}
-                  direction="horizontal"
-                  duration={300}
-                >
-                  <span className={`text-sm ${styles.baseUrlPrefix}`}>
-                    {api.baseUrl}
-                  </span>
-                </Collapsible>
-              ))}
-              <input
-                value={path}
-                onChange={(e) => setPath(e.target.value)}
-                className={`text-sm ${styles.pathInput}`}
-                placeholder="/endpoint"
-              />
+              <button
+                onClick={send}
+                disabled={loading}
+                className={`btn btn-primary ${styles.sendButton}`}
+              >
+                {loading ? "..." : "Send"}
+              </button>
             </div>
-            <button
-              onClick={send}
-              disabled={loading}
-              className={`btn btn-primary ${styles.sendButton}`}
-            >
-              {loading ? "..." : "Send"}
-            </button>
-          </div>
 
-          {method !== "GET" && (
-            <div className={styles.bodyEditor}>
-              <label>Request Body</label>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={5}
-                className={styles.bodyTextarea}
-                placeholder='{"key": "value"}'
-              />
-            </div>
-          )}
+            {method !== "GET" && (
+              <div className={styles.bodyEditor}>
+                <label>Request Body</label>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  rows={5}
+                  className={styles.bodyTextarea}
+                  placeholder='{"key": "value"}'
+                />
+              </div>
+            )}
 
-          <div className={styles.responsePane}>
             <div className={styles.responseHeader}>
               <span className={`text-xs ${styles.responseLabel}`}>
                 Response
@@ -411,8 +423,9 @@ function ApiClientInner({ tier }: { tier: Tier }) {
                 </span>
               )}
             </div>
-            <ResponseBody text={response} contentType={responseContentType} />
           </div>
+
+          <ResponseBody text={response} contentType={responseContentType} />
         </main>
       </div>
     </div>

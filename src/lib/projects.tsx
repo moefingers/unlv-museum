@@ -195,6 +195,30 @@ export interface Project {
    * in the rail (and the page-1 default is `pages[0]`).
    */
   pages?: ProjectPage[];
+  /**
+   * Cross-link to the api-client entry that exposes this project's
+   * backend. Set on the FRONTEND half of an api+client pair (e.g.
+   * admin-portal points at "admin-portal-api"). Value is the target
+   * project's `slug`, not a URL — `resolveTierSources` composes the
+   * `/api-client?api=<slug>` link.
+   *
+   * Pairing convention: any project that ships both a public frontend
+   * (iframe-served original or pages) AND a poke-able JSON backend
+   * gets two museum entries — the frontend lives at /<slug>, the
+   * backend lives at /api-client?api=<slug>. The two are linked
+   * bidirectionally via siblingApiClient ↔ siblingFrontend so visitors
+   * can hop between them from either side. See
+   * CONTEXT/internal_docs/architecture.md for the full pattern.
+   */
+  siblingApiClient?: string;
+  /**
+   * Cross-link from an api-client entry back to its frontend
+   * counterpart. Set on the BACKEND half of an api+client pair (e.g.
+   * admin-portal-api points at "admin-portal"). Value is the frontend
+   * project's `slug`; `resolveTierSources` composes the `/<slug>` link.
+   * Mirror of siblingApiClient — keep both in sync when pairing.
+   */
+  siblingFrontend?: string;
 }
 
 export type Category =
@@ -306,6 +330,43 @@ export function resolveTierSources(
   if (!tierRepo) return [];
   const label = tier === "enhanced" ? "Enhanced source" : "Reimagined source";
   return [{ label, url: `https://github.com/${tierRepo}${README_FRAGMENT}` }];
+}
+
+/**
+ * Cross-link to the paired half of an api+client project, when one is
+ * declared. Returns null for projects that aren't half of a pair.
+ *
+ * Used by ProjectChrome to render a "Try the live API" / "Open the
+ * frontend" affordance alongside the source-on-GitHub links in the
+ * notes panel. The two ends of a pair point at each other:
+ *
+ *   admin-portal       (frontend) → siblingApiClient: "admin-portal-api"
+ *   admin-portal-api   (backend)  → siblingFrontend:  "admin-portal"
+ *
+ * Either end's link surfaces only its own direction — the function
+ * inspects which sibling field is set on the passed project. The
+ * resolver doesn't validate that the target slug exists; that's the
+ * caller's job (or a future build-time linter). See
+ * CONTEXT/internal_docs/architecture.md for the pairing convention.
+ */
+export interface SiblingLink {
+  label: string;
+  url: string;
+}
+export function resolveSiblingLink(project: Project): SiblingLink | null {
+  if (project.siblingApiClient) {
+    return {
+      label: "Try the live API",
+      url: `/api-client?api=${project.siblingApiClient}`,
+    };
+  }
+  if (project.siblingFrontend) {
+    return {
+      label: "Open the frontend",
+      url: `/${project.siblingFrontend}`,
+    };
+  }
+  return null;
 }
 
 /**
@@ -553,6 +614,7 @@ export const PROJECTS: Project[] = [
     ],
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    siblingApiClient: "admin-portal",
     notes: {
       original:
         "Frontend preserved as-is; Express backend reimplemented as /api/admin-portal/* — see the Admin Portal card in /api-client to poke at the JSON endpoints. URLs in admin.js/index.js were rewritten from localhost:3001 to /api/admin-portal.",

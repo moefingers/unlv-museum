@@ -93,6 +93,25 @@ Viewer routes exist when the projects truly share a frontend by nature — they 
 
 `/api-client` is currently the only viewer route. If another arises (e.g. a shared Pyodide REPL hosting multiple Python projects under one viewer), it follows the same rules: viewer is not in `PROJECTS`, hosted projects are, viewer redirects bare URL to first hosted project's query param.
 
+## Front+back pairing convention
+
+A project that ships **both a public frontend AND a poke-able JSON backend** gets two museum entries, one per surface, paired bidirectionally. The frontend lives at `/<slug>` (project route, iframe-served original or `pages`). The backend lives at `/api-client?api=<slug>` (viewer route). Each entry has its own slug, its own `original`/`enhanced`/`reimagined` tiers, its own conversion lifecycle.
+
+The pairing is declared via two mirrored fields on `Project`:
+
+| Side     | Field set          | Value                                   |
+| -------- | ------------------ | --------------------------------------- |
+| Frontend | `siblingApiClient` | api-client's slug (e.g. `admin-portal`) |
+| Backend  | `siblingFrontend`  | frontend's slug (e.g. `admin-portal`)   |
+
+Example pair: `admin-portal` (frontend, `/admin-portal`, three iframe-served HTML pages) ↔ `admin-portal-api` (backend, `/api-client?api=admin-portal`, the Express server reimplemented as Next.js `/api/admin-portal/*`).
+
+`ProjectChrome` renders the frontend → backend cross-link in the notes panel ("Try the live API") alongside the GitHub source links. The backend → frontend direction is symmetric in the schema but the api-client UI does not yet render it — that's UI work pending. Until then, populate `siblingFrontend` if you want the schema to be honest, but visitors only see the frontend → backend hop today.
+
+When the api-client UI gains the affordance, no schema change is needed — the resolver in `projects.tsx` already handles both directions.
+
+The contract is the same one that makes container routes work: per-surface tier work + a navigation affordance, not a rollup. A rollup ("this one entry is both the frontend and the backend") forces the per-tier decisions (original vs enhanced vs reimagined) into a single shared track, which doesn't match how the surfaces actually evolve.
+
 ## Database
 
 Neon PostgreSQL with per-project schemas:

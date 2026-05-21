@@ -13,7 +13,17 @@
 
 .shell {
   display: flex;
-  min-height: 100vh;
+  /* Cap the shell to the viewport so the chrome + sidebar stay anchored
+     even when the response pane holds a huge payload. dvh handles iOS
+     Safari's collapsing chrome better than vh; the vh line above is the
+     fallback for browsers without dvh. Without this cap, a /listBooks
+     dump would inflate the page past the viewport and the sticky header
+     would scroll away with the rest of the page — same containment
+     pattern MongoClient uses (see its .shell comment for the underlying
+     min-height:0 flex rule). */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   flex-direction: column;
   /* Single source of truth for the sidebar's open width. Drives both the
      sidebar's own size and the toggle button's left offset so they stay
@@ -37,6 +47,12 @@
   position: relative;
   display: flex;
   flex: 1;
+  /* min-height:0 lets this flex child shrink below its min-content size,
+     which is what allows the response pane below to actually scroll
+     instead of inflating the .body past the shell. Same rule as
+     MongoClient's .body — see that file's leading comment for the
+     CSS-spec background. */
+  min-height: 0;
   /* Indent the main pane out from under the sidebar. The @media block
      drops this to 0 at the narrow breakpoint so the main pane reclaims
      the full viewport width and the sidebar overlays it. */
@@ -307,12 +323,36 @@
   color: oklch(from var(--muted-foreground) l c h / 0.6);
 }
 
-/* Right pane: client. */
+/* Right pane: client. ONE scroll container — the .client itself —
+   holding the API switch row, request builder, body editor, response
+   header, and response body. The first four are `position: sticky;
+   top: 0` so they stay glued to the top of the scroll viewport while
+   the response body underneath them scrolls.
+
+   Why this model over a separate scroll-only response pane: visitors
+   reading a long JSON dump expect to scroll the panel naturally with
+   the wheel/trackpad; if scroll only fires when the cursor is over
+   the response box, it feels off. Sticky-on-the-controls means the
+   controls never leave view but scroll-anywhere-in-the-pane works.
+
+   Each sticky stripe has a translucent backdrop-blurred background so
+   the scrolling response visibly slides under them rather than reading
+   as one opaque header. Stacked `top: <offset>` values give them
+   distinct anchor lines so they stack rather than overlap. */
 .client {
-  display: flex;
   flex: 1;
-  flex-direction: column;
-  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+  /* The scroll boundary. min-height:0 + overflow lets this be shorter
+     than its content (huge response bodies) while still scrolling
+     internally instead of inflating .body past the shell. */
+  min-height: 0;
+  overflow: auto;
+  /* No top padding here — top spacing lives ON .controlsSticky so
+     `position: sticky; top: 0` measures from the actual scroll-viewport
+     edge. With top padding here, a sticky child sticks at the padding-
+     box edge (below the padding), leaving a transparent strip above it
+     during scroll. Sides/bottom keep the standard padding. */
+  padding: 0 calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
 }
 
 /* API switcher row — title + dot separators between switchable APIs. */
@@ -438,8 +478,33 @@
   font-family: var(--font-mono);
 }
 
-.responsePane {
-  flex: 1;
+/*
+ * Sticky controls group at the top of the .client scroll container.
+ * Wraps the api switcher, request row, body editor (when applicable),
+ * and response header so all four sit above the scrolling response
+ * body as one unit.
+ *
+ * The translucent backdrop lets the scrolling response visibly slide
+ * underneath rather than reading as a solid header band — same
+ * sleight-of-hand the museum's floating header + legend use. Inline
+ * backdrop-filter isn't needed here because we're inside a regular
+ * CSS module that the Lightning CSS pipeline preserves; the stripped-
+ * backdrop-filter problem only bit the floating overlays.
+ */
+.controlsSticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* Top padding compensates for the top padding removed from .client
+     (see comment there for why). Bottom padding gives the sticky group
+     a small gap above the scrolling response so its translucent
+     backdrop reads as a distinct layer rather than blending into the
+     body. */
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1)) 0
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  background: oklch(from var(--background) l c h / 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .responseHeader {
@@ -479,10 +544,12 @@
   color: oklch(from var(--muted-foreground) l c h / 0.7);
 }
 
-/* Response body — two flavors. */
+/* Response body — two flavors. Block-level children of the scrolling
+   .client; their natural height drives the parent's scroll length.
+   The .client viewport caps total height; long responses make .client
+   scroll, with .controlsSticky pinned at the top of the scroll. */
 .responseText {
   min-height: 12rem;
-  overflow: auto;
   border-radius: var(--radius-lg);
   background: oklch(0.141 0.005 286);
   padding: calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
