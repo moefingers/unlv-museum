@@ -42,7 +42,6 @@ import styles from "./SiblingRail.module.css";
  */
 export function SiblingRail(props: {
   container: ContainerId;
-  current: string;
   siblings: Project[];
 }) {
   return (
@@ -54,25 +53,27 @@ export function SiblingRail(props: {
 
 function SiblingRailInner({
   container,
-  current,
   siblings,
 }: {
   container: ContainerId;
-  current: string;
   siblings: Project[];
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activePageSlug = searchParams.get("page");
-  // Tier is the last path segment when it's "enhanced" or "reimagined";
-  // anything else means we're on the original tier. The rail's CSS uses
-  // data-tier to decide whether to apply drawer-mode at wide viewports
-  // (reimagined gets drawer mode so the polished surface has the room).
-  const lastSegment = pathname.split("/").filter(Boolean).pop();
+  // Path shape for a container leaf is /<container>/<slug>(/<tier>)?.
+  // Segment 0 = container ID, segment 1 = slug, optional segment 2 =
+  // tier. Reading these from pathname (rather than accepting them as
+  // props) is what lets this component live inside a container layout
+  // — the layout can't see [slug] params from below, but the URL
+  // always has the answer.
+  const segments = pathname.split("/").filter(Boolean);
+  const current = segments[1] ?? "";
+  const tierSegment = segments[2];
   const tier =
-    lastSegment === "enhanced" || lastSegment === "reimagined"
-      ? lastSegment
+    tierSegment === "enhanced" || tierSegment === "reimagined"
+      ? tierSegment
       : "original";
 
   useEffect(() => {

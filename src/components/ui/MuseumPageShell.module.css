@@ -1,0 +1,35 @@
+/*
+ * Shared layout shell for every museum project route. Used by:
+ *   - per-container layouts: app/(museum)/<container>/layout.tsx
+ *     (rail = the container's SiblingRail)
+ *   - the catch-all layout: app/(museum)/[...path]/layout.tsx
+ *     (rail = none — flat slugs have no siblings)
+ *
+ * Both layouts render <MuseumPageShell project={p} rail={...}>{children}</MuseumPageShell>
+ * so the shell DOM is identical regardless of how a project was routed.
+ * That symmetry is what lets a flat slug and a containerized leaf feel
+ * like the same kind of page apart from the rail.
+ */
+
+.shell {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+}
+
+/* Row containing the optional SiblingRail and the viewport body. The
+   rail is its own component (handles its own widths + responsive
+   drawer behavior); this row just gives it a flex parent to sit in. */
+.viewportRow {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewport {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}

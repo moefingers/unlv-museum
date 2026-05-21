@@ -1,41 +1,41 @@
-import { ViewTransition } from "react";
-import { notFound, redirect } from "next/navigation";
-import {
-  findByPath,
-  pageSlug,
-  projectPath,
-  type ViewMode,
-} from "@/lib/projects";
-import { MultiPageOriginal } from "@/components/ui/MultiPageOriginal";
-import {
-  ExternalTierCard,
-  UnavailableSlot,
-} from "@/components/ui/TierFallback";
-
-const VALID_MODES: ViewMode[] = ["original", "enhanced", "reimagined"];
+import { notFound } from "next/navigation";
+import { ProjectChrome } from "@/components/ui/ProjectChrome";
+import { findProject, renderProjectBody } from "@/lib/project-route";
+import type { ViewMode } from "@/lib/projects";
 
 /**
- * Catch-all project route. Accepts:
- *   /<slug>                                  → flat project, original tier
- *   /<slug>/<tier>                           → flat project, named tier
- *   /<container>/<slug>                      → containerized project, original tier
- *   /<container>/<slug>/<tier>               → containerized project, named tier
+ * Catch-all page for FLAT slugs and their tier sub-routes.
  *
- * The legacy `?mode=<tier>` query-param URL is rewritten to the path-segment
- * form before tier dispatch, same as the prior implementation.
+ * Accepts:
+ *   /<slug>                  → flat project, original tier
+ *   /<slug>/<tier>           → flat project, named tier (enhanced/reimagined)
+ *
+ * Containerized URLs (/<container>/<slug>(/<tier>)?) are matched by
+ * the container's explicit routes before this catch-all fires, per
+ * Next.js's specificity ordering.
+ *
+ * No backward-compat shims: the legacy `?mode=<tier>` query-param URL
+ * is gone, per the smash-and-update directive. Old URLs that relied
+ * on `?mode=` 404 cleanly.
+ *
+ * ProjectChrome renders here (not in the catch-all layout) because
+ * the catch-all layout doesn't have visibility into which slug the
+ * page is rendering — `params.path` lives at the page level. The
+ * chrome holds visual position across navigations via its named
+ * view-transition, so the per-page rebuild is invisible to visitors.
  */
-export default async function ProjectPage({
+export default async function FlatProjectPage({
   params,
   searchParams,
 }: {
   params: Promise<{ path: string[] }>;
-  searchParams: Promise<{ mode?: string; page?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { path } = await params;
-  const { mode, page } = await searchParams;
+  const { page } = await searchParams;
 
-  // Last segment may be a tier ("enhanced" or "reimagined"); peel it off so
-  // findByPath can match against the project path alone.
+  // Last segment may be a tier ("enhanced" or "reimagined"); peel it
+  // off so findProject can match against the project path alone.
   let tier: ViewMode = "original";
   let projectSegments = [...path];
   const last = projectSegments[projectSegments.length - 1];
@@ -44,60 +44,13 @@ export default async function ProjectPage({
     projectSegments = projectSegments.slice(0, -1);
   }
 
-  const project = findByPath(projectSegments.join("/"));
+  const project = findProject(projectSegments.join("/"));
   if (!project) notFound();
 
-  // Backward-compat for legacy `?mode=<tier>` URLs from before the path-segment
-  // tier convention. Redirect to canonical /<...>/<tier>.
-  if (mode && VALID_MODES.includes(mode as ViewMode) && mode !== "original") {
-    redirect(`/${projectPath(project)}/${mode}`);
-  }
-
-  // Backend-only entries redirect to /api-client. The `href` field is the
-  // project's preferred entry point — the Globe already uses it as the link
-  // target so most visitors never hit this fallback.
-  if (project.href && tier === "original") {
-    redirect(project.href);
-  }
-
-  // Compute the body for whichever tier, then wrap once at the bottom so
-  // page-content (and its keyframed fade+blur+slide from globals.css) gets
-  // applied uniformly. See CONTEXT/internal_docs/view-transitions.md (zcanon).
-  let body: React.ReactNode;
-  if (tier === "enhanced") {
-    body = project.enhancedExternal ? (
-      <ExternalTierCard
-        tier="enhanced"
-        title={project.title}
-        href={project.enhancedExternal}
-      />
-    ) : (
-      (project.enhanced ?? <UnavailableSlot tier="enhanced" />)
-    );
-  } else if (tier === "reimagined") {
-    body = project.reimaginedExternal ? (
-      <ExternalTierCard
-        tier="reimagined"
-        title={project.title}
-        href={project.reimaginedExternal}
-      />
-    ) : (
-      (project.reimagined ?? <UnavailableSlot tier="reimagined" />)
-    );
-  } else if (project.pages && project.pages.length > 0) {
-    // Multi-page original: auto-wrap with <MultiPageOriginal> and
-    // normalize `?page=` so the client component never has to render
-    // a "no page selected" state. Same shape as api-client's
-    // server-side ?api= redirect — see /api-client/page.tsx.
-    const knownSlugs = new Set(project.pages.map((p) => pageSlug(p.label)));
-    if (!page || !knownSlugs.has(page)) {
-      const first = pageSlug(project.pages[0]!.label);
-      redirect(`/${projectPath(project)}?page=${first}`);
-    }
-    body = <MultiPageOriginal pages={project.pages} />;
-  } else {
-    body = project.original ?? <UnavailableSlot tier="original" />;
-  }
-
-  return <ViewTransition name="page-content">{body}</ViewTransition>;
+  return (
+    <>
+      <ProjectChrome project={project} />
+      {renderProjectBody({ project, tier, page })}
+    </>
+  );
 }

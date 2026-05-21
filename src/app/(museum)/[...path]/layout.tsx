@@ -1,52 +1,24 @@
-import { notFound } from "next/navigation";
-import { findByPath, PROJECTS, type Project } from "@/lib/projects";
-import { ProjectChrome } from "@/components/ui/ProjectChrome";
-import { SiblingRail } from "@/components/ui/SiblingRail";
-import styles from "./layout.module.css";
+import { MuseumPageShell } from "@/components/ui/MuseumPageShell";
 
 /**
- * Catch-all layout. Resolves the path (peeling off any trailing tier
- * segment) and renders the persistent project chrome + viewport. When
- * the project belongs to a container, a SiblingRail flanks the viewport
- * with links to the other leaves; flat projects render without a rail.
+ * Catch-all layout for FLAT museum slugs (projects without a container).
+ *
+ * Containerized leaves use their own `<container>/layout.tsx`, which
+ * gives them a persistent layout across leaf navigations (SiblingRail
+ * stays mounted, Collapsibles animate). The catch-all still handles
+ * flat slugs, and flat slugs have no siblings — no rail to render
+ * here.
+ *
+ * The chrome (ProjectChrome) lives in the page now, not the layout —
+ * see [...path]/page.tsx. ProjectChrome holds its own position
+ * across route changes via `view-transition-name: site-header`, so
+ * visitors see one continuous chrome bar even though React rebuilds
+ * it on each navigation.
  */
-export default async function ProjectLayout({
+export default function FlatProjectLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ path: string[] }>;
 }) {
-  const { path } = await params;
-
-  // Mirror the page-level tier peeling so the resolved project survives
-  // tier sub-routes (/<...>/enhanced, /<...>/reimagined).
-  let projectSegments = [...path];
-  const last = projectSegments[projectSegments.length - 1];
-  if (last === "enhanced" || last === "reimagined") {
-    projectSegments = projectSegments.slice(0, -1);
-  }
-
-  const project = findByPath(projectSegments.join("/"));
-  if (!project) notFound();
-
-  const siblings: Project[] = project.container
-    ? PROJECTS.filter((p) => p.container === project.container)
-    : [];
-
-  return (
-    <div className={styles.shell}>
-      <ProjectChrome project={project} />
-      <div className={styles.viewportRow}>
-        {siblings.length > 1 && (
-          <SiblingRail
-            container={project.container!}
-            current={project.slug}
-            siblings={siblings}
-          />
-        )}
-        <div className={styles.viewport}>{children}</div>
-      </div>
-    </div>
-  );
+  return <MuseumPageShell>{children}</MuseumPageShell>;
 }
