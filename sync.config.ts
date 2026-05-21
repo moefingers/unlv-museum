@@ -114,25 +114,25 @@ export const recipes: Record<string, Recipe> = {
   "js-dom-events": {
     type: "static-copy",
     from: ".sources/JS-Events-Demonstration",
-    to: "public/originals/js-dom-events/events-demo",
+    to: "public/originals/js-exercises/js-dom-events/events-demo",
   },
 
   "admin-portal": {
     type: "static-copy",
     from: ".sources/JS-Building-an-Admin-Portal/public",
-    to: "public/originals/admin-portal",
+    to: "public/originals/js-exercises/admin-portal",
   },
 
   "interactive-map": {
     type: "static-copy",
     from: ".sources/JS-Making-an-Interactive-Map",
-    to: "public/originals/interactive-map",
+    to: "public/originals/js-exercises/interactive-map",
   },
 
   "shared-counter": {
     type: "static-copy",
     from: ".sources/JS-Building-a-Shared-Counter-Part-1/public",
-    to: "public/originals/shared-counter",
+    to: "public/originals/js-exercises/shared-counter",
   },
 
   jaskis: {

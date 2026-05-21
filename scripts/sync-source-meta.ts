@@ -39,7 +39,12 @@ import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PROJECTS, formatProjectDate, getSourceRef } from "../src/lib/projects";
+import {
+  PROJECTS,
+  formatProjectDate,
+  getSourceRef,
+  projectPath,
+} from "../src/lib/projects";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
@@ -114,7 +119,15 @@ process.exit(exitCode);
 
 function applyMeta(slug: string, info: SourceRef) {
   const { repo } = info;
-  const homepage = `${MUSEUM_BASE_URL}/${slug}`;
+  // Resolve museum URL via projectPath() so containerized leaves get
+  // their full path (e.g. /js-exercises/admin-portal) rather than the
+  // bare `/admin-portal` form. Flat (uncontained) slugs still produce
+  // `/<slug>`. Falls back to the bare slug if the project isn't found
+  // in PROJECTS — shouldn't happen at runtime but the fallback keeps
+  // the script working against stale data.
+  const project = PROJECTS.find((p) => p.slug === slug);
+  const path = project ? projectPath(project) : slug;
+  const homepage = `${MUSEUM_BASE_URL}/${path}`;
   console.log(`[meta] ${slug} (${repo})`);
 
   applyBranchRename(slug, repo);

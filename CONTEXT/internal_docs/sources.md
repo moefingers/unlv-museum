@@ -65,6 +65,20 @@ Mental model:
 
 `original` of each source repo stays untouched as the academic record. The byte-for-byte equivalence between `original` and `museum-ready/original` (modulo justified hosting fixes) is the load-bearing invariant of the preservation contract.
 
+### Common hosting fixes — generic catalog
+
+The fixes that recur across multiple projects. Per-project specifics live in [sources-conversions.md](sources-conversions.md)'s per-project specs; this is the menu the per-project work draws from.
+
+| Fix                                        | Reason                                                                                                                                                                                                      |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import assert` → `import with`            | Browser spec changed from `assert` to `with` for JSON imports                                                                                                                                               |
+| `BrowserRouter` → `HashRouter`             | BrowserRouter can't match routes inside an iframe at `/originals/*/index.html`                                                                                                                              |
+| `PUBLIC_URL=.` rebuild                     | CRA apps had hardcoded absolute paths from their `homepage` field                                                                                                                                           |
+| Geolocation fallback + timeout             | `navigator.geolocation` blocked by iframe sandbox — fall back to LV coordinates after a short timeout instead of hanging                                                                                    |
+| API key redaction                          | Keys committed to client JS (per the original assignment) get sentinelled on `museum-ready/original`; the calling code early-returns when the sentinel is present so the affected feature no-ops gracefully |
+| Expired image URLs                         | GitHub raw URLs with tokens, dead Google Drive links, etc. replaced with local copies committed alongside the museum copy                                                                                   |
+| `localhost:<port>/...` → `/api/<slug>/...` | Hardcoded localhost backend URLs rewritten to the museum's Next.js API ports (rest-rant, admin-portal, sql-injection-demo)                                                                                  |
+
 ### Decision tree per source repo
 
 ```

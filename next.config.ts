@@ -32,6 +32,15 @@ const nextConfig: NextConfig = {
       destination: "/react-exercises/music-search",
       permanent: false,
     },
+    {
+      // js-exercises container — defaults to web-game (chapter 5.3-5.6,
+      // the chronologically-first leaf). When the Globe graph layout
+      // lands, this default leaf becomes the natural "start of the
+      // curriculum-curve arc" for chapter 5.x.
+      source: "/js-exercises",
+      destination: "/js-exercises/web-game",
+      permanent: false,
+    },
   ],
 };
 

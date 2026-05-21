@@ -117,6 +117,13 @@ function formatDateRange(firstIso: string, lastIso: string): string {
  * `react-exercises` and `bootstrap` under some other series wouldn't collide.
  */
 export const CONTAINERS = {
+  // UNLV curriculum chapter 5 (JavaScript). Leaves are array-ordered by
+  // chapter number so the future Globe graph layout (curriculum-curve on
+  // sphere surface — see project notes 2026-05-21) can read leaf
+  // positions directly from the PROJECTS array without a separate
+  // ordinal field.
+  "js-exercises": { title: "JavaScript Exercises" },
+  // UNLV curriculum chapter ~6 (React Router series).
   "react-exercises": { title: "React Router Series" },
 } as const;
 
@@ -355,16 +362,29 @@ export interface SiblingLink {
 }
 export function resolveSiblingLink(project: Project): SiblingLink | null {
   if (project.siblingApiClient) {
+    // The frontend → api-client direction: the target is a viewer-route
+    // entry (`/api-client?api=<id>`), not a museum project path, so
+    // projectPath() doesn't apply here. The api-client's `?api=` value
+    // is the partner slug.
     return {
       label: "Try the live API",
       url: `/api-client?api=${project.siblingApiClient}`,
     };
   }
   if (project.siblingFrontend) {
-    return {
-      label: "Open the frontend",
-      url: `/${project.siblingFrontend}`,
-    };
+    // The api-client → frontend direction: the target IS a museum
+    // project slug that may live inside a container. Look up the target
+    // and compose via projectPath() so containerized leaves resolve
+    // correctly (e.g. admin-portal is now /js-exercises/admin-portal).
+    // Falls back to a flat `/<slug>` URL when the target isn't found —
+    // shouldn't happen at runtime (the cross-link only renders when
+    // both ends are wired), but the fallback keeps the chrome safe
+    // against stale data.
+    const target = PROJECTS.find((p) => p.slug === project.siblingFrontend);
+    const url = target
+      ? `/${projectPath(target)}`
+      : `/${project.siblingFrontend}`;
+    return { label: "Open the frontend", url };
   }
   return null;
 }
@@ -439,22 +459,6 @@ export const PROJECTS: Project[] = [
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
-  {
-    slug: "web-game",
-    title: "Web Game Series",
-    description: "Progressive game built across multiple assignments.",
-    year: "Dec 2023 – Jan 2024",
-    category: "games",
-    techOriginal: ["JavaScript", "HTML", "live-server"],
-    original: <OriginalFrame src="/originals/web-game/part-7/index.html" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-    notes: {
-      original:
-        "The original project only demanded movement via arrow keys and inventory pickup via clicking. NPCs, win conditions, and HP were not part of the original scope.",
-    },
-  },
-
   // FULL-STACK
   {
     slug: "rest-rant",
@@ -545,6 +549,163 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
 
+  // JS EXERCISES (chapter 5.x)
+  // Container leaves are array-ordered by curriculum chapter so the future
+  // Globe graph layout (curriculum-curve on sphere surface) can read leaf
+  // positions directly from this order. See CONTAINERS["js-exercises"]
+  // for the architectural note.
+  {
+    slug: "web-game",
+    container: "js-exercises",
+    title: "Web Game Series",
+    description: "Progressive game built across multiple assignments.",
+    year: "Dec 2023 – Jan 2024",
+    category: "games",
+    techOriginal: ["JavaScript", "HTML", "live-server"],
+    original: (
+      <OriginalFrame src="/originals/js-exercises/web-game/part-7/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original project only demanded movement via arrow keys and inventory pickup via clicking. NPCs, win conditions, and HP were not part of the original scope.",
+    },
+  },
+  {
+    slug: "jacks-paint",
+    container: "js-exercises",
+    title: "Jack's Paint",
+    description: "Browser-based paint application.",
+    year: "Dec 2023",
+    category: "frontend",
+    techOriginal: ["JavaScript", "jQuery", "Canvas"],
+    original: (
+      <OriginalFrame src="/originals/js-exercises/jacks-paint/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+  },
+  {
+    slug: "js-dom-events",
+    container: "js-exercises",
+    repo: "moefingers/JS-Events-Demonstration",
+    title: "JavaScript & DOM",
+    description: "Event handling, DOM manipulation, OOP.",
+    synopsis:
+      "This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.",
+    year: "Dec 2023 – Feb 2024",
+    category: "exercises",
+    plannedTiers: ["original", "enhanced"],
+    techOriginal: ["JavaScript", "DOM API", "Fetch"],
+    // `pages` is the single source of truth; the route auto-wraps it
+    // with <MultiPageOriginal> when `original` is unset, so the entry
+    // doesn't need to duplicate the list in JSX. See [...path]/page.tsx.
+    pages: [
+      {
+        label: "The Target Element",
+        src: "/originals/js-exercises/js-dom-events/events-demo/1. The Target Element.html",
+      },
+      {
+        label: "Event Bubbling",
+        src: "/originals/js-exercises/js-dom-events/events-demo/2. Event Bubbling.html",
+      },
+      {
+        label: "Event Capturing",
+        src: "/originals/js-exercises/js-dom-events/events-demo/3. Event Capturing.html",
+      },
+      {
+        label: "Prevent Default",
+        src: "/originals/js-exercises/js-dom-events/events-demo/4. Prevent Default.html",
+      },
+      {
+        label: "Stop Propagation",
+        src: "/originals/js-exercises/js-dom-events/events-demo/5. Stop Propagation.html",
+      },
+    ],
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original is a five-page walkthrough of DOM event mechanics — target resolution, bubbling, capturing, preventDefault, and stopPropagation. Each concept lives on its own HTML file; use the page rail to step through. Behavior is preserved byte-for-byte from the museum-ready branch; only hosting-compatibility fixes were applied.",
+    },
+  },
+  {
+    slug: "shared-counter",
+    container: "js-exercises",
+    repo: "moefingers/JS-Building-a-Shared-Counter-Part-1",
+    title: "Shared Counter — Part 1",
+    description: "Counter buttons with local state, Bootstrap-styled.",
+    synopsis:
+      "Click-to-increment counter built in vanilla JS with Bootstrap. Part 1 of a planned three-part series — local state only, no shared backend yet; later parts wire up json-server and finally a real persisted store.",
+    year: "Dec 2023",
+    category: "exercises",
+    plannedTiers: ["original", "enhanced"],
+    techOriginal: ["JavaScript", "Bootstrap"],
+    original: (
+      <OriginalFrame src="/originals/js-exercises/shared-counter/index.html" />
+    ),
+    enhanced: COMING_SOON,
+  },
+  {
+    slug: "admin-portal",
+    container: "js-exercises",
+    repo: "moefingers/JS-Building-an-Admin-Portal",
+    title: "Admin Portal",
+    description: "Admin interface with dynamic form fields.",
+    synopsis:
+      "Book inventory admin — JavaScript frontend with Bootstrap, Express + JSON-file backend, Fetch-driven CRUD against a starter API.",
+    year: "Dec 2023",
+    category: "frontend",
+    techOriginal: ["JavaScript", "Express", "Fetch API"],
+    // Three-page original: the Admin CRUD UI was the entry point, the
+    // Books list was the customer-facing view, and the API Docs page
+    // documented the underlying Express endpoints. Rail order puts the
+    // admin UI first since that's the project's headline feature.
+    pages: [
+      {
+        label: "Admin",
+        src: "/originals/js-exercises/admin-portal/admin.html",
+      },
+      {
+        label: "Books",
+        src: "/originals/js-exercises/admin-portal/index.html",
+      },
+      {
+        label: "API Docs (blank)",
+        src: "/originals/js-exercises/admin-portal/api-docs.html",
+      },
+    ],
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    siblingApiClient: "admin-portal",
+    notes: {
+      original:
+        "Frontend preserved as-is; Express backend reimplemented as /api/admin-portal/* — see the Admin Portal card in /api-client to poke at the JSON endpoints. URLs in admin.js/index.js were rewritten from localhost:3001 to /api/admin-portal.",
+    },
+  },
+  {
+    slug: "interactive-map",
+    container: "js-exercises",
+    repo: "moefingers/JS-Making-an-Interactive-Map",
+    title: "Interactive Map",
+    description: "Geolocation mapping with Leaflet.",
+    synopsis:
+      "Geolocation mapping in vanilla JS — the browser's GPS pin is plotted on a Leaflet + OpenStreetMap tile map, and a select-then-submit form queries the Foursquare Places API to drop nearby business markers around the user's location.",
+    year: "Jan 2024",
+    category: "frontend",
+    techOriginal: ["JavaScript", "Leaflet", "Foursquare API"],
+    original: (
+      <OriginalFrame src="/originals/js-exercises/interactive-map/index.html" />
+    ),
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original committed the Foursquare API key to client JS, the way the assignment was taught. For the museum-ready branch, the key was redacted and getFoursquare() early-returns an empty list so the business-search button no-ops gracefully; the geolocation pin and tile layer still work. The original branch retains the historical commit. A 3s geolocation timeout falls back to Las Vegas coordinates when the sandboxed iframe blocks the browser prompt.",
+    },
+  },
+
   // FRONTEND & UI
   {
     slug: "art-gallery",
@@ -594,51 +755,6 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
   {
-    slug: "admin-portal",
-    repo: "moefingers/JS-Building-an-Admin-Portal",
-    title: "Admin Portal",
-    description: "Admin interface with dynamic form fields.",
-    synopsis:
-      "Book inventory admin — JavaScript frontend with Bootstrap, Express + JSON-file backend, Fetch-driven CRUD against a starter API.",
-    year: "Dec 2023",
-    category: "frontend",
-    techOriginal: ["JavaScript", "Express", "Fetch API"],
-    // Three-page original: the Admin CRUD UI was the entry point, the
-    // Books list was the customer-facing view, and the API Docs page
-    // documented the underlying Express endpoints. Rail order puts the
-    // admin UI first since that's the project's headline feature.
-    pages: [
-      { label: "Admin", src: "/originals/admin-portal/admin.html" },
-      { label: "Books", src: "/originals/admin-portal/index.html" },
-      { label: "API Docs", src: "/originals/admin-portal/api-docs.html" },
-    ],
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-    siblingApiClient: "admin-portal",
-    notes: {
-      original:
-        "Frontend preserved as-is; Express backend reimplemented as /api/admin-portal/* — see the Admin Portal card in /api-client to poke at the JSON endpoints. URLs in admin.js/index.js were rewritten from localhost:3001 to /api/admin-portal.",
-    },
-  },
-  {
-    slug: "interactive-map",
-    repo: "moefingers/JS-Making-an-Interactive-Map",
-    title: "Interactive Map",
-    description: "Geolocation mapping with Leaflet.",
-    synopsis:
-      "Geolocation mapping in vanilla JS — the browser's GPS pin is plotted on a Leaflet + OpenStreetMap tile map, and a select-then-submit form queries the Foursquare Places API to drop nearby business markers around the user's location.",
-    year: "Jan 2024",
-    category: "frontend",
-    techOriginal: ["JavaScript", "Leaflet", "Foursquare API"],
-    original: <OriginalFrame src="/originals/interactive-map/index.html" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-    notes: {
-      original:
-        "The original committed the Foursquare API key to client JS, the way the assignment was taught. For the museum-ready branch, the key was redacted and getFoursquare() early-returns an empty list so the business-search button no-ops gracefully; the geolocation pin and tile layer still work. The original branch retains the historical commit. A 3s geolocation timeout falls back to Las Vegas coordinates when the sandboxed iframe blocks the browser prompt.",
-    },
-  },
-  {
     slug: "stock-charts",
     title: "Stock Charts",
     description: "Financial data visualization.",
@@ -646,17 +762,6 @@ export const PROJECTS: Project[] = [
     category: "frontend",
     techOriginal: ["JavaScript", "Chart.js", "Express"],
     original: <OriginalFrame src="/originals/stock-charts/index.html" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-  },
-  {
-    slug: "jacks-paint",
-    title: "Jack's Paint",
-    description: "Browser-based paint application.",
-    year: "Dec 2023",
-    category: "frontend",
-    techOriginal: ["JavaScript", "jQuery", "Canvas"],
-    original: <OriginalFrame src="/originals/jacks-paint/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
   },
@@ -815,63 +920,6 @@ export const PROJECTS: Project[] = [
     ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
-  },
-  {
-    slug: "shared-counter",
-    repo: "moefingers/JS-Building-a-Shared-Counter-Part-1",
-    title: "Shared Counter — Part 1",
-    description: "Counter buttons with local state, Bootstrap-styled.",
-    synopsis:
-      "Click-to-increment counter built in vanilla JS with Bootstrap. Part 1 of a planned three-part series — local state only, no shared backend yet; later parts wire up json-server and finally a real persisted store.",
-    year: "Dec 2023",
-    category: "exercises",
-    plannedTiers: ["original", "enhanced"],
-    techOriginal: ["JavaScript", "Bootstrap"],
-    original: <OriginalFrame src="/originals/shared-counter/index.html" />,
-    enhanced: COMING_SOON,
-  },
-  {
-    slug: "js-dom-events",
-    repo: "moefingers/JS-Events-Demonstration",
-    title: "JavaScript & DOM",
-    description: "Event handling, DOM manipulation, OOP.",
-    synopsis:
-      "This project demonstrates JavaScript event handling, DOM manipulation, and OOP fundamentals through interactive web page demos.",
-    year: "Dec 2023 – Feb 2024",
-    category: "exercises",
-    plannedTiers: ["original", "enhanced"],
-    techOriginal: ["JavaScript", "DOM API", "Fetch"],
-    // `pages` is the single source of truth; the route auto-wraps it
-    // with <MultiPageOriginal> when `original` is unset, so the entry
-    // doesn't need to duplicate the list in JSX. See [...path]/page.tsx.
-    pages: [
-      {
-        label: "The Target Element",
-        src: "/originals/js-dom-events/events-demo/1. The Target Element.html",
-      },
-      {
-        label: "Event Bubbling",
-        src: "/originals/js-dom-events/events-demo/2. Event Bubbling.html",
-      },
-      {
-        label: "Event Capturing",
-        src: "/originals/js-dom-events/events-demo/3. Event Capturing.html",
-      },
-      {
-        label: "Prevent Default",
-        src: "/originals/js-dom-events/events-demo/4. Prevent Default.html",
-      },
-      {
-        label: "Stop Propagation",
-        src: "/originals/js-dom-events/events-demo/5. Stop Propagation.html",
-      },
-    ],
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-    notes: {
-      original:
-        "The original is a five-page walkthrough of DOM event mechanics — target resolution, bubbling, capturing, preventDefault, and stopPropagation. Each concept lives on its own HTML file; use the page rail to step through. Behavior is preserved byte-for-byte from the museum-ready branch; only hosting-compatibility fixes were applied.",
-    },
   },
   {
     slug: "music-search",
