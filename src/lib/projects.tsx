@@ -233,6 +233,33 @@ export interface Project {
    * Mirror of siblingApiClient — keep both in sync when pairing.
    */
   siblingFrontend?: string;
+  /**
+   * General-purpose "see also" cross-references to other museum
+   * entries. Distinct from `siblingApiClient`/`siblingFrontend`,
+   * which model a specific bidirectional api+client pairing — this
+   * field models the looser kind of relationship that comes up when
+   * two projects intentionally illustrate the same point in
+   * different stacks or chapters (the curriculum's
+   * vanilla-JS-counter exercise vs. its React-rewrite counterpart;
+   * a project and its inspiration; a series of independent repos
+   * that share a teaching motif).
+   *
+   * Each entry is the target project's `slug`. The resolver
+   * (`resolveRelatedEntries`) looks each one up in PROJECTS and
+   * composes a `/<path>` link, gracefully skipping unknown slugs so
+   * a stale reference doesn't crash the chrome.
+   *
+   * Set bidirectionally when the relationship is mutual — visitors
+   * landing on either project see the cross-link to the other.
+   * Unidirectional is allowed (project A points at B but not the
+   * reverse) when the relationship is genuinely one-way (e.g. a
+   * project that pays homage to an older one without the older
+   * needing to know).
+   *
+   * Surfaced in the notes panel alongside the GitHub source links
+   * and the api+client sibling link.
+   */
+  relatedEntries?: string[];
 }
 
 export type Category =
@@ -434,6 +461,44 @@ export function resolveSiblingLink(
     };
   }
   return null;
+}
+
+/**
+ * "See also" cross-references to other museum entries, distinct from
+ * the structural api+client pairing handled by resolveSiblingLink.
+ *
+ * Use `relatedEntries` for projects that illuminate each other but
+ * have independent tier journeys — different repos, possibly
+ * different stacks, possibly different chapters of the curriculum.
+ * The canonical example is the curriculum's "same exercise, different
+ * stack" pair: `js-exercises/shared-counter` (vanilla JS) ↔
+ * `react-exercises/declarative-counter` (React). Visiting Enhanced on
+ * one doesn't imply you'd want Enhanced of the other; the
+ * relationship is purely conceptual.
+ *
+ * Each related-slug is looked up in PROJECTS; unknown slugs are
+ * skipped silently so a stale reference can't crash the chrome (the
+ * symmetry with resolveSiblingLink — both resolvers are tolerant of
+ * dangling references). The link uses `projectLandingUrl` so multi-
+ * page targets land on their canonical first-page URL directly.
+ *
+ * Surfaced in the notes panel under the GitHub source links and the
+ * api+client sibling link. Tier is NOT a parameter — `relatedEntries`
+ * doesn't carry tier correspondence by design.
+ */
+export interface RelatedEntry {
+  label: string;
+  url: string;
+}
+export function resolveRelatedEntries(project: Project): RelatedEntry[] {
+  if (!project.relatedEntries || project.relatedEntries.length === 0) {
+    return [];
+  }
+  return project.relatedEntries.flatMap((slug) => {
+    const target = PROJECTS.find((p) => p.slug === slug);
+    if (!target) return [];
+    return [{ label: target.title, url: projectLandingUrl(target) }];
+  });
 }
 
 /**
@@ -865,6 +930,12 @@ export const PROJECTS: Project[] = [
       <OriginalFrame src="/originals/js-exercises/shared-counter/index.html" />
     ),
     enhanced: COMING_SOON,
+    // Mirror of declarative-counter's relatedEntries pointer. The
+    // React rewrite of this same exercise lives at
+    // /react-exercises/declarative-counter — visitors landing here
+    // can follow the link to see how the same UI looks when React
+    // owns the rendering instead of vanilla DOM updates.
+    relatedEntries: ["declarative-counter"],
   },
   {
     slug: "admin-portal",
@@ -1154,6 +1225,32 @@ export const PROJECTS: Project[] = [
   },
 
   // EXERCISES
+  {
+    slug: "declarative-counter",
+    container: "react-exercises",
+    repo: "moefingers/rr-1-react-and-front-end-libraries",
+    title: "Declarative Counter",
+    description:
+      "Counter buttons rewritten in React — same exercise as shared-counter, declarative this time.",
+    synopsis:
+      "Counter buttons rewritten in React for chapter 7.1.3 of the React Router series. Pedagogically deliberate counterpart to the vanilla-JS shared-counter exercise from chapter 5 — same state shape, same UI, but React owns the render so the update flow is declarative instead of DOM-imperative.",
+    year: "Feb 2024",
+    category: "exercises",
+    techOriginal: ["React", "CRA"],
+    original: COMING_SOON,
+    enhanced: COMING_SOON,
+    reimagined: COMING_SOON,
+    // Conceptual cross-link, NOT an api+client pair. The vanilla-JS
+    // and React rewrites have independent tier journeys — visiting
+    // declarative-counter's Enhanced doesn't imply you'd want
+    // shared-counter's Enhanced. See `resolveRelatedEntries`
+    // docstring for the distinction from `siblingApiClient`.
+    relatedEntries: ["shared-counter"],
+    notes: {
+      original:
+        "Chapter 7.1.3 of the React Router series — the first exercise that introduces React's declarative rendering model. The same counter UI as js-exercises/shared-counter, but React owns the DOM updates: the button handler mutates state, and React re-renders the affected element automatically. The contrast is the lesson.",
+    },
+  },
   {
     slug: "music-search",
     container: "react-exercises",

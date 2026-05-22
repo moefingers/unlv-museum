@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRightLeft, ChevronDown } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, Link2 } from "lucide-react";
 import { siGithub } from "simple-icons";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
 import {
   projectLandingUrl,
   projectPath,
+  resolveRelatedEntries,
   resolveSiblingLink,
   resolveTierSources,
   type Project,
@@ -107,12 +108,16 @@ export function ProjectChrome({ project }: { project: Project }) {
 
   const tierSources = resolveTierSources(project, currentTier);
   const siblingLink = resolveSiblingLink(project, currentTier);
+  const relatedEntries = resolveRelatedEntries(project);
   // The notes panel hosts the per-tier note, the GitHub source links,
-  // and the cross-link to the api-client/frontend counterpart when
-  // this project is half of an api+client pair. Show the toggle (and
-  // the panel) when ANY piece of content exists for this tier.
+  // the api+client cross-link when paired, and a "see also" list when
+  // `relatedEntries` is set. Show the toggle (and the panel) when ANY
+  // piece of content exists for this tier.
   const hasPanelContent =
-    Boolean(note) || tierSources.length > 0 || siblingLink !== null;
+    Boolean(note) ||
+    tierSources.length > 0 ||
+    siblingLink !== null ||
+    relatedEntries.length > 0;
 
   return (
     <MuseumChrome
@@ -143,7 +148,9 @@ export function ProjectChrome({ project }: { project: Project }) {
           <Collapsible open={notesOpen} duration={200}>
             <div className={`text-sm ${styles.notesPanel}`}>
               {note && <p className={styles.notesText}>{note}</p>}
-              {(tierSources.length > 0 || siblingLink) && (
+              {(tierSources.length > 0 ||
+                siblingLink ||
+                relatedEntries.length > 0) && (
                 <ul className={styles.repoLinkList}>
                   {tierSources.map((source) => (
                     <li key={source.url}>
@@ -173,6 +180,14 @@ export function ProjectChrome({ project }: { project: Project }) {
                       </Link>
                     </li>
                   )}
+                  {relatedEntries.map((related) => (
+                    <li key={related.url}>
+                      <Link href={related.url} className={styles.repoLink}>
+                        <Link2 size={14} aria-hidden="true" />
+                        <span>See also: {related.label}</span>
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
