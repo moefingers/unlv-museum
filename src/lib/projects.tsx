@@ -3,6 +3,7 @@ import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { ApiOriginal } from "@/components/originals/ApiOriginal";
+import { JsDomEventsEnhanced } from "@/components/enhanced/JsDomEventsEnhanced";
 import sourcesGenerated from "./sources.generated.json";
 
 /**
@@ -762,11 +763,13 @@ export const PROJECTS: Project[] = [
         src: "/originals/js-exercises/js-dom-events/events-demo/5. Stop Propagation.html",
       },
     ],
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
+    techEnhanced: ["React 19", "Native DOM events", "Radial gradients", "CSS"],
+    enhanced: <JsDomEventsEnhanced />,
     notes: {
       original:
         "The original is a five-page walkthrough of DOM event mechanics — target resolution, bubbling, capturing, preventDefault, and stopPropagation. Each concept lives on its own HTML file; use the page rail to step through. Behavior is preserved byte-for-byte from the museum-ready branch; only hosting-compatibility fixes were applied.",
+      enhanced:
+        "The five concepts collapse into one interactive playground. Three nested rings stand in for a DOM ancestor chain; native addEventListener handlers (with capture + bubble pairs on each ring) report each phase to a live event log. Radial-gradient pulses animate as the wavefront passes through each ring on capture and again on bubble. Toggles for stopPropagation and preventDefault demonstrate the modifiers without context-switching to a separate page.",
     },
   },
   {
