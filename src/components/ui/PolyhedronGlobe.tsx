@@ -2368,6 +2368,11 @@ export function PolyhedronGlobe({
               transition: `transform ${coneHeightTransitionMs}ms ease-out`,
             }}
             pointerEvents="none"
+            // Cone tracks the anchored project's category — gradient
+            // stops + edge strokes resolve --cone-* tokens, which
+            // resolve --glass-category, which this attribute overrides
+            // (see globals.css [data-glass-category]).
+            data-glass-category={anchoredProject?.category}
           >
             <g
               style={{
@@ -2506,6 +2511,12 @@ export function PolyhedronGlobe({
           // its preventDefault — finger jitter shouldn't block
           // navigation just because the user drew a short arc.
           data-hex-card=""
+          // Drive --glass-category from the anchored project's
+          // category so the hex card body/rim/text/text-shadow
+          // pick up the category hue. Falls back to neutral
+          // (--foreground) when no project is anchored. See the
+          // [data-glass-category] block in globals.css.
+          data-glass-category={anchoredProject?.category}
         >
           <UnfoldingBillboard
             open={hexOpen}
