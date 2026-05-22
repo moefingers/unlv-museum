@@ -8,6 +8,7 @@ import { Collapsible } from "@/components/ui/Collapsible";
 import {
   CONTAINERS,
   pageSlug,
+  projectLandingUrl,
   projectPath,
   type ContainerId,
   type Project,
@@ -110,7 +111,16 @@ function SiblingRailInner({
         <nav className={styles.list}>
           {siblings.map((sib) => {
             const isCurrent = sib.slug === current;
-            const sibUrl = `/${projectPath(sib)}`;
+            // sibUrl is the canonical landing URL for the sibling's
+            // original tier — multi-page siblings get the
+            // `?page=<first>` suffix baked in so the click lands at
+            // the destination directly. The bare `/${projectPath(sib)}`
+            // would trigger the route's redirect, firing two view
+            // transitions stacked (see projectLandingUrl jsdoc).
+            // pageBase is the same URL without the query, used to
+            // compose explicit `?page=` overrides in the page list.
+            const sibUrl = projectLandingUrl(sib);
+            const pageBase = `/${projectPath(sib)}`;
             return (
               <div key={sib.slug} className={styles.entry}>
                 <Link
@@ -157,7 +167,7 @@ function SiblingRailInner({
                         return (
                           <li key={slug}>
                             <Link
-                              href={`${sibUrl}?page=${slug}`}
+                              href={`${pageBase}?page=${slug}`}
                               className={`${styles.pageItem} ${
                                 isActivePage ? styles.pageItemActive : ""
                               }`}

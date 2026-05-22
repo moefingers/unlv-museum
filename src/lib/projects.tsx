@@ -387,8 +387,11 @@ export function resolveSiblingLink(project: Project): SiblingLink | null {
     // both ends are wired), but the fallback keeps the chrome safe
     // against stale data.
     const target = PROJECTS.find((p) => p.slug === project.siblingFrontend);
+    // Use projectLandingUrl so multi-page frontends land at their
+    // canonical first-page URL directly — no router-redirect hop, no
+    // double view transition.
     const url = target
-      ? `/${projectPath(target)}`
+      ? projectLandingUrl(target)
       : `/${project.siblingFrontend}`;
     return { label: "Open the frontend", url };
   }
@@ -402,6 +405,43 @@ export function resolveSiblingLink(project: Project): SiblingLink | null {
  */
 export function projectPath(p: Project): string {
   return p.container ? `${p.container}/${p.slug}` : p.slug;
+}
+
+/**
+ * Canonical landing URL for the named tier of a project. Single source of
+ * truth for link composition across the museum — the tier picker,
+ * SiblingRail, search results, and any future cross-link generator all
+ * call into this so that the URL a visitor actually lands on is the URL
+ * baked into the link's `href`.
+ *
+ * The Original tier of a multi-page original needs a `?page=<first>`
+ * suffix because the route's `renderProjectBody()` resolves a bare
+ * `/<path>` against `pages[0]` and issues a server-side `redirect()`
+ * to the canonical page URL. Composing the suffix here means the
+ * `<Link href>` is already at the destination — the click fires one
+ * client-side navigation, one view transition, no chrome flicker. The
+ * redirect stays in place as a safety net for direct URL hits and
+ * bookmarks of the bare path, but never fires for in-app clicks.
+ *
+ * For external tiers (enhancedExternal / reimaginedExternal) we return
+ * the absolute URL the museum redirects to.
+ */
+export function projectLandingUrl(
+  p: Project,
+  mode: ViewMode = "original",
+): string {
+  if (mode === "enhanced") {
+    return p.enhancedExternal ?? `/${projectPath(p)}/enhanced`;
+  }
+  if (mode === "reimagined") {
+    return p.reimaginedExternal ?? `/${projectPath(p)}/reimagined`;
+  }
+  // Original.
+  const base = `/${projectPath(p)}`;
+  if (p.pages && p.pages.length > 0) {
+    return `${base}?page=${pageSlug(p.pages[0]!.label)}`;
+  }
+  return base;
 }
 
 /**

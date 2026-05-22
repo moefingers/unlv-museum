@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
-import { projectPath, type Project } from "@/lib/projects";
+import { projectLandingUrl, type Project } from "@/lib/projects";
 import {
   fromAxisAngle,
   fromUnitVectors,
@@ -2528,7 +2528,7 @@ export function PolyhedronGlobe({
             {anchoredProject && (
               <Link
                 href={
-                  anchoredProject.href ?? `/${projectPath(anchoredProject)}`
+                  anchoredProject.href ?? projectLandingUrl(anchoredProject)
                 }
                 onClick={(e) => {
                   // Explicit router.push instead of relying on Next's
@@ -2560,7 +2560,7 @@ export function PolyhedronGlobe({
                   }
                   e.preventDefault();
                   const href =
-                    anchoredProject.href ?? `/${projectPath(anchoredProject)}`;
+                    anchoredProject.href ?? projectLandingUrl(anchoredProject);
                   router.push(href);
                 }}
                 style={{

@@ -28,7 +28,7 @@ import { geodesic } from "@/lib/polyhedra";
 import {
   PROJECTS,
   CATEGORY_LABELS,
-  projectPath,
+  projectLandingUrl,
   type Category,
   type Project,
 } from "@/lib/projects";
@@ -191,7 +191,7 @@ function ListCard({
     <Link
       key={project.slug}
       ref={(el) => registerRef(project.slug, el)}
-      href={project.href ?? `/${projectPath(project)}`}
+      href={project.href ?? projectLandingUrl(project)}
       className={styles.listCardLink}
       // backdrop-filter is applied inline because Turbopack/Lightning CSS
       // in this project strips it from CSS Modules (confirmed via
