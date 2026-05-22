@@ -52,6 +52,7 @@ next-env.d.ts
 !.sources/rest-rant-monorepo
 !.sources/iam-2-sql-injection-demo
 !.sources/UNLV-rest-rant
+!.sources/rr-1-react-and-front-end-libraries
 
 dev.log
 .dev.log

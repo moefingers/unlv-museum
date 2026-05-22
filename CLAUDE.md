@@ -26,7 +26,7 @@ Read the CONTEXT docs for decisions already made:
 
 - **Package manager:** pnpm (never npm, yarn, or bun)
 - **Commands:** `pnpm dev`, `pnpm build`, `pnpm lint`
-- **Hooks:** Pre-commit runs lint-staged, pre-push runs build
+- **Hooks:** Pre-commit runs lint-staged + verify-locks. Pre-push (a) runs `sync:source-meta` when `projects.tsx` is in the push (so source-repo banners auto-update when tier presence changes), (b) verifies every submodule's HEAD is pushed upstream, (c) runs `pnpm build`. If sync produces submodule pointer bumps, the hook blocks; commit the staged bumps and re-push.
 - **Domain:** `unlv-museum.infinite-syndicate.com`
 - **DNS:** Explicit CNAME overrides infinite-syndicate's wildcard. Comment in infinite-syndicate's `src/proxy.ts` documents the carve-out.
 - **Database:** Neon project `quiet-cell-88302228`, connection via `DATABASE_URL`

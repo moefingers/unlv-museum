@@ -181,6 +181,27 @@ export const recipes: Record<string, Recipe> = {
     from: ".sources/UNLV-rest-rant",
   },
 
+  // Declarative Counter — chapter 7.1.3 of the React Router series, the
+  // first exercise that introduces React's declarative rendering model.
+  // The source repo's name is the lesson title; the actual CRA app lives
+  // in the `7.1.3-declarative-counter/` subdir. react-scripts 5.0.1 + React
+  // 18 — no `--openssl-legacy-provider` needed. The source repo originally
+  // shipped a package-lock.json; museum-ready/original normalizes to pnpm
+  // per the policy in sources.md (disk-size — npm's node_modules per CRA
+  // is 200–500 MB, pnpm's is kilobytes). PUBLIC_URL=. makes asset paths
+  // relative so the iframe-served output works from
+  // /originals/react-exercises/declarative-counter/.
+  "declarative-counter": {
+    type: "cra-build",
+    cwd: ".sources/rr-1-react-and-front-end-libraries/7.1.3-declarative-counter",
+    node: "20",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/react-exercises/declarative-counter",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

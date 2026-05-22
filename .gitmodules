@@ -34,3 +34,6 @@
 	path = .sources/UNLV-rest-rant
 	url = https://github.com/moefingers/UNLV-rest-rant.git
 	branch = museum-ready/original
+[submodule ".sources/rr-1-react-and-front-end-libraries"]
+	path = .sources/rr-1-react-and-front-end-libraries
+	url = git@github.com:moefingers/rr-1-react-and-front-end-libraries.git
