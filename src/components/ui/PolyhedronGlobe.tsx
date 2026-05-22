@@ -72,10 +72,10 @@ const INTENT_WINDOW_MS = 100;
  *     still visible. Re-entering before grace expires cancels it.
  *   - When grace expires, a brief 80ms brightness flash precedes the
  *     untype animation (3× faster than typing).
- *   - PolyhedronGlobe tracks which dot is active (via HoverDot's
- *     onActiveChange callback). Auto-rotation pauses while any dot
- *     is active. Dragging the sphere is allowed even mid-hover; the
- *     hover state survives drag.
+ *   - PolyhedronGlobe owns the engagement state and feeds it to
+ *     VertexHover via the `engaged` prop. Auto-rotation pauses
+ *     briefly when a dot's hover cycle starts. Dragging the sphere
+ *     is allowed even mid-hover; the hover state survives drag.
  *
  * Rendering pipeline per frame:
  *   1. Compose Y-rotation (drag) × X-rotation (drag) × Z-tilt (axial)
@@ -83,7 +83,7 @@ const INTENT_WINDOW_MS = 100;
  *   3. Backface-cull each face by screen-space winding
  *   4. Painter-sort visible faces by centroid Z
  *   5. Render face polygons + edge halos
- *   6. Render <HoverDot> at each assigned + visible vertex
+ *   6. Render <VertexHover> at each assigned + visible vertex
  */
 
 /** Map from vertex index (0..N-1 in the mesh) to a project. */
@@ -2112,10 +2112,12 @@ export function PolyhedronGlobe({
             <feGaussianBlur stdDeviation="2.5" />
           </filter>
 
-          {/* Radial gradient referenced by HoverDot's expandable glow
-              circle in the sandbox (kept for compatibility). Project-
-              bearing museum vertices use the per-category variants
-              below instead. */}
+          {/* Default radial gradient for vertex glow. VertexHover's
+              `glowGradientId` prop defaults to "hover-dot-glow"
+              (legacy name from the standalone HoverDot sandbox);
+              unassigned vertices fall back to this generic blue
+              treatment. Project-bearing museum vertices override
+              with per-category variants defined below. */}
           <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
             <stop offset="22%" stopColor="rgba(180, 220, 255, 0.9)" />

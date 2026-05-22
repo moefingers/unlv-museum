@@ -1,29 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styles from "./HoverDot.module.css";
+import styles from "./VertexHover.module.css";
 
 /**
- * VertexHover — the museum-side counterpart to HoverDot.
+ * VertexHover — the per-vertex glow + typed-title element on the
+ * museum sphere.
  *
- * Difference from HoverDot: this component is FULLY CONTROLLED.
- * The parent (PolyhedronGlobe) owns the engagement state. The dot
- * itself just exposes hit-target callbacks and renders the visual
- * (glow + typed title + dismissal animation) based on whether
- * `engaged` is true or false.
+ * FULLY CONTROLLED: the parent (PolyhedronGlobe) owns the
+ * engagement state. This component just exposes hit-target
+ * callbacks and renders the visual (glow + typed title +
+ * dismissal animation) based on whether `engaged` is true or
+ * false. The component does NOT decide whether engagement should
+ * stick — it just reflects it.
  *
- * Why split: in the museum the sphere rotates and dots move under
- * the cursor. The "engagement" of a project is a sticky concept —
+ * Why parent-controlled (vs. self-managing like the sandbox dots
+ * in svg-experiments): in the museum the sphere rotates and dots
+ * move under the cursor. "Engagement" of a project is sticky —
  * once you've hovered a dot, that project is engaged until you
- * either move to a different dot or away from all dots entirely.
- * The browser's mouseleave on the current dot (caused by rotation
- * drifting the hit target away) shouldn't end engagement. So the
- * engagement state lives in the parent, which observes BOTH the
- * cursor's behavior AND the geometry-driven motion to decide.
- *
- * HoverDot is the sandbox version where dots stand still and the
- * browser's hover signal is reliable. VertexHover is the museum
- * version where it isn't.
+ * either move to a different dot or off the sphere entirely. The
+ * browser's mouseleave on the current dot (caused by rotation
+ * drifting the hit-target away from a motionless cursor) is
+ * GEOMETRY drift, not user intent — it shouldn't end engagement.
+ * The parent observes both cursor behavior AND geometry-driven
+ * motion to decide.
  *
  * Animation lifecycle on engaged state change:
  *   engaged false → true: glow expands, title types in
@@ -57,10 +57,12 @@ export interface VertexHoverProps {
   flickerStyle?: "none" | "subtle" | "medium" | "glitchy";
   /**
    * Override the SVG radial-gradient ID used for the glow fill.
-   * Defaults to `hover-dot-glow` (the sandbox/HoverDot gradient,
-   * blue-tinted). The museum passes per-category gradient IDs
-   * (e.g. `hover-dot-glow-games`) so each vertex glows in its
-   * project's category color.
+   * Defaults to `hover-dot-glow` (the generic blue-tinted gradient
+   * defined in PolyhedronGlobe's <defs>; the ID name is a legacy
+   * from the removed standalone HoverDot sandbox component). The
+   * museum passes per-category gradient IDs (e.g.
+   * `hover-dot-glow-games`) so each vertex glows in its project's
+   * category color.
    */
   glowGradientId?: string;
 }
