@@ -13,6 +13,7 @@ import {
   Pointer,
   Smartphone,
 } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 import styles from "./HelpModal.module.css";
 
 /**
@@ -173,6 +174,11 @@ export function HelpModal({
   onOpen: () => void;
   onClose: () => void;
 }) {
+  // Theme toggle exposed here as an inline pitch — the corner toggle
+  // is easy to miss when the help modal is open; this surfaces the
+  // feature alongside the welcome lede.
+  const { resolvedMode, toggleMode } = useTheme();
+
   // SSR-safe init: default to mouse; the effect below runs on mount
   // and re-derives from matchMedia. Hydration mismatch is avoided
   // because the initial client render also yields "mouse" before the
@@ -236,6 +242,14 @@ export function HelpModal({
         role={open ? "dialog" : undefined}
         aria-modal={open ? true : undefined}
         aria-labelledby={open ? "help-modal-title" : undefined}
+        // Stop wheel events from reaching the globe's wheel-zoom
+        // handler underneath. The globe binds its wheel listener on
+        // its own stage div (a DOM sibling, not an ancestor) so the
+        // bubble path doesn't currently route into it — but capture-
+        // phase listeners (or future refactors) could. Stopping here
+        // makes the modal a wheel sink whenever it's mounted, which
+        // is the right behavior regardless of how the globe wires up.
+        onWheel={(e) => e.stopPropagation()}
       >
         {/* Icon button. Centered inside the closed circle; migrates
             to the top-right corner when the morph opens. Same element
@@ -263,6 +277,25 @@ export function HelpModal({
             <strong>original</strong> (as turned in), <strong>enhanced</strong>{" "}
             (cleaned up), and <strong>reimagined</strong> (rebuilt with what
             I&apos;d know now).
+          </p>
+
+          {/*
+            Inline theme nudge. The corner toggle is easy to overlook
+            while the modal is open; this surfaces the alternate mode
+            as a verb the reader can act on right here. The button is
+            visually subtle (text-link styling) but functionally the
+            same as the corner button.
+          */}
+          <p className={styles.themePitch}>
+            Try{" "}
+            <button
+              type="button"
+              className={styles.themePitchButton}
+              onClick={toggleMode}
+            >
+              {resolvedMode === "dark" ? "light" : "dark"} mode
+            </button>{" "}
+            today!
           </p>
 
           {/*

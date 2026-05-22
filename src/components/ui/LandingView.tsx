@@ -42,7 +42,10 @@ import {
   Hand,
   Crosshair,
   HelpCircle,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 import styles from "./LandingView.module.css";
 
 type ViewMode = "globe" | "list";
@@ -433,6 +436,10 @@ function LandingViewInner() {
   // scheduling drops the call onto the next tick, which is enough to
   // pass the rule while keeping the behavior identical.
   const [helpOpen, setHelpOpen] = useState(false);
+  // Theme — the legend gets a redundant toggle alongside the corner
+  // ThemeToggle so the feature is discoverable from the inline
+  // category-row vocabulary too.
+  const { resolvedMode, toggleMode } = useTheme();
   useEffect(() => {
     queueMicrotask(() => {
       if (localStorage.getItem(HELP_DISMISSED_KEY) !== "1") {
@@ -850,6 +857,30 @@ function LandingViewInner() {
             >
               <HelpCircle size={12} className={styles.legendHelpIcon} />
               help
+            </button>
+            {/*
+              Redundant theme toggle — same visual treatment as the
+              help button so the pair reads as a tight cluster.
+              Label and icon are the *destination* mode (the action
+              the click performs), matching the corner ThemeToggle's
+              convention.
+            */}
+            <button
+              type="button"
+              className={`text-xs ${styles.legendItem} ${styles.legendHelpButton}`}
+              onClick={toggleMode}
+              aria-label={
+                resolvedMode === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+            >
+              {resolvedMode === "dark" ? (
+                <Sun size={12} className={styles.legendHelpIcon} />
+              ) : (
+                <Moon size={12} className={styles.legendHelpIcon} />
+              )}
+              {resolvedMode === "dark" ? "light" : "dark"}
             </button>
           </div>
         </div>

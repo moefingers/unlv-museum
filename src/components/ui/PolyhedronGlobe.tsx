@@ -2270,6 +2270,7 @@ export function PolyhedronGlobe({
                   showCaret={true}
                   flickerStyle="subtle"
                   glowGradientId={`hover-dot-glow-${project.category}`}
+                  category={project.category}
                 />
               );
             }

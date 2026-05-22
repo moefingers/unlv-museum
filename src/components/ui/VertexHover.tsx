@@ -65,6 +65,17 @@ export interface VertexHoverProps {
    * category color.
    */
   glowGradientId?: string;
+  /**
+   * Project category for the vertex, if any. When set, applies
+   * `data-glass-category={category}` to the rendered group — the
+   * CSS [data-glass-category=...] overrides cascade through the
+   * typed title's text fill + text-shadow tokens, so hovering a
+   * vertex previews the project's identity in the same color
+   * vocabulary the anchored hex card uses.
+   *
+   * Omitted (e.g. unassigned vertices) → no override, neutral tint.
+   */
+  category?: string;
 }
 
 /**
@@ -100,6 +111,7 @@ export function VertexHover({
   showCaret = false,
   flickerStyle = "none",
   glowGradientId = "hover-dot-glow",
+  category,
 }: VertexHoverProps) {
   // typedChars animates 0 → title.length when engaged flips true,
   // back to 0 (faster) when engaged flips false.
@@ -160,7 +172,7 @@ export function VertexHover({
       : "";
 
   return (
-    <g>
+    <g data-glass-category={category}>
       <circle
         cx={x}
         cy={y}
@@ -173,7 +185,7 @@ export function VertexHover({
         cx={x}
         cy={y}
         r={2.2}
-        fill="rgba(255, 255, 255, 0.95)"
+        fill="var(--glow-pinpoint)"
         pointerEvents="none"
       />
       <circle

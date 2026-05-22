@@ -182,6 +182,28 @@
   pointer-events: none;
   transition: opacity var(--help-morph-duration) var(--help-morph-easing);
   transition-delay: 0s;
+
+  /*
+   * Short-viewport rescue: when the content's intrinsic height
+   * exceeds the available viewport, allow this inner panel to scroll
+   * vertically. The OUTER .morph keeps overflow:hidden throughout so
+   * the morph-clip + circular-collapse animation are unaffected —
+   * this nested scroll only kicks in when the morph is fully open
+   * and content genuinely doesn't fit. Capping to 100dvh − 4rem
+   * leaves room for the morph's top/bottom margin so the inner card
+   * doesn't kiss the viewport edges. dvh units track the dynamic
+   * viewport (mobile address-bar collapses) so the cap stays honest.
+   */
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* When the user wheels past the scroll boundaries of this panel,
+     `contain` prevents the scroll-chain from continuing to ancestor
+     scroll containers. The page itself isn't scrollable, but this
+     also means the browser doesn't speculatively dispatch the
+     leftover wheel delta back up the DOM — making the modal a
+     completely sealed scroll surface. */
+  overscroll-behavior: contain;
 }
 .morph[data-open="true"] .content {
   opacity: 1;
@@ -205,6 +227,45 @@
   margin-bottom: calc(
     var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
   );
+}
+
+/*
+ * Inline theme nudge. Smaller than .lede so it reads as supplementary
+ * (not part of the main welcome copy) but still picks up enough
+ * presence to be acted on. Sits in the same vertical column.
+ */
+.themePitch {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--muted-foreground);
+  margin-bottom: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+/*
+ * The pivotal word ("light mode" / "dark mode") is the actual
+ * actionable toggle. Visually a text link — underline on hover,
+ * inherits the surrounding type rhythm — but functionally clicks
+ * through to the same toggleMode the corner button calls.
+ */
+.themePitchButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--foreground);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.themePitchButton:hover {
+  color: var(--primary);
+  text-decoration-style: solid;
 }
 
 /* Smaller transitional line between the welcome lede and the steps
