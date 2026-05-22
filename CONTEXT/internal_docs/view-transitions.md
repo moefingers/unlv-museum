@@ -54,7 +54,7 @@ The mechanism is asymmetric:
 - The **new snapshot** renders fully opaque from frame 0 (no animation) and stays.
 - The **old snapshot** fades out over 60ms. Without this, the default browser behavior leaves both pseudos painted at full opacity simultaneously, creating a "ghosted double-vision" window where the old subtitle/title text shows through the new — visible jank.
 - 60ms is fast enough that the eye reads it as "the old chrome shrugged out of existence" rather than a deliberate crossfade.
-- `inset: 0` on both pinsthem to the same origin so any height delta (e.g. notes panel open in one route, closed in the other) doesn't shift them relative to each other.
+- `inset: 0` on both pins them to the same origin so any height delta (e.g. notes panel open in one route, closed in the other) doesn't shift them relative to each other.
 
 **Why not `display: none` on the old?** Earlier iterations did this. It caused a 1–2 frame gap where the old was gone but the new hadn't yet been captured into a snapshot — visible as a "flash of no chrome." The fast fade-out avoids both that gap AND the double-vision effect.
 
