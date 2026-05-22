@@ -14,10 +14,25 @@
 const Module = require("node:module");
 
 function cssLoader(module) {
+  // Stub a CSS-modules object whose every key lookup returns the key
+  // itself as a string — so `styles.foo` evaluates to "foo", which is
+  // close enough to a real CSS-module class lookup for component code
+  // to run headlessly in a tsx-driven script.
+  //
+  // CRITICAL: `__esModule` must explicitly return undefined. The
+  // catch-all `get` trap would otherwise return the string "__esModule"
+  // (truthy), making esbuild's `__toESM` interop helper take the
+  // "already-ESM" branch — which trusts the source to have its own
+  // `default` own-property. Our proxy has no own properties, so that
+  // branch produces a namespace with no `default`, and the consumer's
+  // `styles.default.foo` access crashes with "Cannot read properties
+  // of undefined". Returning undefined here keeps `__toESM` on the
+  // "CJS-shim" branch where it synthesizes `default = <proxy>`.
   module.exports = new Proxy(
     {},
     {
       get(_, prop) {
+        if (prop === "__esModule") return undefined;
         return typeof prop === "string" ? prop : undefined;
       },
     },

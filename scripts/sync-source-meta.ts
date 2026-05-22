@@ -467,6 +467,42 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
     .digest("hex")
     .slice(0, 10);
   const bannerBase = `${MUSEUM_BASE_URL}/github-banners/${slug}`;
+
+  // Which non-original tiers are live for this project? Mirrors the
+  // recognition rule in src/app/github-banners/[slug]/route.ts:tiersFor —
+  // keep these in sync. The banner README ought to advertise cross-nav to
+  // the museum whenever the project has more to offer than the original.
+  const isComingSoon = (node: unknown): boolean => {
+    if (!node || typeof node !== "object") return false;
+    const el = node as { props?: { label?: unknown } };
+    return el.props?.label === "Coming soon";
+  };
+  const liveEnhanced = project
+    ? project.enhanced != null
+      ? !isComingSoon(project.enhanced)
+      : project.enhancedExternal != null
+    : false;
+  const liveReimagined = project
+    ? project.reimagined != null
+      ? !isComingSoon(project.reimagined)
+      : project.reimaginedExternal != null
+    : false;
+  const liveExtras: string[] = [];
+  if (liveEnhanced) liveExtras.push("enhanced");
+  if (liveReimagined) liveExtras.push("reimagined");
+  const extrasPhrase =
+    liveExtras.length === 0
+      ? null
+      : liveExtras.length === 1
+        ? liveExtras[0]
+        : `${liveExtras[0]} and ${liveExtras[1]}`;
+  // Rewrites the existing "Open in museum →" link to advertise the
+  // non-original tiers (enhanced / reimagined / both) when they're live.
+  // When only the original tier exists, falls back to the bare CTA.
+  const museumCta = extrasPhrase
+    ? `[Open in museum for the ${extrasPhrase} ${liveExtras.length === 1 ? "tier" : "tiers"} →](${homepage})`
+    : `[Open in museum →](${homepage})`;
+
   const banner = `${BANNER_START}
 <a href="${homepage}" target="_blank" rel="noopener">
   <picture>
@@ -475,7 +511,7 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
   </picture>
 </a>
 
-> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. [Open in museum →](${homepage})
+> This \`${branchPath}\` branch is the host-compatible build of the [\`original\` branch](https://github.com/${ownerRepo}/tree/original) — [audit the diff](https://github.com/${ownerRepo}/compare/${compareEncoded}): hosting fixes only (dead URLs, Node LTS floor, pnpm), behavior byte-for-byte. ${museumCta}
 ${BANNER_END}`;
 
   const readmePath = resolve(submoduleRoot, "README.md");

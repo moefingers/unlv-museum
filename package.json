@@ -10,7 +10,7 @@
     "prepare": "husky",
     "postinstall": "git submodule update --init --recursive 2>/dev/null || true && git config push.recurseSubmodules check 2>/dev/null || true",
     "sync:source": "tsx scripts/sync-source.ts",
-    "sync:source-meta": "node -r ./scripts/lib/register-css-stub.cjs --import tsx scripts/sync-source-meta.ts",
+    "sync:source-meta": "node -r ./scripts/lib/register-css-stub.cjs --import ./scripts/lib/css-stub-register.mjs --import tsx scripts/sync-source-meta.ts",
     "seed:admin-portal": "tsx --env-file=.env.local scripts/seed-admin-portal.ts",
     "seed:music-tour": "tsx --env-file=.env.local scripts/seed-music-tour.ts",
     "pat:generate": "tsx --env-file=.env.local scripts/generate-pat.ts",
