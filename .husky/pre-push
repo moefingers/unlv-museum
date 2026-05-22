@@ -20,8 +20,15 @@
 upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || true)
 if [ -n "$upstream" ] && git diff --name-only "$upstream..HEAD" 2>/dev/null | grep -q "^src/lib/projects.tsx$"; then
   echo "pre-push: projects.tsx changed — running pnpm sync:source-meta"
+  # Snapshot the index state BEFORE sync. sync:source-meta stages
+  # submodule pointer bumps when it produces banner updates; comparing
+  # the pre/post snapshot tells us whether sync itself made changes,
+  # without conflating with pre-existing staged content (the user may
+  # have a parallel WIP staged when the hook fires).
+  pre_sync_index=$(git write-tree)
   pnpm sync:source-meta
-  if ! git diff --quiet --cached 2>/dev/null; then
+  post_sync_index=$(git write-tree)
+  if [ "$pre_sync_index" != "$post_sync_index" ]; then
     echo ""
     echo "pre-push: sync:source-meta produced submodule-pointer bumps."
     echo "         Review the staged changes, commit them, and push again."
