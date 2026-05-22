@@ -354,8 +354,17 @@ export function resolveTierSources(
  * frontend" affordance alongside the source-on-GitHub links in the
  * notes panel. The two ends of a pair point at each other:
  *
- *   admin-portal       (frontend) → siblingApiClient: "admin-portal-api"
+ *   admin-portal       (frontend) → siblingApiClient: "admin-portal"
  *   admin-portal-api   (backend)  → siblingFrontend:  "admin-portal"
+ *
+ * IMPORTANT asymmetry: `siblingApiClient` is the api-client's `?api=`
+ * query value (matches an entry in `api-data.ts`), while
+ * `siblingFrontend` is a PROJECT SLUG (matches a `slug` on a Project
+ * in PROJECTS). They look similar — both are short identifiers — but
+ * they index different namespaces. For admin-portal the two values
+ * happen to be the same string ("admin-portal"); for the sql-demo
+ * pair they don't (api id is "sql-demo", frontend slug is
+ * "sql-injection-demo").
  *
  * Either end's link surfaces only its own direction — the function
  * inspects which sibling field is set on the passed project. The
@@ -1030,6 +1039,10 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "api",
     techOriginal: ["Express", "SQLite", "HTML"],
+    // Forward pointer to the api-client lab surface. Value is the
+    // api-data.ts `id` (`?api=sql-demo`), not the partner project's
+    // slug — see resolveSiblingLink's docstring for the asymmetry.
+    siblingApiClient: "sql-demo",
     // SPA-style card: the visitor-facing form is iframed at /api/sql-demo/
     // (the route handler serves index.html with a <base> injection so the
     // form-submit posts to /api/sql-demo/login-html). The api-client lab
@@ -1055,6 +1068,14 @@ export const PROJECTS: Project[] = [
     category: "api",
     techOriginal: ["Express", "SQLite"],
     plannedTiers: ["original", "enhanced"],
+    // Reverse pointer for the api+client pair. The frontend half
+    // (`sql-injection-demo`) carries `siblingApiClient: "sql-demo"`
+    // (the api-client `?api=` value); this back-pointer is a slug,
+    // resolved through resolveSiblingLink → PROJECTS.find. The api-
+    // client UI doesn't surface the reverse hop today, but the field
+    // is set so the pairing is schema-honest and any future linter
+    // catches it.
+    siblingFrontend: "sql-injection-demo",
     notes: {
       original:
         "Backend half of the SQL Demo pair — the original Express server returned an HTML success page or a hash-redirect; this card exposes the same vulnerable + safe queries with structured JSON responses (parsed rows, the raw SQL string, an `injected` flag) so visitors can dissect what the queries actually do. The visitor-facing form lives at /sql-injection-demo.",
@@ -1073,6 +1094,13 @@ export const PROJECTS: Project[] = [
     category: "api",
     techOriginal: ["Express", "JSON file store"],
     plannedTiers: ["original", "enhanced"],
+    // Reverse pointer for the api+client pair. Frontend half
+    // (`admin-portal`) carries `siblingApiClient: "admin-portal"`
+    // (the api-client `?api=` value); this back-pointer is a slug,
+    // resolved through resolveSiblingLink → PROJECTS.find. The api-
+    // client UI doesn't render the reverse hop today, but populating
+    // the field keeps the schema honest.
+    siblingFrontend: "admin-portal",
     notes: {
       original:
         "Backend half of the Admin Portal pair — the original Express server served both JSON endpoints (listBooks/addBook/updateBook/removeBook) and HTML at /  and /index.html. The frontend lives at /admin-portal as a separate entry; this one is the API itself, browsable via the api-client.",
