@@ -173,7 +173,15 @@ function tiersFor(slug: string): { label: string; state: TierState }[] {
   const p = PROJECTS.find((x) => x.slug === slug);
   if (!p) return [];
 
-  const liveOriginal = p.original != null || p.href != null;
+  // `pages` is also a valid original source: when set, the route at
+  // [...path]/page.tsx (and the per-container leaf pages) auto-wraps
+  // it with <MultiPageOriginal>. Same recognition rule used by
+  // ProjectChrome's tier-toggle availability check — keep these in
+  // sync; either both should know about `pages` or neither should.
+  const liveOriginal =
+    p.original != null ||
+    p.href != null ||
+    (p.pages != null && p.pages.length > 0);
   const liveEnhanced =
     p.enhanced != null
       ? !isComingSoonPlaceholder(p.enhanced)
