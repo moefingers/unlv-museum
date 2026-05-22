@@ -155,42 +155,89 @@ export function JsDomEventsEnhanced() {
       return "outer";
     }
 
+    /*
+     * Visual stagger: a real DOM click dispatches all listeners
+     * synchronously (within the same microtask), so without help the
+     * wavefront appears as a single simultaneous flash across rings
+     * instead of a traveling wave. We delay the *visual* side-effects
+     * (log + pulse) by a per-phase amount so visitors see the order:
+     *
+     *   outer-capture  (t=0)
+     *   middle-capture (t=STAGGER)
+     *   target         (t=2*STAGGER)
+     *   middle-bubble  (t=3*STAGGER)
+     *   outer-bubble   (t=4*STAGGER)
+     *
+     * The event-mechanic side-effects (stopPropagation, preventDefault)
+     * still fire SYNCHRONOUSLY inside the listener — calling them
+     * after a setTimeout would be too late; the event would already
+     * have propagated. So we split: spec-changing actions sync, visual
+     * narration staggered. The log narrates what the synchronous
+     * dispatch is actually doing, just stretched out in time.
+     *
+     * `phaseIndexRef` counts listener-fires within a single dispatch.
+     * It resets on each new dispatch via the trailing-edge teardown
+     * (queued at delay 999 * STAGGER, comfortably after the last
+     * phase has rendered).
+     */
+    const STAGGER_MS = 280;
+    let phaseIndex = 0;
+    let resetQueued = false;
+
+    function scheduleReset() {
+      if (resetQueued) return;
+      resetQueued = true;
+      // Reset on the next macrotask after all sync listeners have
+      // fired but before the next click can begin a new dispatch.
+      // queueMicrotask would run BEFORE the staggered visuals, so we
+      // use setTimeout(0) which lands after the dispatch returns.
+      setTimeout(() => {
+        phaseIndex = 0;
+        resetQueued = false;
+      }, 0);
+    }
+
     function makeHandler(ringId: RingId, capture: boolean) {
       return (e: Event) => {
         const targetId = classify(e.target);
-        // `eventPhase` is the truthful indicator: 1=CAPTURING, 2=AT_TARGET,
-        // 3=BUBBLING. The capture-flag determines which listener-array
-        // we registered with; but a target listener fires whichever
-        // pass discovers it first, with eventPhase === 2.
+        scheduleReset();
+
         if (e.eventPhase === Event.AT_TARGET) {
-          // Target phase: fires once on the target ring itself.
-          // Only log it on the bubble pass (capture: false) so we
-          // don't double-log when both capture/bubble listeners exist
-          // on the target itself.
           if (capture) return;
-          append({ phase: "target", ring: ringId, target: targetId });
-          pulse(ringId);
-          // Apply target-phase modifiers.
+          // SYNCHRONOUS: modifiers must fire inside the listener call
+          // or they're too late to affect the dispatch.
           if (stopPropRef.current) {
             e.stopPropagation();
-            append({ phase: "stopped", ring: ringId, target: targetId });
           }
           if (preventDefRef.current && targetId === "link") {
             e.preventDefault();
-            append({ phase: "prevented", ring: ringId, target: targetId });
-            // Floater rises from the click point so the visitor sees
-            // the suppression actually happened. MouseEvent x/y are
-            // viewport coords; we render the floater at fixed
-            // position so it doesn't require a positioned parent.
             if (e instanceof MouseEvent) {
               spawnFloater(e.clientX, e.clientY);
             }
           }
+          // STAGGERED: visual narration, queued at the target's slot.
+          const slot = phaseIndex++;
+          const wasStopped = stopPropRef.current;
+          const wasPrevented = preventDefRef.current && targetId === "link";
+          setTimeout(() => {
+            append({ phase: "target", ring: ringId, target: targetId });
+            pulse(ringId);
+            if (wasStopped) {
+              append({ phase: "stopped", ring: ringId, target: targetId });
+            }
+            if (wasPrevented) {
+              append({ phase: "prevented", ring: ringId, target: targetId });
+            }
+          }, slot * STAGGER_MS);
           return;
         }
+
         const phase: Phase = capture ? "capture" : "bubble";
-        append({ phase, ring: ringId, target: targetId });
-        pulse(ringId);
+        const slot = phaseIndex++;
+        setTimeout(() => {
+          append({ phase, ring: ringId, target: targetId });
+          pulse(ringId);
+        }, slot * STAGGER_MS);
       };
     }
 

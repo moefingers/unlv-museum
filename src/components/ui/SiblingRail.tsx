@@ -130,12 +130,19 @@ function SiblingRailInner({
                 </Link>
                 {/*
                   Page list — only the active sibling's Collapsible
-                  opens. Pages are URL-driven via ?page=<slug>; clicking
-                  routes to the same leaf with a new ?page= value, which
-                  MultiPageOriginal also reads to swap the iframe.
+                  opens, AND only when the visitor is on the original
+                  tier. The `pages` field describes the original
+                  tier's multi-page walkthrough (admin-portal's three
+                  admin/books/api-docs surfaces, js-dom-events's five
+                  event-mechanic concept pages, etc.). Enhanced and
+                  reimagined tiers are single React components that
+                  consolidate or rebuild the original; they don't share
+                  the original's page topology, so showing the
+                  original's page list while a visitor is on
+                  /<slug>/enhanced would mislead.
                 */}
                 {sib.pages && sib.pages.length > 0 && (
-                  <Collapsible open={isCurrent}>
+                  <Collapsible open={isCurrent && tier === "original"}>
                     <ol className={styles.pageList}>
                       {sib.pages.map((page, i) => {
                         const slug = pageSlug(page.label);
