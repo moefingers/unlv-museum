@@ -343,8 +343,12 @@ export const APIS_ORIGINAL: ApiProject[] = [
     title: "SQL Injection Demo",
     baseUrl: "/api/sql-demo",
     description:
-      "Educational demo showing vulnerable vs safe SQL queries against a real database. The visitor-facing form lives at /sql-injection-demo — this card is the structured-inspection lab.",
+      "Educational demo showing vulnerable vs safe SQL queries against a real database. The visitor-facing form lives at /sql-injection-demo — this card is the structured-inspection lab. Museum carve-out: writes require GitHub sign-in (every attempt audited under your GitHub login), the locked-down `sql_demo_runner` Postgres role keeps blast radius scoped to sql_demo.users — UNION SELECT against auth.user or sql_demo.audit_log returns permission denied.",
     tech: "Originally Express + SQLite",
+    relatedRoute: {
+      label: "Open the visitor-facing form",
+      url: "/sql-injection-demo",
+    },
     endpoints: [
       {
         label: "SQL Demo page",
@@ -876,6 +880,126 @@ export const APIS_ENHANCED: ApiProject[] = [
         path: "/rate-limit",
         description:
           "Returns your current tier (anon vs auth), the budgets, plus a note about the identity-and-signup contract that rest-rant enforces on top of the standard guard",
+      },
+    ],
+  },
+  {
+    id: "sql-demo",
+    title: "SQL Injection Demo (v2)",
+    baseUrl: "/api/v2/sql-demo",
+    description:
+      "Enhanced tier — same vulnerable-vs-safe pedagogy as v1, with museum-session gating on the POSTs (the demo is still 'see how injection works,' just now under your auditable GitHub identity) and a /audit-log endpoint exposing every attempt. The locked-down `sql_demo_runner` Postgres role still scopes blast radius, AND the audit-log table is REVOKE'd from that role — even a successful injection cannot read or write the audit history.",
+    tech: "Next.js + Drizzle + @vercel/firewall + locked-down Postgres role + Better Auth PAT",
+    relatedRoute: {
+      label: "Open the visitor-facing form",
+      url: "/sql-injection-demo",
+    },
+    endpoints: [
+      {
+        label: "Form HTML (anonymous read)",
+        method: "GET",
+        path: "/",
+        description:
+          "Same as v1 — the visitor-facing form's HTML. Reads are anonymous; the POST is gated.",
+      },
+      {
+        label: "Legitimate login (vulnerable)",
+        method: "POST",
+        path: "/",
+        description:
+          "Sign-in required. Audit row records tier=enhanced + your GitHub login + the submitted payload.",
+        body: JSON.stringify(
+          { username: "admin", password: "s3cur3P@ss", mode: "vulnerable" },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Classic injection (vulnerable)",
+        method: "POST",
+        path: "/",
+        description:
+          "Demonstrates ' OR '1'='1' -- bypassing the vulnerable WHERE. Returns all demo users. Audit row records the exact payload + that the injection succeeded.",
+        body: JSON.stringify(
+          {
+            username: "' OR '1'='1' --",
+            password: "anything",
+            mode: "vulnerable",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Same payload, safe mode",
+        method: "POST",
+        path: "/",
+        description:
+          "Parameterized query neutralizes the injection — 0 rows. Audit row shows the same payload + outcome=no_match.",
+        body: JSON.stringify(
+          { username: "' OR '1'='1' --", password: "anything", mode: "safe" },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "UNION attack on auth.user (blocked)",
+        method: "POST",
+        path: "/",
+        description:
+          "Even when the injection IS successful, the locked-down `sql_demo_runner` Postgres role has no privileges on auth.user — permission denied. The audit row records outcome=query_error with the exact payload.",
+        body: JSON.stringify(
+          {
+            username: 'x\' UNION SELECT id,email,role FROM auth."user" --',
+            password: "y",
+            mode: "vulnerable",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "UNION attack on the audit log itself (blocked)",
+        method: "POST",
+        path: "/",
+        description:
+          "The audit_log table is REVOKE'd from `sql_demo_runner` — even an injection that tries to read or tamper with the audit history gets permission denied. The attempt to read audit_log appears IN audit_log.",
+        body: JSON.stringify(
+          {
+            username: "x' UNION SELECT 1,2,3 FROM sql_demo.audit_log --",
+            password: "y",
+            mode: "vulnerable",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Audit log (newest 50)",
+        method: "GET",
+        path: "/audit-log",
+        description:
+          "v2 only — every injection attempt across both tiers, attributed to the museum visitor's GitHub login. Records the submitted username + password + mode + outcome.",
+      },
+      {
+        label: "Audit log: form surface only",
+        method: "GET",
+        path: "/audit-log?surface=form",
+        description:
+          "Slice to attempts via the visitor-facing /api/sql-demo/login-html iframe (vs the JSON lab surface used here)",
+      },
+      {
+        label: "Audit log: by GitHub actor",
+        method: "GET",
+        path: "/audit-log?actor=moefingers",
+        description: "Who-tried-what for a specific GitHub login",
+      },
+      {
+        label: "Rate-limit policy",
+        method: "GET",
+        path: "/rate-limit",
+        description:
+          "Returns your current tier (anon vs auth), the budgets, plus notes on the dual lockdown (locked-down DB role + museum-session gate)",
       },
     ],
   },

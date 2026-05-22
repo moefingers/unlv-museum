@@ -10,11 +10,41 @@ across Original, Enhanced, and Reimagined tiers uniformly — so the
 moment a tier has a `users` table or any auth surface, this is the
 default it must implement.
 
+## Identity surfaces vs. pedagogical fixtures
+
+This contract applies to **identity surfaces** — `users` tables whose
+rows ARE project-level identities. A row in such a table represents a
+person; a login grants the visitor the ability to act as that person;
+subsequent state (comments, reviews, orders, etc.) FKs back to the user
+row.
+
+It does NOT apply to **pedagogical fixtures** — `users` tables whose
+rows are demo data the visitor manipulates rather than identities the
+visitor inhabits. sql-injection-demo is the canonical example: its
+`users` table contains seed rows the visitor tries to bypass via
+injection. The "login" doesn't grant a session, doesn't gate anything,
+doesn't tie subsequent state to the matched row — it returns a success
+page and ends. The rows are queryable data, not identities.
+
+The whole-route gate still applies to fixture surfaces: the museum
+session is required to reach the demo at all (the Enhanced API
+conventions don't carve out for pedagogy — secure end-to-end, with
+usability offered to signed-in visitors only). Every attempt is
+audited under the visitor's GitHub login. But the `museum_user_id` FK
+on the fixture table itself doesn't make sense — the rows aren't
+museum identities, they're demo seeds.
+
+A quick decision rule: does logging in as that user enable any
+subsequent state writes that attribute to them? If yes (rest-rant
+comments), it's an identity surface and the contract below applies in
+full. If no (sql-injection-demo's login returns a static page), it's a
+fixture, and only the museum-session gate applies.
+
 ## The contract
 
-When a project's domain includes a user concept (rest-rant's reviewers,
-sql-injection-demo's login form, future projects with customer-facing
-auth, etc.), the project-level `users` table must:
+When a project's domain includes an **identity surface** (rest-rant's
+reviewers, future projects with customer-facing auth, etc.), the
+project-level `users` table must:
 
 1. Carry a **non-nullable** `museum_user_id` FK pointing at `auth.user(id)`.
 2. Be **indexed** on `museum_user_id` for audit-log pivoting AND for the
