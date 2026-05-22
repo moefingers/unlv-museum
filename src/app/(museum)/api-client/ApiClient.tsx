@@ -280,27 +280,55 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
                         {api.description}
                       </p>
                       <div className={styles.kbEndpoints}>
-                        {api.endpoints.map((ep, i) => (
-                          <button
-                            key={i}
-                            onClick={() => loadEndpoint(ep)}
-                            className={`text-xs ${styles.kbEndpoint}`}
-                          >
-                            <span
-                              className={styles.methodDot}
-                              data-method={ep.method}
-                            />
-                            <span
-                              className={styles.methodLabel}
-                              data-method={ep.method}
+                        {api.endpoints.map((ep, i) => {
+                          // Expand the description to its full multi-line
+                          // text when this endpoint matches the
+                          // request-builder's current method+path — i.e.,
+                          // "the one you're currently working with."
+                          // Otherwise it stays clamped to a single line.
+                          const expanded =
+                            api.id === activeApiId &&
+                            ep.method === method &&
+                            ep.path === path;
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => loadEndpoint(ep)}
+                              className={`text-xs ${styles.kbEndpoint}`}
+                              data-expanded={expanded || undefined}
                             >
-                              {ep.method}
-                            </span>
-                            <span className={styles.kbEndpointDescription}>
-                              {ep.description}
-                            </span>
-                          </button>
-                        ))}
+                              {/* Two-row layout per rail entry:
+                                  Row 1: [dot] METHOD /path  (the literal
+                                         request shape — one identifying line)
+                                  Row 2: description (clamped to one line
+                                         by default, expanded to full
+                                         multi-line text when this entry
+                                         is the active request — see
+                                         .kbEndpointDescription /
+                                         [data-expanded] CSS) */}
+                              <div className={styles.kbEndpointTopRow}>
+                                <span
+                                  className={styles.methodDot}
+                                  data-method={ep.method}
+                                />
+                                <span
+                                  className={styles.methodLabel}
+                                  data-method={ep.method}
+                                >
+                                  {ep.method}
+                                </span>
+                                <span
+                                  className={`text-mono ${styles.kbEndpointPath}`}
+                                >
+                                  {ep.path}
+                                </span>
+                              </div>
+                              <span className={styles.kbEndpointDescription}>
+                                {ep.description}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </Collapsible>
@@ -484,10 +512,16 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
 
 /**
  * Renders a fetched response body in the right mode for its content-type.
- *  - text/html  → sandboxed iframe via srcDoc, wrapped in a shimmer-bordered
- *                 frame so it reads as "this is a whole frontend embedded
- *                 here, served by the API you just hit."
- *  - other      → pre-formatted text (callers prettify JSON before passing).
+ *  - text/html   → sandboxed iframe via srcDoc, wrapped in a shimmer-
+ *                  bordered frame so it reads as "this is a whole
+ *                  frontend embedded here, served by the API you just
+ *                  hit."
+ *  - image/svg+xml → rendered as an <img> with a data: URL plus the
+ *                    raw SVG source shown underneath in a <details>,
+ *                    so visitors see BOTH the rendered output and the
+ *                    SVG markup that the endpoint returned.
+ *  - other       → pre-formatted text (callers prettify JSON before
+ *                  passing).
  */
 function ResponseBody({
   text,
@@ -514,6 +548,27 @@ function ResponseBody({
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           className={styles.responseIframe}
         />
+      </div>
+    );
+  }
+
+  // SVG is text-safe and the only image format we currently emit
+  // (cover endpoint). For PNG/JPEG/etc. responses we'd need a binary
+  // fetch path — none of the museum's routes return those today.
+  const isSvg = contentType?.includes("image/svg");
+  if (isSvg) {
+    const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(text)}`;
+    return (
+      <div className={styles.responseImageShell}>
+        <img
+          src={dataUrl}
+          alt="Response (SVG)"
+          className={styles.responseImage}
+        />
+        <details className={styles.responseImageSource}>
+          <summary className="text-xs">View SVG source</summary>
+          <pre className={`text-xs ${styles.responseText}`}>{text}</pre>
+        </details>
       </div>
     );
   }

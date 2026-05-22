@@ -1,0 +1,414 @@
+/* AdminPortalEnhanced — Replaced UI for the admin-portal Enhanced tier.
+   Lives inside the same museum chrome / shell as JsDomEventsEnhanced;
+   the tokens below pull from globals.css for theme consistency. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem 3rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* Soft backdrop so the sticky header reads above the scrolling grid. */
+  background: color-mix(in oklab, var(--background), transparent 12%);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 0;
+  margin: -0.5rem 0;
+}
+
+.searchGroup {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+}
+.searchInput:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring), transparent 80%);
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+.center.error {
+  color: var(--destructive);
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Book card ────────────────────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -12px
+    color-mix(in oklab, var(--foreground), transparent 70%);
+}
+
+.coverFrame {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lowStockBadge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem 0.875rem;
+  flex: 1;
+}
+
+.cardTitle {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+  /* Clamp to 2 lines so cards in the grid stay even-height-ish. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardMeta {
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.cardDescription {
+  color: var(--muted-foreground);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.375rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+.iconButton:hover {
+  background: var(--muted);
+}
+.iconButtonDanger {
+  color: var(--destructive);
+}
+.iconButtonDanger:hover {
+  background: color-mix(in oklab, var(--destructive), transparent 88%);
+  border-color: var(--destructive);
+}
+
+/* ── Modal (add/edit form) ────────────────────────────────────────── */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklab, var(--foreground), transparent 65%);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: min(720px, 100%);
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px -24px
+    color-mix(in oklab, var(--foreground), transparent 50%);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.modalClose {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  padding: 0.375rem;
+  border-radius: var(--radius-md);
+}
+.modalClose:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 1.25rem;
+}
+@media (max-width: 560px) {
+  .modalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.fieldLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+}
+.fieldHint {
+  font-weight: 400;
+  color: var(--muted-foreground);
+  opacity: 0.8;
+}
+.fieldInput,
+.fieldTextarea {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+.fieldTextarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+.fieldInput:focus,
+.fieldTextarea:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring), transparent 80%);
+}
+
+.modalPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.modalPreviewFrame {
+  aspect-ratio: 2 / 3;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.modalPreviewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+  padding-bottom: 0;
+}
+
+/* ── Toasts ───────────────────────────────────────────────────────── */
+
+.toasts {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 999;
+  pointer-events: none;
+  max-width: min(400px, calc(100vw - 2.5rem));
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  background: var(--card);
+  box-shadow: 0 12px 32px -16px
+    color-mix(in oklab, var(--foreground), transparent 60%);
+  animation: toast-in 0.18s ease-out;
+}
+.toastSuccess {
+  border-color: color-mix(in oklab, var(--success), transparent 60%);
+}
+.toastError {
+  border-color: color-mix(in oklab, var(--destructive), transparent 50%);
+  background: color-mix(in oklab, var(--destructive), var(--card) 90%);
+}
+.toastDetail {
+  margin: 0.2rem 0 0;
+  color: var(--muted-foreground);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

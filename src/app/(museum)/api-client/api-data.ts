@@ -610,6 +610,13 @@ export const APIS_ENHANCED: ApiProject[] = [
           "v2 only — books with quantity <= threshold, sorted by quantity asc. Operational visibility era-impossible without server-side query support.",
       },
       {
+        label: "Book cover (deterministic SVG)",
+        method: "GET",
+        path: "/cover/1?title=Sample%20Title&year=2024",
+        description:
+          "v2 only — returns a deterministic SVG cover seeded from the id + title + year. POST /books with no imageURL auto-fills this URL so the Replaced UI never has imageless rows. Try different ids to see the palette/typography/pattern roll.",
+      },
+      {
         label: "Compound write (batch)",
         method: "POST",
         path: "/batch",

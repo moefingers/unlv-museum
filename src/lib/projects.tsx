@@ -3,6 +3,7 @@ import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { JsDomEventsEnhanced } from "@/components/enhanced/JsDomEventsEnhanced";
+import { AdminPortalEnhanced } from "@/components/enhanced/AdminPortalEnhanced";
 import sourcesGenerated from "./sources.generated.json";
 
 /**
@@ -857,12 +858,15 @@ export const PROJECTS: Project[] = [
         src: "/originals/js-exercises/admin-portal/api-docs.html",
       },
     ],
-    enhanced: COMING_SOON,
+    enhanced: <AdminPortalEnhanced />,
+    techEnhanced: ["React", "Next.js", "Drizzle", "@vercel/firewall"],
     reimagined: COMING_SOON,
     siblingApiClient: "admin-portal",
     notes: {
       original:
         "Frontend preserved as-is; Express backend reimplemented as /api/admin-portal/* — see the Admin Portal card in /api-client to poke at the JSON endpoints. URLs in admin.js/index.js were rewritten from localhost:3001 to /api/admin-portal.",
+      enhanced:
+        "Freshly-written React admin UI that talks to /api/v2/admin-portal/* — inline search, low-stock badges, modal forms with live cover preview, audit-row toast after every successful write. Sign-in required for mutations (helpful 401 with worked example if you try unauth). The /api/v2/admin-portal/cover/<id> endpoint synthesizes a deterministic SVG cover for any book without an imageURL, keyed by id+title+year.",
     },
   },
   {

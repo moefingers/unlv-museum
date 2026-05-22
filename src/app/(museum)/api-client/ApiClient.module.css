@@ -211,19 +211,27 @@
 
 .kbEndpoint {
   display: flex;
+  flex-direction: column;
   width: 100%;
-  /* Use flex-start so a wrapping multi-line description hangs cleanly off
-     the top of the row instead of dropping the method dot to the middle
-     of the block. */
-  align-items: flex-start;
-  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  align-items: stretch;
+  gap: 0.25rem;
   border-radius: var(--radius-sm);
-  padding: 0.35rem calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
+  padding: 0.4rem calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
   text-align: left;
   transition: background var(--duration-normal) var(--ease-default);
 }
 .kbEndpoint:hover {
   background: var(--muted);
+}
+
+/* Top row of a rail entry: the literal request line ([dot] METHOD /path)
+   sitting above the wrapping description. align-items: center keeps the
+   dot, METHOD pill and path text optically aligned on one baseline. */
+.kbEndpointTopRow {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  min-width: 0;
 }
 
 /* Tiny method indicator dot + method label. The dot inherits color from
@@ -272,18 +280,74 @@
   color: var(--method-delete);
 }
 
+/* METHOD-over-path column at the left of the rail row.
+   Method on top, path stacked below — reads as one identifying unit
+   distinct from the wrapping description text on its right. The
+   description usually wraps to 2-3 lines, so the column's vertical
+   footprint fits comfortably inside that height. */
+.kbEndpointMethodGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  /* Cap the column width so very long paths don't crowd the description
+     out of the row. Anything longer ellipses (see .kbEndpointPath). */
+  max-width: 8rem;
+  min-width: 0;
+}
+.kbEndpointPath {
+  /* The literal request path. Ellipsis when too long; the column max-width
+     above controls when that happens. Tabular monospace via the
+     `text-mono` class on the JSX side. */
+  color: var(--foreground);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+  /* Tighter line-height since this sits underneath the method label. */
+  line-height: 1.1;
+  max-width: 100%;
+}
+
+/* Description that smoothly transitions between a one-line clamped
+   height (compact rail row) and its natural multi-line height
+   (expanded when this rail entry matches the active request).
+   The trick:
+     - block element with max-height of one line by default
+     - on [data-expanded], max-height → a generous cap (large enough
+       to cover the longest blurb in api-data.ts but bounded so the
+       row can't blow past the screen)
+     - the height interpolation is what produces the animation;
+       the line-clamp on the inner is what makes the truncated text
+       ellipsis cleanly while compact. */
 .kbEndpointDescription {
-  /* Allow wrapping so long endpoint blurbs (e.g. SQL-injection blurbs that
-     reference the literal `' OR '1'='1' --` payload, or rest-rant's "the
-     same monorepo backs both the SPA card..." line) stay legible instead
-     of truncating with ellipsis. The sidebar column is narrow but the
-     descriptions are part of the project's pedagogical story. */
-  white-space: normal;
+  /* webkit-box is the trigger for -webkit-line-clamp; modern Chromium
+     normalizes the computed display to `flow-root` but still honors
+     the clamp. Don't second-guess this with display: block. */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  /* max-height (rather than height: auto) is the interpolatable axis
+     here: 1.2rem ≈ one line plus a hair of slack to avoid clipping
+     descenders mid-animation; on [data-expanded] the cap relaxes to
+     8rem, room for ~6 lines of the longest blurb in api-data.ts. */
+  max-height: 1.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   overflow-wrap: anywhere;
+  transition: max-height var(--duration-normal, 300ms)
+    var(--ease-default, ease-out);
   color: var(--muted-foreground);
-  /* Slightly tighter line-height for the wrapped lines so the row doesn't
-     tower over single-line entries. */
   line-height: 1.35;
+}
+.kbEndpoint[data-expanded] .kbEndpointDescription {
+  /* Generous cap — most api-data.ts blurbs fit in 4 lines; 6 covers
+     the wildest (SQL-injection / batch description). Beyond that the
+     text would clip with ellipsis, but the row stays bounded. */
+  max-height: 8rem;
+  -webkit-line-clamp: 6;
 }
 
 /* History panel inside sidebar. */
@@ -576,6 +640,51 @@
   border: 0;
   border-radius: var(--radius-md);
   background: #ffffff;
+}
+
+/* SVG image-response viewer. The cover-art endpoint returns image/svg+xml
+   and Replaced-UI development means visitors will hit it directly via
+   the api-client; showing the rendered image is far more useful than
+   the raw markup. Source is still accessible via the <details>. */
+.responseImageShell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-lg);
+}
+.responseImage {
+  max-width: 100%;
+  max-height: 32rem;
+  border-radius: var(--radius-md);
+  /* Checkerboard backdrop so transparent regions read clearly. The
+     covers themselves are fully opaque, but other SVGs the cover
+     endpoint might evolve to emit could be partial; the backdrop
+     covers both cases. */
+  background-image:
+    linear-gradient(45deg, var(--surface-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-3) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0px;
+}
+.responseImageSource {
+  width: 100%;
+}
+.responseImageSource summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  padding: 0.5rem 0;
+}
+.responseImageSource[open] summary {
+  color: var(--foreground);
 }
 
 /* Narrow-viewport drawer behavior.
