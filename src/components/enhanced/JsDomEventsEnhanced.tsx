@@ -202,41 +202,73 @@ export function JsDomEventsEnhanced() {
         const targetId = classify(e.target);
         scheduleReset();
 
+        // preventDefault on the link: fire it on the FIRST listener
+        // we see in the dispatch (which is outer-capture, since it
+        // sits highest in the chain). preventDefault works from any
+        // listener in the chain — calling it once is enough to
+        // cancel the default action across the whole dispatch. We
+        // gate on `ringId === "outer" && capture` so this only fires
+        // once per dispatch, not five times.
+        const isLinkTargeted = targetId === "link";
+        const shouldPrevent =
+          preventDefRef.current &&
+          isLinkTargeted &&
+          ringId === "outer" &&
+          capture;
+        if (shouldPrevent) {
+          e.preventDefault();
+          if (e instanceof MouseEvent) {
+            spawnFloater(e.clientX, e.clientY);
+          }
+          const slot = phaseIndex; // log the prevention at the current slot
+          setTimeout(() => {
+            append({ phase: "prevented", ring: ringId, target: targetId });
+          }, slot * STAGGER_MS);
+        }
+
         if (e.eventPhase === Event.AT_TARGET) {
           if (capture) return;
-          // SYNCHRONOUS: modifiers must fire inside the listener call
-          // or they're too late to affect the dispatch.
+          // SYNCHRONOUS: stopPropagation must fire inside the listener
+          // call or it's too late to affect the dispatch. (preventDefault
+          // for the link is handled above on the outer-capture pass.)
           if (stopPropRef.current) {
             e.stopPropagation();
-          }
-          if (preventDefRef.current && targetId === "link") {
-            e.preventDefault();
-            if (e instanceof MouseEvent) {
-              spawnFloater(e.clientX, e.clientY);
-            }
           }
           // STAGGERED: visual narration, queued at the target's slot.
           const slot = phaseIndex++;
           const wasStopped = stopPropRef.current;
-          const wasPrevented = preventDefRef.current && targetId === "link";
           setTimeout(() => {
             append({ phase: "target", ring: ringId, target: targetId });
             pulse(ringId);
             if (wasStopped) {
               append({ phase: "stopped", ring: ringId, target: targetId });
             }
-            if (wasPrevented) {
-              append({ phase: "prevented", ring: ringId, target: targetId });
-            }
           }, slot * STAGGER_MS);
           return;
         }
 
+        // Non-target listener (capture or bubble through an ancestor).
+        // When the target is the link (no listener attached to it
+        // directly), the AT_TARGET branch never fires — so we apply
+        // stopPropagation at the link's deepest ring ancestor (inner)
+        // on the BUBBLE pass, mirroring the "halt at target" semantics
+        // visitors expect when toggling stopPropagation. Capture pass
+        // is preserved so visitors see the full inward wavefront; only
+        // the bubble pass is suppressed.
         const phase: Phase = capture ? "capture" : "bubble";
+        const isLinkAtInnerBubble =
+          isLinkTargeted && ringId === "inner" && !capture;
+        if (stopPropRef.current && isLinkAtInnerBubble) {
+          e.stopPropagation();
+        }
         const slot = phaseIndex++;
+        const wasStoppedHere = stopPropRef.current && isLinkAtInnerBubble;
         setTimeout(() => {
           append({ phase, ring: ringId, target: targetId });
           pulse(ringId);
+          if (wasStoppedHere) {
+            append({ phase: "stopped", ring: ringId, target: targetId });
+          }
         }, slot * STAGGER_MS);
       };
     }
