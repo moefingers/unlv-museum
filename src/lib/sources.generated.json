@@ -2,8 +2,8 @@
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready/original",
-    "commit": "27304a7d3cbabfc329fe7673930e7826ce5e495c",
-    "lockHash": "sha256:b47b5bf8074051a5ec468716ae02bcd5fc921d77d377c156467c68896c7624bd",
+    "commit": "733734061a6423e1a75184130e78e29a62ce7fbe",
+    "lockHash": "sha256:3bd689ba842ccf6a9cf37dc0882748403764bee6202ac9d2304a5e5897e1eda7",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"
@@ -11,7 +11,7 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "a44d113d9d6726497686ac2eb1e8a30d8bc6ed1b",
+    "commit": "93f9355ec5a7de9beca008bdfdedc3cb5a27ccfb",
     "lockHash": "sha256:92fa3c0148a074e3443d05b6e9322cdd0f2905e4bf2b5c150a55bdde93940845",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -20,7 +20,7 @@
   "shared-counter": {
     "repo": "moefingers/JS-Building-a-Shared-Counter-Part-1",
     "branch": "museum-ready/original",
-    "commit": "01262274f809db67d2e9fd9bade930c7bf95dd9b",
+    "commit": "42f46969aba24040573be06d4a1652499f174397",
     "lockHash": "sha256:4e34cc43160b2a95e452f403b38ae8b9658f1f22b6f8d46560832d3e126ae5c4",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -29,8 +29,8 @@
   "jaskis": {
     "repo": "moefingers/API-JASKIS",
     "branch": "museum-ready/original",
-    "commit": "375b7d94dd76f338e93f629aaadb0961843d4476",
-    "lockHash": "sha256:5c3ee500614b617a99d1f7b8966d186b4910fbfa777c4aca19f3ead8960639b8",
+    "commit": "85ab46f436324768258787bb61447a8f7f672350",
+    "lockHash": "sha256:1cb844af941a797659993cd8dcc9caddcb5f7a04f9e382caee33533d44e4269f",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-02-19"
@@ -38,8 +38,8 @@
   "music-tour-api": {
     "repo": "moefingers/SQL-Music-Tour-API",
     "branch": "museum-ready/original",
-    "commit": "8af5a62130ce96387d71832337a0407a7449193a",
-    "lockHash": "sha256:140d8430d0e48e624a7b691dbe9b0d43843665cf2e8295f5d827074ab0c1989f",
+    "commit": "55cc877e327e9665ceb86ac1ef687ba09b8626eb",
+    "lockHash": "sha256:486424d6fa6bb3ef39bee1630e95e63d31e0350b173ff8011ff7fcb9b02499e6",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-04-02"
@@ -47,8 +47,8 @@
   "rest-rant": {
     "repo": "moefingers/rest-rant-monorepo",
     "branch": "museum-ready/original",
-    "commit": "022444e83e5201b6ef7f57bf521e00ae698ea6c5",
-    "lockHash": "sha256:43139397e6b48430e0b8e9cf393916722e5c826ba8bb3c45841158ae2f103dd6",
+    "commit": "316cc777813a0ed9374a93f7fd5da954e47aadaf",
+    "lockHash": "sha256:20ee7cdfb36d095f3c37d615b806ee1ba190921d14b858c0675b4286ad29bead",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-05-04"
@@ -56,8 +56,8 @@
   "interactive-map": {
     "repo": "moefingers/JS-Making-an-Interactive-Map",
     "branch": "museum-ready/original",
-    "commit": "6e467c2d009b02b8bf9369435e71846e4e198b0f",
-    "lockHash": "sha256:9d663c9b9573038377a6d53462753dd844ed6b2ec406314aad7dacf717c888b2",
+    "commit": "c6fdc7e5a4f5d34453d449c2ef11702d98152357",
+    "lockHash": "sha256:f3ee46343ce887a628cc6deea4b4820d7680965825ea28345bec7faaf2532dbf",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-04"
@@ -65,7 +65,7 @@
   "sql-injection-demo": {
     "repo": "moefingers/iam-2-sql-injection-demo",
     "branch": "museum-ready/original",
-    "commit": "e548bd73dcda02223c2bd92c5e66282be76b02b6",
+    "commit": "07d884bf9d8d25ee840c2ad2e45f33047e9b1720",
     "lockHash": "sha256:4567d521d2f4640da4303a45f1c470b14c85d8ae834e0eff7660746fa086bc45",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -74,8 +74,8 @@
   "rest-rant-ssr": {
     "repo": "moefingers/UNLV-rest-rant",
     "branch": "museum-ready/original",
-    "commit": "78aa9c12796aff7f4825c2409fbab3824ff85f92",
-    "lockHash": "sha256:61b7b476e572fc616af57c15ded8e67151fff5a68bd49670e6e0f8709f224e1d",
+    "commit": "6a04621356bf0043a6a58a6a481e6e2fa65958ca",
+    "lockHash": "sha256:2a945c6c5cf7d13f1df4fec74d3e8dcee697c02866b9bbbf76670f724d1adf01",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-02-03"

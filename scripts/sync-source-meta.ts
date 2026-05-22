@@ -488,19 +488,20 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
       : project.reimaginedExternal != null
     : false;
   const liveExtras: string[] = [];
-  if (liveEnhanced) liveExtras.push("enhanced");
-  if (liveReimagined) liveExtras.push("reimagined");
+  if (liveEnhanced) liveExtras.push("**enhanced**");
+  if (liveReimagined) liveExtras.push("**reimagined**");
   const extrasPhrase =
     liveExtras.length === 0
       ? null
       : liveExtras.length === 1
         ? liveExtras[0]
         : `${liveExtras[0]} and ${liveExtras[1]}`;
-  // Rewrites the existing "Open in museum →" link to advertise the
-  // non-original tiers (enhanced / reimagined / both) when they're live.
-  // When only the original tier exists, falls back to the bare CTA.
+  // Rewrites the trailing call-to-action to celebrate the non-original
+  // tiers when they're live. GitHub renders bold inside link text, so
+  // the tier names land emphasized in the README. When only the original
+  // exists, falls back to the bare "Open in museum →" link.
   const museumCta = extrasPhrase
-    ? `[Open in museum for the ${extrasPhrase} ${liveExtras.length === 1 ? "tier" : "tiers"} →](${homepage})`
+    ? `[This project has been ${extrasPhrase}! →](${homepage})`
     : `[Open in museum →](${homepage})`;
 
   const banner = `${BANNER_START}
