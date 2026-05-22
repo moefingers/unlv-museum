@@ -577,17 +577,40 @@ export function PolyhedronGlobe({
   // followed by a mouseenter. We gate engagement on intent.
   const [engagedVertexIdx, setEngagedVertexIdx] = useState<number | null>(null);
 
-  // Hover-cycle bookkeeping (sphere decelerate → hold → resume).
-  const hoverCycleStart = useRef<number | null>(null);
-
-  // Cursor-movement gating. Updated by the SVG-level pointermove
-  // listener. A new dot's mouseenter only counts as user intent if a
-  // mousemove fired within INTENT_WINDOW_MS before it.
-  const lastCursorMoveAt = useRef<number>(0);
+  // Hover-gesture bookkeeping. Single ref bundling all per-gesture
+  // hover state that doesn't render — same pattern as `drag` and
+  // `crosshairGesture` above. `engagedVertexIdx` stays separate as
+  // React state because it drives VertexHover renders.
+  //
+  // Field roles:
+  //   cycleStart      — performance.now() when the sphere hover-
+  //                     deceleration cycle started; null when not
+  //                     in a cycle. The rAF loop reads this to
+  //                     interpolate the speed multiplier.
+  //   lastMoveAt      — performance.now() of the last pointermove
+  //                     on the SVG. handleDotEnter uses it to gate
+  //                     "intent" vs "geometry drift" — a dot's
+  //                     mouseenter only counts as user intent if a
+  //                     mousemove fired within INTENT_WINDOW_MS.
+  //   cursorPos       — last pointer position in viewBox coords;
+  //                     null when the cursor is outside the SVG.
+  //                     The collapse-timer effect uses it each
+  //                     render to check whether the cursor is
+  //                     still over the engaged dot.
+  type HoverGesture = {
+    cycleStart: number | null;
+    lastMoveAt: number;
+    cursorPos: { x: number; y: number } | null;
+  };
+  const hover = useRef<HoverGesture>({
+    cycleStart: null,
+    lastMoveAt: 0,
+    cursorPos: null,
+  });
 
   const handleDotEnter = useCallback((vi: number) => {
     const now = performance.now();
-    const intent = now - lastCursorMoveAt.current < INTENT_WINDOW_MS;
+    const intent = now - hover.current.lastMoveAt < INTENT_WINDOW_MS;
     if (!intent) {
       // Geometry drift — dot rolled under a motionless cursor. Ignore.
       return;
@@ -603,9 +626,9 @@ export function PolyhedronGlobe({
     setEngagedVertexIdx((prev) => {
       if (prev === vi) return prev; // same dot, already engaged
       // Trigger a fresh hover cycle if the sphere is back near cruise.
-      const currentMul = computeHoverSpeedMul(now, hoverCycleStart.current);
+      const currentMul = computeHoverSpeedMul(now, hover.current.cycleStart);
       if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
-        hoverCycleStart.current = now;
+        hover.current.cycleStart = now;
       }
       return vi;
     });
@@ -763,7 +786,7 @@ export function PolyhedronGlobe({
         fromQ: latestQ.current,
         toQ,
       };
-      hoverCycleStart.current = null;
+      hover.current.cycleStart = null;
       anchoredAxis.current = null;
       // No setTimeout here — the slerp completion in the rAF loop
       // bumps swingCompletionTick which advances to coneRising via
@@ -1004,26 +1027,27 @@ export function PolyhedronGlobe({
 
   // SVG-level pointer handlers.
   //
-  // pointermove tracks two things:
-  //   - lastCursorMoveAt timestamp (gates intent for dot-enter)
-  //   - cursorPos in viewBox coordinates (used by the per-frame
-  //     check below to decide whether the cursor is currently over
-  //     the engaged dot's hit target)
+  // pointermove tracks two things via the `hover` bundle declared
+  // up in the engagement model section:
+  //   - hover.current.lastMoveAt timestamp (gates intent for
+  //     dot-enter)
+  //   - hover.current.cursorPos in viewBox coordinates (used by
+  //     the per-frame check below to decide whether the cursor is
+  //     currently over the engaged dot's hit target)
   //
   // pointerleave: cursor left the entire SVG. Belt-and-suspenders
   // dismiss — the per-frame check would also catch this once it
   // notices the cursor's last-known position is no longer over the
   // engaged dot, but pointerleave fires immediately.
-  const cursorPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleSvgPointerMove = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
-      lastCursorMoveAt.current = performance.now();
+      hover.current.lastMoveAt = performance.now();
       // Convert client coords → SVG viewBox coords. The SVG fills its
       // wrapper at intrinsic size (we set width/height = stageSize),
       // so the math is a simple subtract-bounding-rect.
       const rect = e.currentTarget.getBoundingClientRect();
-      cursorPos.current = {
+      hover.current.cursorPos = {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
       };
@@ -1050,7 +1074,7 @@ export function PolyhedronGlobe({
   // THIS is the right place to clear engagement (the user has
   // genuinely walked away from the sphere area).
   const handleStagePointerLeave = useCallback(() => {
-    cursorPos.current = null;
+    hover.current.cursorPos = null;
     setEngagedVertexIdx(null);
   }, []);
 
@@ -1184,13 +1208,13 @@ export function PolyhedronGlobe({
             const speedMul =
               p === "open"
                 ? 1 // anchored rotation is steady at 0.6× via anchorMul below
-                : computeHoverSpeedMul(now, hoverCycleStart.current);
+                : computeHoverSpeedMul(now, hover.current.cycleStart);
             if (
               p !== "open" &&
               speedMul >= 1 &&
-              hoverCycleStart.current !== null
+              hover.current.cycleStart !== null
             ) {
-              hoverCycleStart.current = null;
+              hover.current.cycleStart = null;
             }
             if (speedMul > 0) {
               const anchorMul = p === "open" ? ANCHOR_AUTO_SPEED_MUL : 1;
@@ -1945,7 +1969,7 @@ export function PolyhedronGlobe({
       }
       return;
     }
-    const cursor = cursorPos.current;
+    const cursor = hover.current.cursorPos;
     const dot = visibleVertices.find((v) => v.vi === engaged);
     // Compute cursor-over-dot. If cursor has never moved (null), treat
     // as "still over" — the user has been motionless since engagement.
