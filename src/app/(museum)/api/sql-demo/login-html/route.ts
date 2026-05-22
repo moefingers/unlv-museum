@@ -38,7 +38,18 @@ import { sql } from "drizzle-orm";
 import { guardMutation } from "@/lib/api-guard";
 import { writeSqlDemoAudit } from "../route";
 
-const HASH_REDIRECT_BASE = "/api/sql-demo/";
+/**
+ * Derive the hash-redirect base from the request URL so a failed
+ * form-submit lands back on the form the visitor was using. Without
+ * this, a POST to /api/v2/sql-demo/login-html (the Enhanced surface)
+ * would redirect the iframe to /api/sql-demo/ (the Original form),
+ * swapping the visitor out of the tier they chose.
+ */
+function hashRedirectBase(request: Request): string {
+  return new URL(request.url).pathname.startsWith("/api/v2/")
+    ? "/api/v2/sql-demo/"
+    : "/api/sql-demo/";
+}
 
 async function readForm(request: Request): Promise<URLSearchParams> {
   const ct = request.headers.get("content-type") ?? "";
@@ -65,9 +76,12 @@ async function readForm(request: Request): Promise<URLSearchParams> {
 /**
  * HTML-shaped 401 — the iframe is going to render whatever we return,
  * so JSON would look like garbage to a visitor. This page links back
- * to the demo and explains the museum-session requirement.
+ * to the demo and explains the museum-session requirement. The
+ * back-link is per-request so the Enhanced form's unauth page
+ * sends them back to the Enhanced form, not the Original one.
  */
-function htmlUnauthResponse(): Response {
+function htmlUnauthResponse(request: Request): Response {
+  const backLink = hashRedirectBase(request);
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -94,7 +108,7 @@ function htmlUnauthResponse(): Response {
   </p>
   <p>
     Sign in via the avatar menu in the museum's top-right chrome,
-    then come back to <a href="/api/sql-demo/">the login form</a>.
+    then come back to <a href="${backLink}">the login form</a>.
   </p>
 </body>
 </html>`;
@@ -108,7 +122,7 @@ export async function POST(request: Request) {
   const guard = await guardMutation(request);
   // Override the default JSON 401 with an HTML one — the iframe's
   // content-type expectation is HTML.
-  if (guard.response) return htmlUnauthResponse();
+  if (guard.response) return htmlUnauthResponse(request);
 
   const form = await readForm(request);
   const username = (form.get("username") ?? "").slice(0, 500);
@@ -156,17 +170,19 @@ export async function POST(request: Request) {
     error,
   });
 
+  const redirectBase = hashRedirectBase(request);
+
   if (outcome === "query_error") {
     console.error("[sql-demo/login-html] query error", error);
     return Response.redirect(
-      new URL(`${HASH_REDIRECT_BASE}#error`, request.url),
+      new URL(`${redirectBase}#error`, request.url),
       302,
     );
   }
 
   if (!row) {
     return Response.redirect(
-      new URL(`${HASH_REDIRECT_BASE}#unauthorized`, request.url),
+      new URL(`${redirectBase}#unauthorized`, request.url),
       302,
     );
   }
@@ -174,6 +190,9 @@ export async function POST(request: Request) {
   // Mirror the original res.send shape: a greeting using the matched
   // user's role (the original called it `title`) and a few "secrets"
   // for flavor — same content the original Express server returned.
+  // The "back to login" link uses the per-request prefix so the
+  // Enhanced success page links back to the Enhanced form (not the
+  // Original one).
   const role = row.role ?? "User";
   const html = `<!doctype html>
 <html lang="en">
@@ -188,7 +207,7 @@ export async function POST(request: Request) {
   This file contains all your secret data:<br><br>
   SECRETS<br><br>
   MORE SECRETS<br><br>
-  <a href="/api/sql-demo/">Go back to login</a>
+  <a href="${redirectBase}">Go back to login</a>
 </body>
 </html>`;
   return new Response(html, {

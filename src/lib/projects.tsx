@@ -1146,11 +1146,18 @@ export const PROJECTS: Project[] = [
     // form-submit posts to /api/sql-demo/login-html). The api-client lab
     // surface lives at the sibling `sql-injection-demo-api` entry below.
     original: <OriginalFrame src="/api/sql-demo/" />,
-    enhanced: COMING_SOON,
+    // Enhanced iframes /api/v2/sql-demo/ — a self-contained modern HTML
+    // form (inline <style>, mode toggle, quick-payload buttons,
+    // audit-aware footer). Same vulnerability surface, posts to
+    // /api/v2/sql-demo/login-html so audit rows record tier="enhanced".
+    enhanced: <OriginalFrame src="/api/v2/sql-demo/" />,
+    techEnhanced: ["HTML", "Inline CSS", "Drizzle", "@vercel/firewall"],
     reimagined: COMING_SOON,
     notes: {
       original:
         "Frontend preserved as-is. The form action was rewritten from `/login` to `/api/sql-demo/login-html` on museum-ready/original so the form-submit flow reaches the museum's route handler instead of the dead `/login` of the original Express server. Vulnerability surface is unchanged: try `' OR '1'='1' --` in the username field.",
+      enhanced:
+        "Freshly-authored HTML form at /api/v2/sql-demo/ — same vulnerability surface, modernized layout (system fonts, focus rings, dark-mode), a vulnerable/safe mode toggle, four quick-payload buttons (legit + classic injection + two UNION attacks that hit the role-lockdown wall), and an audit-aware footer linking straight to the trail. Sign-in still required; every attempt still audited as tier=enhanced.",
     },
   },
   {
@@ -1264,7 +1271,9 @@ export const PROJECTS: Project[] = [
     year: "Feb 2024",
     category: "exercises",
     techOriginal: ["React", "CRA"],
-    original: COMING_SOON,
+    original: (
+      <OriginalFrame src="/originals/react-exercises/declarative-counter/index.html" />
+    ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     // Conceptual cross-link, NOT an api+client pair. The vanilla-JS
