@@ -70,33 +70,59 @@ const EMPTY_FORM: BookFormState = {
   imageURL: "",
 };
 
+/**
+ * Debounce window for the search field. 250ms is the conventional
+ * "feels instant but actually waits for typing to settle" target —
+ * shorter (100ms) still fires several requests per word; longer
+ * (500ms+) starts feeling laggy.
+ */
+const SEARCH_DEBOUNCE_MS = 250;
+
 export function AdminPortalEnhanced() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  // `query` is what the input shows (updates on every keystroke).
+  // `debouncedQuery` is what the fetch effect actually reads — it
+  // trails `query` by SEARCH_DEBOUNCE_MS so we don't hammer
+  // /api/v2/admin-portal/search on every character.
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [editing, setEditing] = useState<Book | null>(null);
   const [adding, setAdding] = useState(false);
 
   // Reload counter — bumped by mutations to force a re-fetch even when
-  // `query` hasn't changed. Read by the effect below alongside `query`,
-  // so we don't need a `refresh` function in scope at render-time
-  // (which would put setState reachable from the effect's dep chain
-  // and trip react-hooks/set-state-in-effect).
+  // the debounced query hasn't changed. Read by the effect below
+  // alongside `debouncedQuery`, so we don't need a `refresh` function
+  // in scope at render-time (which would put setState reachable from
+  // the effect's dep chain and trip react-hooks/set-state-in-effect).
   const [reloadKey, setReloadKey] = useState(0);
   const triggerReload = useCallback(() => setReloadKey((k) => k + 1), []);
 
-  // Fetch on mount, on query change, and on every triggerReload(). The
-  // setState calls happen inside an awaited body — they're microtask-
-  // deferred, not synchronous-in-effect — and the AbortController
-  // unmount-guard prevents stale responses from overwriting newer
-  // state if the user types fast.
+  // Debounce `query` → `debouncedQuery`. Bare-minimum implementation:
+  // each `query` change schedules a setState that runs after the
+  // debounce window; if `query` changes again first, the timeout is
+  // cleared by the effect's cleanup. No external library needed.
+  useEffect(() => {
+    // No-op when query hasn't actually changed (avoids triggering a
+    // re-fetch on initial mount, since debouncedQuery starts at "" too).
+    if (debouncedQuery === query) return;
+    const t = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [query, debouncedQuery]);
+
+  // Fetch on mount, on debounced-query change, and on every
+  // triggerReload(). The setState calls happen inside an awaited body
+  // — they're microtask-deferred, not synchronous-in-effect — and the
+  // AbortController unmount-guard prevents stale responses from
+  // overwriting newer state if the debounced query advances again
+  // while a fetch is still in flight.
   useEffect(() => {
     const ctrl = new AbortController();
     (async () => {
       setStatus({ kind: "loading" });
       try {
-        const url = query.trim()
-          ? `/api/v2/admin-portal/search?q=${encodeURIComponent(query.trim())}`
+        const url = debouncedQuery.trim()
+          ? `/api/v2/admin-portal/search?q=${encodeURIComponent(debouncedQuery.trim())}`
           : "/api/v2/admin-portal/books";
         const res = await fetch(url, { signal: ctrl.signal });
         if (!res.ok) {
@@ -119,7 +145,7 @@ export function AdminPortalEnhanced() {
       }
     })();
     return () => ctrl.abort();
-  }, [query, reloadKey]);
+  }, [debouncedQuery, reloadKey]);
 
   // Toast helpers — show, auto-dismiss after a few seconds. Each toast
   // gets a unique id (incrementing counter via the timestamp + random).
@@ -352,8 +378,13 @@ export function AdminPortalEnhanced() {
       {status.kind === "ok" && books.length === 0 && (
         <div className={styles.center}>
           <p>
-            {query.trim()
-              ? `No books matching “${query.trim()}.”`
+            {/* Use debouncedQuery here, not query — the displayed
+                results reflect the debounced fetch, so the empty-state
+                copy should match. Otherwise, briefly after a user
+                clears the input, we'd see "No books yet" alongside
+                stale filtered results. */}
+            {debouncedQuery.trim()
+              ? `No books matching “${debouncedQuery.trim()}.”`
               : "No books yet — click “Add a book” to seed the inventory."}
           </p>
         </div>
