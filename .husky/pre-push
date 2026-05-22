@@ -1,3 +1,36 @@
+# Sync source-repo metadata (museum-ready banners) when this push includes
+# changes to projects.tsx. The banner CTA text depends on which non-original
+# tiers are live for each project — if an Enhanced or Reimagined just got
+# wired up in projects.tsx, the matching source repo's README needs the new
+# celebratory CTA. sync:source-meta is idempotent: every per-repo step
+# short-circuits when its target state is already current, so this is cheap
+# when nothing relevant changed.
+#
+# Gate: only run when projects.tsx is in the commits about to be pushed.
+# Otherwise tier-irrelevant pushes (typo fixes, docs, unrelated component
+# edits) skip the network roundtrip entirely.
+#
+# Failure mode: if sync produces banner updates, it commits + pushes to each
+# source repo's museum-ready/original branch AND stages the submodule pointer
+# bumps in this superproject. Those staged bumps aren't part of the in-flight
+# push, so the hook aborts and tells the user to commit + re-push. This is
+# the safer path than silently skipping the bumps (which would leave the
+# museum's submodule pointers out of sync with the freshly-bumped source
+# repos until the next push).
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || true)
+if [ -n "$upstream" ] && git diff --name-only "$upstream..HEAD" 2>/dev/null | grep -q "^src/lib/projects.tsx$"; then
+  echo "pre-push: projects.tsx changed — running pnpm sync:source-meta"
+  pnpm sync:source-meta
+  if ! git diff --quiet --cached 2>/dev/null; then
+    echo ""
+    echo "pre-push: sync:source-meta produced submodule-pointer bumps."
+    echo "         Review the staged changes, commit them, and push again."
+    echo ""
+    git status --short
+    exit 1
+  fi
+fi
+
 # Verify every submodule's HEAD has been pushed to its upstream tracking branch.
 # This is the structural guarantee: no museum push can land with stale submodule pointers.
 git submodule foreach --quiet '
