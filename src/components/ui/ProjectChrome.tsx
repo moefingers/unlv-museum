@@ -106,7 +106,7 @@ export function ProjectChrome({ project }: { project: Project }) {
   }));
 
   const tierSources = resolveTierSources(project, currentTier);
-  const siblingLink = resolveSiblingLink(project);
+  const siblingLink = resolveSiblingLink(project, currentTier);
   // The notes panel hosts the per-tier note, the GitHub source links,
   // and the cross-link to the api-client/frontend counterpart when
   // this project is half of an api+client pair. Show the toggle (and

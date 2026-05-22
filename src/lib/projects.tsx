@@ -367,15 +367,27 @@ export interface SiblingLink {
   label: string;
   url: string;
 }
-export function resolveSiblingLink(project: Project): SiblingLink | null {
+export function resolveSiblingLink(
+  project: Project,
+  tier: ViewMode = "original",
+): SiblingLink | null {
   if (project.siblingApiClient) {
     // The frontend → api-client direction: the target is a viewer-route
     // entry (`/api-client?api=<id>`), not a museum project path, so
     // projectPath() doesn't apply here. The api-client's `?api=` value
     // is the partner slug.
+    //
+    // Tier-aware: when the visitor is on the frontend's Enhanced tier,
+    // route to the api-client's v=2 view so they land on the matching
+    // endpoint list (the source-faithful endpoints belong to v1; the
+    // Replaced UI exercises v2). Same logic for Reimagined when that
+    // tier has its own api shape (none yet, but the field is in place).
+    const params = new URLSearchParams();
+    params.set("api", project.siblingApiClient);
+    if (tier === "enhanced") params.set("v", "2");
     return {
-      label: "Try the live API",
-      url: `/api-client?api=${project.siblingApiClient}`,
+      label: tier === "enhanced" ? "Try the live API (v2)" : "Try the live API",
+      url: `/api-client?${params.toString()}`,
     };
   }
   if (project.siblingFrontend) {
@@ -387,14 +399,30 @@ export function resolveSiblingLink(project: Project): SiblingLink | null {
     // shouldn't happen at runtime (the cross-link only renders when
     // both ends are wired), but the fallback keeps the chrome safe
     // against stale data.
+    //
+    // Tier-aware: when the visitor is on the API's Enhanced view, link
+    // to the frontend's Enhanced tier (the Replaced UI) instead of the
+    // first multi-page-original landing URL.
     const target = PROJECTS.find((p) => p.slug === project.siblingFrontend);
-    // Use projectLandingUrl so multi-page frontends land at their
-    // canonical first-page URL directly — no router-redirect hop, no
-    // double view transition.
-    const url = target
-      ? projectLandingUrl(target)
-      : `/${project.siblingFrontend}`;
-    return { label: "Open the frontend", url };
+    let url: string;
+    if (target) {
+      if (tier === "enhanced" && target.enhanced != null) {
+        url = `/${projectPath(target)}/enhanced`;
+      } else if (tier === "reimagined" && target.reimagined != null) {
+        url = `/${projectPath(target)}/reimagined`;
+      } else {
+        url = projectLandingUrl(target);
+      }
+    } else {
+      url = `/${project.siblingFrontend}`;
+    }
+    return {
+      label:
+        tier === "enhanced"
+          ? "Open the Enhanced frontend"
+          : "Open the frontend",
+      url,
+    };
   }
   return null;
 }

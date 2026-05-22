@@ -203,6 +203,26 @@
   color: var(--muted-foreground);
 }
 
+/* Cross-link to a paired museum route (the frontend half of an api+
+   client pair). Visually distinct from the endpoint buttons below —
+   it's NAVIGATION, not a request — so it sits in its own row with an
+   arrow-swap icon and a subtle underline-on-hover treatment. */
+.kbRelatedRoute {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  color: var(--foreground);
+  text-decoration: none;
+}
+.kbRelatedRoute:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .kbEndpoints {
   display: flex;
   flex-direction: column;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense, ViewTransition } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ArrowRightLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome } from "@/components/ui/MuseumChrome";
 import {
@@ -279,6 +280,20 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
                       <p className={`text-xs ${styles.kbDetailsDescription}`}>
                         {api.description}
                       </p>
+                      {api.relatedRoute && (
+                        // Cross-link to the paired museum route (the
+                        // frontend half of an api+client pair, or a
+                        // Replaced UI). Sits between the description
+                        // and the endpoints list so visitors notice
+                        // it before they start poking endpoints.
+                        <Link
+                          href={api.relatedRoute.url}
+                          className={`text-xs ${styles.kbRelatedRoute}`}
+                        >
+                          <ArrowRightLeft size={12} aria-hidden="true" />
+                          <span>{api.relatedRoute.label}</span>
+                        </Link>
+                      )}
                       <div className={styles.kbEndpoints}>
                         {api.endpoints.map((ep, i) => {
                           // Expand the description to its full multi-line

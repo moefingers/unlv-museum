@@ -23,6 +23,15 @@ export interface ApiProject {
   description: string;
   tech: string;
   endpoints: Endpoint[];
+  /**
+   * Optional museum-route cross-link surfaced in the api-client's
+   * details panel. Used to point visitors from the API view to its
+   * paired frontend (or to a related Replaced UI). Mirrors the
+   * `siblingFrontend` field on the backend's projects.tsx entry, but
+   * lives here because the api-client viewer has its own per-API
+   * details panel that ProjectChrome doesn't render.
+   */
+  relatedRoute?: { label: string; url: string };
 }
 
 export const APIS_ORIGINAL: ApiProject[] = [
@@ -163,6 +172,10 @@ export const APIS_ORIGINAL: ApiProject[] = [
     description:
       "Book inventory management. The original Express server served the admin UI HTML at / alongside these JSON routes, so the frontend reads as a sibling endpoint that opens a URL.",
     tech: "Originally Express + JSON file store",
+    relatedRoute: {
+      label: "Open the Original admin UI",
+      url: "/js-exercises/admin-portal",
+    },
     endpoints: [
       {
         label: "Admin Portal page",
@@ -541,6 +554,10 @@ export const APIS_ENHANCED: ApiProject[] = [
     description:
       "Enhanced tier — same book-inventory data as v1 plus: REST-shaped aliases (/books, /books/:id) alongside the original verb-prefixed paths on v1, a transactional /batch endpoint, /search across title+description, /low-stock for operational reports, /audit-log over every mutation in both tiers, and /rate-limit observability. Writes on both tiers now require GitHub sign-in (anti-abuse carve-out) and are attributed in the audit log.",
     tech: "Next.js + Drizzle + @vercel/firewall + Better Auth PAT",
+    relatedRoute: {
+      label: "Open the Replaced admin UI",
+      url: "/js-exercises/admin-portal/enhanced",
+    },
     endpoints: [
       // ── REST aliases (v2 modern shape) ──────────────────────────────
       {
