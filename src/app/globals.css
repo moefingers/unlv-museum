@@ -83,6 +83,47 @@
     --category-python: oklch(0.7 0.16 90); /* yellow-green */
     --category-exercises: oklch(0.7 0.17 55); /* amber */
 
+    /* ─── Museum: SVG-glass tokens (light) ─────────────
+       The polyhedron globe paints multiple "glass" surfaces —
+       the anchored project's hex card, the projection cone from
+       globe center up to the card, the default vertex-glow
+       gradient. In dark mode these read as cool icy-white catching
+       light against a navy backdrop; in light mode they need to
+       invert into deep saturated blue catching light against the
+       page wash. Both modes feel like the same gesture; only the
+       tint flips.
+
+       These tokens centralize the gesture so future theme presets
+       (e.g. ocean, monochrome) only have to override here — JSX
+       in PolyhedronGlobe references them as var() and stays
+       theme-agnostic.
+
+       Convention: --glass-* covers the hex card surface (fill,
+       stroke, text, text-shadow); --cone-* covers the projection
+       beam; --glow-* covers the radial-gradient stops of the
+       default (non-category) vertex glow + the per-vertex halo
+       circle around an engaged dot. Per-category vertex glows
+       layer a category color on top of these stops and live in
+       PolyhedronGlobe's <defs> because they're built from
+       `var(--category-...)` already. */
+    --glass-fill: oklch(0.4 0.16 250 / 0.18);
+    --glass-stroke: oklch(0.4 0.18 250 / 0.75);
+    --glass-text: oklch(0.25 0.1 250 / 0.95);
+    --glass-text-muted: oklch(0.38 0.06 250 / 0.78);
+    --glass-text-secondary: oklch(0.3 0.08 250 / 0.88);
+    --glass-text-shadow:
+      0 0 6px oklch(0.6 0.16 250 / 0.25), 0 0 18px oklch(0.6 0.16 250 / 0.12);
+
+    --cone-stop-near: oklch(0.4 0.18 250 / 0.65);
+    --cone-stop-mid: oklch(0.45 0.18 250 / 0.28);
+    --cone-stop-far: oklch(0.45 0.18 250 / 0);
+    --cone-edge: oklch(0.35 0.2 250 / 0.55);
+
+    --glow-pinpoint: oklch(1 0 0 / 1);
+    --glow-core: oklch(0.45 0.18 250 / 0.95);
+    --glow-mid: oklch(0.55 0.22 245 / 0.7);
+    --glow-far: oklch(0.55 0.22 245 / 0);
+
     /* Shape */
     --radius-sm: 0.25rem;
     --radius-md: 0.5rem;
@@ -192,6 +233,29 @@
     --category-apis: oklch(0.72 0.22 195);
     --category-python: oklch(0.78 0.18 90);
     --category-exercises: oklch(0.76 0.2 55);
+
+    /* ─── Museum: SVG-glass tokens (dark) ────────────
+       Values lifted verbatim from the prior hardcoded rgba()
+       calls in PolyhedronGlobe.tsx so the dark-mode appearance
+       is byte-identical to before the token refactor. Any tuning
+       happens here, not in JSX. */
+    --glass-fill: rgba(220, 235, 255, 0.12);
+    --glass-stroke: rgba(220, 235, 255, 0.85);
+    --glass-text: rgba(245, 248, 255, 0.97);
+    --glass-text-muted: rgba(200, 210, 230, 0.78);
+    --glass-text-secondary: rgba(220, 225, 240, 0.88);
+    --glass-text-shadow:
+      0 0 6px rgba(180, 210, 255, 0.6), 0 0 18px rgba(140, 180, 255, 0.35);
+
+    --cone-stop-near: rgba(220, 235, 255, 0.55);
+    --cone-stop-mid: rgba(180, 210, 255, 0.22);
+    --cone-stop-far: rgba(220, 235, 255, 0);
+    --cone-edge: rgba(220, 235, 255, 0.4);
+
+    --glow-pinpoint: rgba(255, 255, 255, 1);
+    --glow-core: rgba(180, 220, 255, 0.9);
+    --glow-mid: rgba(100, 170, 255, 0.7);
+    --glow-far: rgba(60, 130, 230, 0);
 
     --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.2);
     --shadow-md: 0 4px 6px oklch(0 0 0 / 0.3), 0 2px 4px oklch(0 0 0 / 0.2);

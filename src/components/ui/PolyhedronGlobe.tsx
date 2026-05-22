@@ -2119,10 +2119,10 @@ export function PolyhedronGlobe({
               treatment. Project-bearing museum vertices override
               with per-category variants defined below. */}
           <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
-            <stop offset="22%" stopColor="rgba(180, 220, 255, 0.9)" />
-            <stop offset="55%" stopColor="rgba(100, 170, 255, 0.7)" />
-            <stop offset="100%" stopColor="rgba(60, 130, 230, 0)" />
+            <stop offset="0%" stopColor="var(--glow-pinpoint)" />
+            <stop offset="22%" stopColor="var(--glow-core)" />
+            <stop offset="55%" stopColor="var(--glow-mid)" />
+            <stop offset="100%" stopColor="var(--glow-far)" />
           </radialGradient>
 
           {/* Per-category vertex glow gradients. White-hot center →
@@ -2153,7 +2153,7 @@ export function PolyhedronGlobe({
               cy="50%"
               r="50%"
             >
-              <stop offset="0%" stopColor="rgba(255, 255, 255, 1)" />
+              <stop offset="0%" stopColor="var(--glow-pinpoint)" />
               <stop
                 offset="35%"
                 stopColor={`var(${token})`}
@@ -2181,9 +2181,9 @@ export function PolyhedronGlobe({
               keeps the top half nearly transparent) so the hex floats
               cleanly above the cone's brightest region. */}
           <linearGradient id="ph-cone-gradient" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="rgba(220, 235, 255, 0.0)" />
-            <stop offset="65%" stopColor="rgba(180, 210, 255, 0.18)" />
-            <stop offset="100%" stopColor="rgba(220, 235, 255, 0.55)" />
+            <stop offset="0%" stopColor="var(--cone-stop-far)" />
+            <stop offset="65%" stopColor="var(--cone-stop-mid)" />
+            <stop offset="100%" stopColor="var(--cone-stop-near)" />
           </linearGradient>
 
           {/* Soft outer-blur for the cone edges — keeps the beam from
@@ -2335,13 +2335,13 @@ export function PolyhedronGlobe({
                 }
                 return pts.join(" ");
               })()}
-              fill="rgba(220, 235, 255, 0.12)"
-              stroke="rgba(220, 235, 255, 0.85)"
+              fill="var(--glass-fill)"
+              stroke="var(--glass-stroke)"
               strokeWidth={1.5}
               strokeLinejoin="round"
             />
             {/* Center pinpoint. */}
-            <circle r={2} fill="rgba(255, 255, 255, 0.95)" />
+            <circle r={2} fill="var(--glow-pinpoint)" />
           </g>
         )}
 
@@ -2385,9 +2385,9 @@ export function PolyhedronGlobe({
                 x2={anchorGeometry.dotX}
                 y2={anchorGeometry.coneTopY}
               >
-                <stop offset="0%" stopColor="rgba(220, 235, 255, 0.55)" />
-                <stop offset="55%" stopColor="rgba(180, 210, 255, 0.22)" />
-                <stop offset="100%" stopColor="rgba(220, 235, 255, 0.0)" />
+                <stop offset="0%" stopColor="var(--cone-stop-near)" />
+                <stop offset="55%" stopColor="var(--cone-stop-mid)" />
+                <stop offset="100%" stopColor="var(--cone-stop-far)" />
               </linearGradient>
               {/* Soft blurred fill pass — wider feel. */}
               <polygon
@@ -2410,7 +2410,7 @@ export function PolyhedronGlobe({
                 y1={anchorGeometry.coneBottomY}
                 x2={anchorGeometry.dotX - anchorGeometry.coneTopHalfW}
                 y2={anchorGeometry.coneTopY}
-                stroke="rgba(220, 235, 255, 0.4)"
+                stroke="var(--cone-edge)"
                 strokeWidth={1}
                 strokeLinecap="round"
               />
@@ -2419,7 +2419,7 @@ export function PolyhedronGlobe({
                 y1={anchorGeometry.coneBottomY}
                 x2={anchorGeometry.dotX + anchorGeometry.coneTopHalfW}
                 y2={anchorGeometry.coneTopY}
-                stroke="rgba(220, 235, 255, 0.4)"
+                stroke="var(--cone-edge)"
                 strokeWidth={1}
                 strokeLinecap="round"
               />
@@ -2574,9 +2574,8 @@ export function PolyhedronGlobe({
                     fontSize: 18,
                     fontWeight: 600,
                     letterSpacing: "0.02em",
-                    color: "rgba(245, 248, 255, 0.97)",
-                    textShadow:
-                      "0 0 6px rgba(180, 210, 255, 0.6), 0 0 18px rgba(140, 180, 255, 0.35)",
+                    color: "var(--glass-text)",
+                    textShadow: "var(--glass-text-shadow)",
                     lineHeight: 1.2,
                   }}
                 >
@@ -2586,7 +2585,7 @@ export function PolyhedronGlobe({
                   style={{
                     fontFamily: HOVER_DOT_FONT_FAMILY,
                     fontSize: 11,
-                    color: "rgba(200, 210, 230, 0.78)",
+                    color: "var(--glass-text-muted)",
                     letterSpacing: "0.04em",
                   }}
                 >
@@ -2596,7 +2595,7 @@ export function PolyhedronGlobe({
                   style={{
                     fontSize: 12,
                     lineHeight: 1.35,
-                    color: "rgba(220, 225, 240, 0.88)",
+                    color: "var(--glass-text-secondary)",
                     // Trim the description to one or two lines so it
                     // fits the hex's bowl. Clamping with -webkit-
                     // line-clamp is widely supported and graceful on
