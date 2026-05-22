@@ -10,16 +10,30 @@ The framework gives each original a structured connection back to its source rep
 
 ## Tier ownership model
 
-| Tier           | We wrote it? | Where the code lives                                                     | How it's hosted                                             |
-| -------------- | :----------: | ------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------- |
-| **Original**   |      No      | Submodule at `.sources/<repo>/` pinned to `museum-ready/original` branch | Built artifact in `public/originals/<slug>/`, iframe-served |
-| **Enhanced**   |     Yes      | Native in museum (`src/components/enhanced/` or `src/app/(museum         | ssr)/…`)                                                    | Rendered directly as React/Server Component |
-| **Reimagined** |     Yes      | Separate repo + separate Vercel deployment                               | External link (`reimaginedExternal` field)                  |
+The rule that decides where a tier's code lives: **a tier lives where its dependencies live.** This is not a stylistic preference; it's a structural test. Ask of any tier's source: which set of imports does this code actually have? The answer points at the canonical home.
 
-Exceptions:
+- **Original** depends on the source repo's build artifacts — the HTML/JS/CSS that was turned in for class. Its canonical home is the source repo, exposed to the museum as a submodule pinned to the `museum-ready/original` branch. The original would still be the original if the museum vanished.
+- **Enhanced** depends on museum primitives — zcanon design tokens, the SiblingRail / ProjectChrome composition, React 19 + Next.js, the museum's typed Project schema. Pulled out of the museum, an enhanced component is inert: it imports modules that don't exist at any other path. Its canonical home is therefore the museum itself.
+- **Reimagined** depends on whatever stack the rebuild chose, runs on its own Vercel deploy, has its own development cadence. Its canonical home is its own repo + its own deploy, linked from the museum via `reimaginedExternal`.
 
-- A enhanced may use the submodule pattern if it requires a different stack the museum can't host natively.
-- A reimagined may live in the museum if it's a tiny component, but the dedicated-dev-session model usually pushes it to its own repo.
+| Tier           | We wrote it? | What it imports                          | Canonical home                                                             | How it's hosted                                             |
+| -------------- | :----------: | ---------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Original**   |      No      | Self-contained build artifacts           | Submodule at `.sources/<repo>/` pinned to `museum-ready/original` branch   | Built artifact in `public/originals/<slug>/`, iframe-served |
+| **Enhanced**   |     Yes      | Museum primitives (zcanon, schema, etc.) | Native in museum (`src/components/enhanced/` or `src/app/(museum\|ssr)/…`) | Rendered directly as React/Server Component                 |
+| **Reimagined** |     Yes      | Its own stack choices                    | Separate repo + separate Vercel deployment                                 | External link (`reimaginedExternal` field)                  |
+
+### Why no `museum-ready/enhanced` submodule branch
+
+The symmetric-looking move — give enhanced its own branch on the source repo, mirroring how `museum-ready/original` works — fails the dependency-graph test. The enhanced component for `js-dom-events`, for example, imports zcanon design tokens via CSS modules and lives inside the museum's React 19 / Next.js / SiblingRail composition. A copy of that file on a `museum-ready/enhanced` branch of `JS-Events-Demonstration` wouldn't compile in that repo's checkout — the imports would all be broken paths. The branch would carry inert code that claims a level of independence the code doesn't have.
+
+That's not a small cost. A submodule-of-inert-code is a structure that lies about its own coupling. The lie compounds over iteration: every museum-side change to a primitive (the SiblingRail's API, a token rename, an upgrade to React 20) silently breaks the submodule's copy of the code, and the divergence isn't discovered until someone tries to compile the submodule in isolation — which by then might be years later.
+
+The discoverability instinct that makes the submodule appealing — "the source repo should tell the whole story of what was done across tiers" — is real but solvable without code duplication. The banner README on `museum-ready/original` already links to the museum entry; if the enhanced surface is rich enough to warrant calling out, add a prose section in that README pointing at the live URL and the museum-repo source path. Documentation duplication is cheap and decays gracefully; code duplication is expensive and decays silently.
+
+### Exceptions
+
+- **Enhanced via submodule is only acceptable when the enhanced's dependencies are also self-contained** — e.g. an enhanced that uses a stack the museum can't host natively (Python+Pyodide bundle, a Rust WASM module, a non-Next.js framework). In that case the enhanced isn't really "native in museum" in the first place; it's a separate buildable artifact that the museum embeds. Treat it like an original: submodule + sync recipe + `public/enhanceds/<slug>/`.
+- **Reimagined inside the museum** is occasionally fine for tiny components that don't justify a separate deploy. The dedicated-dev-session model usually pushes reimagined to its own repo, but a single-file reimagined of a tiny utility doesn't need its own Vercel project.
 
 ## Originals — the submodule pattern
 

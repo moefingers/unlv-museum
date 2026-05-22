@@ -8,7 +8,7 @@ Deployed to `unlv-museum.infinite-syndicate.com` as a separate Vercel project wi
 
 ## Three-Tier System
 
-The tiers differ in what they preserve, who wrote them, and where they live.
+The tiers differ in what they preserve, who wrote them, and where they live. The rule that decides "where they live" is **a tier lives where its dependencies live** — see [sources.md § Tier ownership model](sources.md#tier-ownership-model) for the dependency-graph test that makes this rule falsifiable rather than stylistic.
 
 ### Original — preservation
 
@@ -22,7 +22,7 @@ The build pipeline (Node, package manager, framework version, dev tooling) MAY b
 
 Stays true to the original's spirit, beautified and enhanced in every regard. Scope is small and additive — e.g. adding a leaderboard to gwhac-a-mole counts as enhanced, not reimagined. Each enhanced requires a **dedicated decision-and-build session with the user**. Bulk generation is forbidden; the museum's first round of AI-generated enhanceds were called "slop" and removed.
 
-**Where it lives:** native in the museum, alongside everything else we write. Usually `src/components/enhanced/<Slug>.tsx`, or a Next.js route in `src/app/(museum)/...` or `src/app/(ssr)/...` for SSR-style enhanceds. No submodule plumbing — it's our code, it iterates with the museum.
+**Where it lives:** native in the museum, alongside everything else we write. Usually `src/components/enhanced/<Slug>.tsx`, or a Next.js route in `src/app/(museum)/...` or `src/app/(ssr)/...` for SSR-style enhanceds. No submodule plumbing — the enhanced imports museum primitives (zcanon tokens, SiblingRail, ProjectChrome, React 19, Next.js), so its canonical home is necessarily here. A `museum-ready/enhanced` branch on the source repo would carry inert code — see [sources.md § Why no museum-ready/enhanced submodule branch](sources.md#why-no-museum-readyenhanced-submodule-branch).
 
 Escape hatch: `enhancedExternal: "https://..."` on the project entry, for the rare case where enhanced work needs to live in a separate deployment (different stack, pre-existing standalone project).
 
