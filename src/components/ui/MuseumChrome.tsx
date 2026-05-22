@@ -80,9 +80,14 @@ export function MuseumChrome({
     <header
       className={styles.header}
       // Inline style so the literal identifier survives CSS Modules
-      // scoping — the global ::view-transition-old/new(site-header)
-      // rules in globals.css must match this exact name. Same reason
-      // applies to backLink / tierCurrent / SignInChip / SiblingRail.
+      // scoping — the browser identifies old↔new participants by
+      // exact-name match, and the global ::view-transition-*
+      // (site-header) rules in globals.css also bind to the literal.
+      // Same rationale (literal preservation for participant pairing)
+      // applies to site-back-link, tier-pill-bg, site-signin,
+      // sibling-rail-host, sibling-current — those don't have custom
+      // animation rules but still need the literal name so the
+      // browser can pair their snapshots across routes.
       style={{ viewTransitionName: "site-header" }}
     >
       <div className={styles.row}>

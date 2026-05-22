@@ -8,16 +8,16 @@ This document maps every participant, explains the conventions, and notes the in
 
 Every participant is identified by a `view-transition-name`. Names are global — the browser pairs old/new instances by name. Each name must appear on at most ONE element per render.
 
-| Name                 | Declared in                                                            | Animation rule                                                           | Role                                                               |
-| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `site-header`        | `MuseumChrome.tsx` (inline style on `<header>`)                        | Group `animation: none`; old fast fade-out (60ms); new `animation: none` | The sticky chrome bar appears motionless across routes             |
-| `site-back-link`     | `MuseumChrome.tsx` (inline style on `<Link>` back arrow)               | Default crossfade                                                        | Back arrow morphs in place across routes                           |
-| `tier-pill-bg`       | `MuseumChrome.tsx` (inline style on the `.current` tier `<Link>` only) | Default crossfade                                                        | Active tier highlight slides between tier buttons                  |
-| `site-signin`        | `SignInChip.module.css`                                                | Default crossfade                                                        | Sign-in chip persists across routes                                |
-| `sibling-rail-host`  | `SiblingRail.module.css` (on `.host`)                                  | Default crossfade                                                        | The sidebar rail itself stays still across sibling navigations     |
-| `sibling-current`    | `SiblingRail.module.css` (on `.itemCurrent`)                           | Default crossfade                                                        | The current-sibling highlight slides between rail items            |
-| `page-content`       | `<ViewTransition name="page-content">` wrapper around route bodies     | Keyframed fade+blur+slide (`vt-fade` + `vt-slide-y`)                     | Route body's fade-out then fade-in animation                       |
-| `project-page-frame` | `MultiPageOriginal.tsx` (`<ViewTransition>`)                           | Default crossfade                                                        | Iframe cross-fade when swapping pages inside a multi-page original |
+| Name                 | Declared in                                                            | Animation rule                                                           | Role                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `site-header`        | `MuseumChrome.tsx` (inline style on `<header>`)                        | Group `animation: none`; old fast fade-out (60ms); new `animation: none` | The sticky chrome bar appears motionless across routes                                                                                                            |
+| `site-back-link`     | `MuseumChrome.tsx` (inline style on `<Link>` back arrow)               | Default crossfade                                                        | Back arrow morphs in place across routes                                                                                                                          |
+| `tier-pill-bg`       | `MuseumChrome.tsx` (inline style on the `.current` tier `<Link>` only) | Default crossfade                                                        | Active tier highlight slides between tier buttons                                                                                                                 |
+| `site-signin`        | `SignInChip.module.css`                                                | Default crossfade                                                        | Sign-in chip persists across routes                                                                                                                               |
+| `sibling-rail-host`  | `SiblingRail.module.css` (on `.host`)                                  | Default crossfade                                                        | The sidebar rail itself stays still across sibling navigations                                                                                                    |
+| `sibling-current`    | `SiblingRail.module.css` (on `.itemCurrent`)                           | Default crossfade                                                        | The current-sibling highlight slides between rail items                                                                                                           |
+| `page-content`       | `<ViewTransition name="page-content">` wrapper around route bodies     | Keyframed fade+blur+slide (`vt-fade` + `vt-slide-y`)                     | Route body's fade-out then fade-in animation                                                                                                                      |
+| `project-page-frame` | `MultiPageOriginal.tsx` (`<ViewTransition>`)                           | Default crossfade                                                        | Iframe cross-fade when swapping pages inside a multi-page original — nested inside `page-content`; sub-route changes (`?page=`) trigger only the inner transition |
 
 ## Page-body convention
 
@@ -49,6 +49,14 @@ The mechanism is asymmetric:
   animation: none;
   inset: 0;
 }
+@keyframes vt-header-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 ```
 
 - The **new snapshot** renders fully opaque from frame 0 (no animation) and stays.
@@ -58,7 +66,7 @@ The mechanism is asymmetric:
 
 **Why not `display: none` on the old?** Earlier iterations did this. It caused a 1–2 frame gap where the old was gone but the new hadn't yet been captured into a snapshot — visible as a "flash of no chrome." The fast fade-out avoids both that gap AND the double-vision effect.
 
-**Why z-index: 100?** Keeps the group above `page-content`'s animated old/new pair so the header stays painted on top while the body crossfades underneath.
+**Why z-index: 100?** Defensive. Named view-transition groups paint in DOM order by default — any future named participant declared without an explicit z-index would default to `auto` and could end up painted over the header depending on declaration order. Pinning site-header at z-index 100 guarantees the chrome wins against anything we add later without forcing a recheck of every new named element.
 
 ## Intentional non-namings
 
@@ -84,7 +92,7 @@ function withViewTransition(fn: () => void) {
 
 The DOM doesn't change — only the `.dark` class on `<html>` flips — so the default root crossfade is the right animation: every element with a name (or the default root group) crossfades from its old computed colors to the new ones. No custom keyframes needed.
 
-The `.catch(() => {})` swallows `InvalidStateError`, which fires when the user rapid-clicks the toggle (the previous transition's `finished` promise rejects when aborted by a new one). Silent rejection is correct; the new transition takes over.
+The `.catch(() => {})` swallows `InvalidStateError`, which fires whenever a new view-transition starts before the previous one finishes — most commonly rapid clicks, but also possible from cross-tab `storage` events while a flip is mid-flight. The previous transition's `finished` promise rejects when aborted; silent rejection is correct because the new transition takes over and is the one we care about.
 
 ## Animation rules (from globals.css)
 
