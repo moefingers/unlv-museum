@@ -9,9 +9,11 @@
  */
 
 import { db } from "@/lib/db";
-import { stages } from "@/lib/schema/music-tour";
+import { auditLog, stages } from "@/lib/schema/music-tour";
 import { ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -25,6 +27,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as { stageName?: string };
   if (!body.stageName) {
     return NextResponse.json("failed to POST /stages stageName is required", {
@@ -36,6 +41,10 @@ export async function POST(request: Request) {
       .insert(stages)
       .values({ stageName: body.stageName.slice(0, 200) })
       .returning();
+    await writeAuditEntry(
+      { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+      { collection: "stages", op: "insertOne", before: null, after: newStage },
+    );
     return NextResponse.json({
       message: "Successfully inserted a new stage",
       data: newStage,

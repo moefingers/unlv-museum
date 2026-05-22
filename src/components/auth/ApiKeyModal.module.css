@@ -1,0 +1,208 @@
+/* ApiKeyModal — surfaces the visitor's personal API key with a copy
+   button and worked examples. Opened from SignInChip's dropdown. */
+
+.scrim {
+  /* Portal-rendered to document.body so this `fixed` positioning is
+     viewport-relative (no transformed ancestor in the way). */
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0 0 0 / 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.modal {
+  width: min(640px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.closeButton {
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.closeButton:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.intro {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.tokenLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  margin-top: var(--space-2);
+}
+
+.tokenRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.tokenInput {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--foreground);
+  min-width: 0;
+}
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.copy:hover {
+  background: var(--accent);
+}
+
+.example {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.example summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  padding: 0.25rem 0;
+}
+.code {
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  background: var(--background);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  margin: var(--space-2) 0 0;
+  color: var(--foreground);
+}
+
+.warnings {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.reissue {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.reissue:hover {
+  background: var(--muted);
+}
+
+.done {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.loading,
+.error {
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--muted-foreground);
+}
+.error p {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--destructive, oklch(0.55 0.18 25));
+}
+
+.retry {
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

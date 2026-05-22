@@ -10,8 +10,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { authClient, useSession } from "@/lib/auth-client";
-import { BadgeCheck, LogOut, Loader2 } from "lucide-react";
+import { BadgeCheck, KeyRound, LogOut, Loader2 } from "lucide-react";
 import { siGithub } from "simple-icons";
+import { ApiKeyModal } from "./ApiKeyModal";
 import styles from "./SignInChip.module.css";
 
 const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
@@ -75,6 +76,7 @@ export function SignInChip() {
   const { data: session, isPending } = useSession();
   const [signingIn, setSigningIn] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [apiKeyOpen, setApiKeyOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Click-outside to close popover.
@@ -188,6 +190,17 @@ export function SignInChip() {
           </div>
           <button
             type="button"
+            onClick={() => {
+              setPopoverOpen(false);
+              setApiKeyOpen(true);
+            }}
+            className={`text-sm ${styles.popoverAction}`}
+          >
+            <KeyRound size={14} />
+            Request / refresh API key
+          </button>
+          <button
+            type="button"
             onClick={async () => {
               setPopoverOpen(false);
               await authClient.signOut();
@@ -200,6 +213,7 @@ export function SignInChip() {
           </button>
         </div>
       )}
+      {apiKeyOpen && <ApiKeyModal onClose={() => setApiKeyOpen(false)} />}
     </div>
   );
 }

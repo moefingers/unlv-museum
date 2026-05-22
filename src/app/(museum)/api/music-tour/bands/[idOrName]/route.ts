@@ -15,9 +15,17 @@
  */
 
 import { db } from "@/lib/db";
-import { bands, events, meetGreets, setTimes } from "@/lib/schema/music-tour";
+import {
+  auditLog,
+  bands,
+  events,
+  meetGreets,
+  setTimes,
+} from "@/lib/schema/music-tour";
 import { and, eq, ilike } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 interface RouteContext {
   params: Promise<{ idOrName: string }>;
@@ -101,6 +109,9 @@ export async function GET(request: Request, ctx: RouteContext) {
 }
 
 export async function PUT(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const bandId = parseInt(idOrName, 10);
   if (isNaN(bandId)) {
@@ -134,7 +145,22 @@ export async function PUT(request: Request, ctx: RouteContext) {
       });
     }
 
-    await db.update(bands).set(set).where(eq(bands.bandId, bandId));
+    // Snapshot before mutating so the audit row can carry both states.
+    const [before] = await db
+      .select()
+      .from(bands)
+      .where(eq(bands.bandId, bandId));
+    const [after] = await db
+      .update(bands)
+      .set(set)
+      .where(eq(bands.bandId, bandId))
+      .returning();
+    if (before && after) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        { collection: "bands", op: "updateOne", before, after },
+      );
+    }
     return NextResponse.json({
       message: `Successfully updated band with id ${bandId}`,
     });
@@ -145,7 +171,10 @@ export async function PUT(request: Request, ctx: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: RouteContext) {
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const bandId = parseInt(idOrName, 10);
   if (isNaN(bandId)) {
@@ -158,7 +187,18 @@ export async function DELETE(_request: Request, ctx: RouteContext) {
   }
 
   try {
+    // Capture the row state before delete so the audit log carries it.
+    const [before] = await db
+      .select()
+      .from(bands)
+      .where(eq(bands.bandId, bandId));
     await db.delete(bands).where(eq(bands.bandId, bandId));
+    if (before) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        { collection: "bands", op: "deleteOne", before, after: null },
+      );
+    }
     return NextResponse.json({
       message: `Successfully deleted band with id ${bandId}`,
     });

@@ -10,9 +10,11 @@
  */
 
 import { db } from "@/lib/db";
-import { events, stageEvents, stages } from "@/lib/schema/music-tour";
+import { auditLog, events, stageEvents, stages } from "@/lib/schema/music-tour";
 import { asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 interface RouteContext {
   params: Promise<{ idOrName: string }>;
@@ -47,6 +49,9 @@ export async function GET(_request: Request, ctx: RouteContext) {
 }
 
 export async function PUT(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const stageId = parseInt(idOrName, 10);
   if (isNaN(stageId)) {
@@ -64,11 +69,26 @@ export async function PUT(request: Request, ctx: RouteContext) {
         message: `Successfully updated 0 stage(s)`,
       });
     }
+    const [before] = await db
+      .select()
+      .from(stages)
+      .where(eq(stages.stageId, stageId));
     const updated = await db
       .update(stages)
       .set({ stageName: body.stageName.slice(0, 200) })
       .where(eq(stages.stageId, stageId))
       .returning();
+    if (before && updated[0]) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        {
+          collection: "stages",
+          op: "updateOne",
+          before,
+          after: updated[0],
+        },
+      );
+    }
     return NextResponse.json({
       message: `Successfully updated ${updated.length} stage(s)`,
     });
@@ -79,7 +99,10 @@ export async function PUT(request: Request, ctx: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: RouteContext) {
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const stageId = parseInt(idOrName, 10);
   if (isNaN(stageId)) {
@@ -91,10 +114,20 @@ export async function DELETE(_request: Request, ctx: RouteContext) {
     );
   }
   try {
+    const [before] = await db
+      .select()
+      .from(stages)
+      .where(eq(stages.stageId, stageId));
     const deleted = await db
       .delete(stages)
       .where(eq(stages.stageId, stageId))
       .returning();
+    if (before) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        { collection: "stages", op: "deleteOne", before, after: null },
+      );
+    }
     return NextResponse.json({
       message: `Successfully deleted ${deleted.length} stage(s)`,
     });

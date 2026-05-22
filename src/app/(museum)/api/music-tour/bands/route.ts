@@ -10,9 +10,11 @@
  */
 
 import { db } from "@/lib/db";
-import { bands } from "@/lib/schema/music-tour";
+import { auditLog, bands } from "@/lib/schema/music-tour";
 import { asc, ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -29,6 +31,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Anti-abuse guard runs first — Original-tier writes are gated the same
+  // as Enhanced. See memory: project_enhanced_api_conventions.md for why
+  // modifying Original to require auth is the explicit carve-out (it's
+  // anti-abuse infrastructure, not a creative liberty on the source's
+  // data shape).
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as {
     name?: string;
     genre?: string;
@@ -53,6 +63,10 @@ export async function POST(request: Request) {
         endTime: new Date(body.endTime),
       })
       .returning();
+    await writeAuditEntry(
+      { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+      { collection: "bands", op: "insertOne", before: null, after: newBand },
+    );
     // Source's success shape: { message, data }
     return NextResponse.json({
       message: "Successfully inserted a new band",

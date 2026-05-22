@@ -397,7 +397,144 @@ export const APIS_ORIGINAL: ApiProject[] = [
  * Original gets its Enhanced surface; the tab is intentionally empty
  * until real Enhanced work ships.
  */
-export const APIS_ENHANCED: ApiProject[] = [];
+export const APIS_ENHANCED: ApiProject[] = [
+  {
+    id: "music-tour",
+    title: "Music Tour API (v2)",
+    baseUrl: "/api/v2/music-tour",
+    description:
+      "Enhanced tier — same source-faithful CRUD as v1 plus: batch reads via `?names=A,B,C`, a transactional `/batch` endpoint for compound writes, cross-resource `/search`, a public `/audit-log` window onto every mutation across both tiers (with GitHub-login attribution), and a `/rate-limit` observability endpoint. Mutations on both v1 and v2 require sign-in; the audit log makes any abuse self-attributing.",
+    tech: "Next.js + Drizzle + @vercel/firewall + Better Auth PAT",
+    endpoints: [
+      // ── bands ──────────────────────────────────────────────────────
+      {
+        label: "List bands",
+        method: "GET",
+        path: "/bands",
+        description: "Same as v1 — optional ?name=<like> filter",
+      },
+      {
+        label: "Batch read bands",
+        method: "GET",
+        path: "/bands?names=Jingle Jongle,Dingle Dongle",
+        description:
+          "v2 only — comma-separated names returns array of bands with their full meet_greets + set_times join chains",
+      },
+      {
+        label: "Get band (by name)",
+        method: "GET",
+        path: "/bands/Jingle Jongle",
+        description: "Same as v1 — band + nested meet_greets/set_times",
+      },
+      {
+        label: "Create band",
+        method: "POST",
+        path: "/bands",
+        description: "Sign-in required — audit row recorded with tier=enhanced",
+        body: JSON.stringify(
+          {
+            name: "v2 Probe Band",
+            genre: "Test",
+            availableStartTime: "2024-06-01T18:00:00Z",
+            endTime: "2024-06-01T23:00:00Z",
+          },
+          null,
+          2,
+        ),
+      },
+      // ── events ─────────────────────────────────────────────────────
+      {
+        label: "List events",
+        method: "GET",
+        path: "/events",
+        description: "Same as v1",
+      },
+      {
+        label: "Batch read events",
+        method: "GET",
+        path: "/events?names=Jinglefest,Dingledays",
+        description: "v2 only — multi-event response with join chains",
+      },
+      // ── stages ─────────────────────────────────────────────────────
+      {
+        label: "List stages",
+        method: "GET",
+        path: "/stages",
+        description: "Same as v1",
+      },
+      // ── v2-only endpoints ──────────────────────────────────────────
+      {
+        label: "Cross-resource search",
+        method: "GET",
+        path: "/search?q=jingle",
+        description:
+          "v2 only — one query, three result arrays (bands, events, stages)",
+      },
+      {
+        label: "Compound write (batch)",
+        method: "POST",
+        path: "/batch",
+        description:
+          "v2 only — single Postgres transaction; ALL ops succeed or ALL roll back. Each op writes its own audit row. Sign-in required.",
+        body: JSON.stringify(
+          {
+            ops: [
+              {
+                method: "POST",
+                path: "/bands",
+                body: {
+                  name: "Batch Probe 1",
+                  genre: "Test",
+                  availableStartTime: "2024-06-01T18:00:00Z",
+                  endTime: "2024-06-01T23:00:00Z",
+                },
+              },
+              {
+                method: "POST",
+                path: "/stages",
+                body: { stageName: "Batch Probe Stage" },
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Audit log (newest 50)",
+        method: "GET",
+        path: "/audit-log",
+        description:
+          "v2 only — read every mutation across BOTH tiers (Original + Enhanced) with GitHub-login attribution. No sign-in required to READ.",
+      },
+      {
+        label: "Audit log: filter by op",
+        method: "GET",
+        path: "/audit-log?op=insertOne",
+        description: "Slice to creates only",
+      },
+      {
+        label: "Audit log: by GitHub actor",
+        method: "GET",
+        path: "/audit-log?actor=moefingers",
+        description: "Who-did-what for a specific GitHub login",
+      },
+      {
+        label: "Audit log: by tier",
+        method: "GET",
+        path: "/audit-log?tier=original",
+        description: "Only writes that came through /api/music-tour/* (v1)",
+      },
+      {
+        label: "Rate-limit policy",
+        method: "GET",
+        path: "/rate-limit",
+        description:
+          "Returns your current tier (anon vs auth), the budgets each tier carries, and notes about how unconsumed budget surfaces (or doesn't) today",
+      },
+    ],
+  },
+];
 
 export type Tier = "original" | "enhanced";
 

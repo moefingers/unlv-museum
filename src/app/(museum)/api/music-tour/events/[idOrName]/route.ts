@@ -13,6 +13,7 @@
 
 import { db } from "@/lib/db";
 import {
+  auditLog,
   bands,
   events,
   meetGreets,
@@ -21,6 +22,8 @@ import {
   stages,
 } from "@/lib/schema/music-tour";
 import { eq } from "drizzle-orm";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -96,6 +99,9 @@ export async function GET(_request: Request, ctx: RouteContext) {
 }
 
 export async function PUT(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const eventId = parseInt(idOrName, 10);
   if (isNaN(eventId)) {
@@ -119,13 +125,30 @@ export async function PUT(request: Request, ctx: RouteContext) {
     if (body.startTime !== undefined) set.startTime = new Date(body.startTime);
     if (body.endTime !== undefined) set.endTime = new Date(body.endTime);
 
-    const updated = Object.keys(set).length
-      ? await db
-          .update(events)
-          .set(set)
-          .where(eq(events.eventId, eventId))
-          .returning()
-      : [];
+    if (!Object.keys(set).length) {
+      return NextResponse.json({ message: `Successfully updated 0 event(s)` });
+    }
+
+    const [before] = await db
+      .select()
+      .from(events)
+      .where(eq(events.eventId, eventId));
+    const updated = await db
+      .update(events)
+      .set(set)
+      .where(eq(events.eventId, eventId))
+      .returning();
+    if (before && updated[0]) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        {
+          collection: "events",
+          op: "updateOne",
+          before,
+          after: updated[0],
+        },
+      );
+    }
 
     return NextResponse.json({
       message: `Successfully updated ${updated.length} event(s)`,
@@ -137,7 +160,10 @@ export async function PUT(request: Request, ctx: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: RouteContext) {
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { idOrName } = await ctx.params;
   const eventId = parseInt(idOrName, 10);
   if (isNaN(eventId)) {
@@ -149,10 +175,20 @@ export async function DELETE(_request: Request, ctx: RouteContext) {
     );
   }
   try {
+    const [before] = await db
+      .select()
+      .from(events)
+      .where(eq(events.eventId, eventId));
     const deleted = await db
       .delete(events)
       .where(eq(events.eventId, eventId))
       .returning();
+    if (before) {
+      await writeAuditEntry(
+        { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+        { collection: "events", op: "deleteOne", before, after: null },
+      );
+    }
     return NextResponse.json({
       message: `Successfully deleted ${deleted.length} event(s)`,
     });

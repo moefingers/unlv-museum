@@ -4,7 +4,10 @@ import {
   text,
   smallint,
   timestamp,
+  jsonb,
+  bigserial,
 } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 
 /**
  * Music Tour API — faithful Postgres translation of the original UNLV
@@ -96,4 +99,29 @@ export const stageEvents = musicTourSchema.table("stage_events", {
   eventId: smallint("event_id")
     .notNull()
     .references(() => events.eventId, { onDelete: "cascade" }),
+});
+
+/**
+ * Audit log — every mutation on this schema's tables, written by both
+ * the Original-tier (/api/music-tour/*) and Enhanced-tier
+ * (/api/v2/music-tour/*) handlers via the shared audit helper. Read
+ * through the Enhanced-tier endpoint `GET /api/v2/music-tour/audit-log`.
+ *
+ * Shape mirrors jaskis.audit_log — see
+ * memory: project_enhanced_api_conventions.md.
+ */
+export const auditLog = musicTourSchema.table("audit_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
+  actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+  /** Denormalized for audit-log queries to avoid joining auth.user on every read. */
+  actorLogin: text("actor_login"),
+  /** Table name within music_tour schema (e.g. "bands", "events", "stages"). */
+  collection: text("collection").notNull(),
+  /** "insertOne" | "updateOne" | "deleteOne" | "insertMany" (batch) | "updateMany" (batch). */
+  op: text("op").notNull(),
+  /** "original" | "enhanced" — which URL prefix the visitor hit. */
+  tier: text("tier").notNull(),
+  before: jsonb("before"),
+  after: jsonb("after"),
 });

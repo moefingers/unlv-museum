@@ -9,9 +9,11 @@
  */
 
 import { db } from "@/lib/db";
-import { events } from "@/lib/schema/music-tour";
+import { auditLog, events } from "@/lib/schema/music-tour";
 import { asc, ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -25,6 +27,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as {
     name?: string;
     date?: string;
@@ -49,6 +54,10 @@ export async function POST(request: Request) {
         endTime: new Date(body.endTime),
       })
       .returning();
+    await writeAuditEntry(
+      { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+      { collection: "events", op: "insertOne", before: null, after: newEvent },
+    );
     return NextResponse.json({
       message: "Successfully inserted a new event",
       data: newEvent,
