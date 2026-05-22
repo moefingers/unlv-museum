@@ -184,7 +184,16 @@ export function ProjectChrome({ project }: { project: Project }) {
                     <li key={related.url}>
                       <Link href={related.url} className={styles.repoLink}>
                         <Link2 size={14} aria-hidden="true" />
-                        <span>See also: {related.label}</span>
+                        <span>
+                          See also:{" "}
+                          {related.crossesTo ? (
+                            <>
+                              {related.crossesTo} / {related.label}
+                            </>
+                          ) : (
+                            related.label
+                          )}
+                        </span>
                       </Link>
                     </li>
                   ))}

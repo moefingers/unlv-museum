@@ -489,15 +489,42 @@ export function resolveSiblingLink(
 export interface RelatedEntry {
   label: string;
   url: string;
+  /**
+   * Title of the target's container (e.g. "JavaScript Exercises"), but
+   * ONLY when the link crosses container boundaries — set when the
+   * source and target are in different containers (or only one has a
+   * container). Null when they're in the same container OR both have
+   * no container, since in those cases the container context is
+   * irrelevant and would just be noise.
+   *
+   * Surfaced in the chrome's "See also: <breadcrumb>" link so a
+   * visitor jumping from /react-exercises/declarative-counter to
+   * /js-exercises/shared-counter sees they're crossing series
+   * boundaries — the eye registers "JS Exercises / Shared Counter"
+   * differently than just "Shared Counter."
+   */
+  crossesTo: string | null;
 }
 export function resolveRelatedEntries(project: Project): RelatedEntry[] {
   if (!project.relatedEntries || project.relatedEntries.length === 0) {
     return [];
   }
+  const sourceContainer = project.container ?? null;
   return project.relatedEntries.flatMap((slug) => {
     const target = PROJECTS.find((p) => p.slug === slug);
     if (!target) return [];
-    return [{ label: target.title, url: projectLandingUrl(target) }];
+    const targetContainer = target.container ?? null;
+    const crossesTo =
+      sourceContainer !== targetContainer && targetContainer
+        ? CONTAINERS[targetContainer].title
+        : null;
+    return [
+      {
+        label: target.title,
+        url: projectLandingUrl(target),
+        crossesTo,
+      },
+    ];
   });
 }
 
