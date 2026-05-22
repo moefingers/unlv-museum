@@ -80,7 +80,19 @@ export function ProjectChrome({ project }: { project: Project }) {
         ? project.techEnhanced
         : project.techReimagined;
 
-  const tiers: TierSpec[] = TIERS.map(({ mode, label }) => ({
+  // Projects can opt out of tiers entirely via `plannedTiers` — the
+  // tier picker hides those altogether rather than showing a dead
+  // disabled pill. (Coming-soon placeholders remain visible for
+  // tiers that ARE in the plan but not yet built — the picker still
+  // renders a disabled pill there to set expectations.)
+  const planned = project.plannedTiers ?? [
+    "original",
+    "enhanced",
+    "reimagined",
+  ];
+  const tiers: TierSpec[] = TIERS.filter(({ mode }) =>
+    planned.includes(mode),
+  ).map(({ mode, label }) => ({
     label,
     href: available[mode]
       ? mode === "original"

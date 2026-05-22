@@ -5,31 +5,90 @@
  *   - the catch-all layout: app/(museum)/[...path]/layout.tsx
  *     (rail = none — flat slugs have no siblings)
  *
- * Both layouts render <MuseumPageShell project={p} rail={...}>{children}</MuseumPageShell>
+ * Both layouts render <MuseumPageShell rail={...}>{children}</MuseumPageShell>
  * so the shell DOM is identical regardless of how a project was routed.
  * That symmetry is what lets a flat slug and a containerized leaf feel
  * like the same kind of page apart from the rail.
+ *
+ * The layout is a CSS grid:
+ *
+ *   ┌────────────────────────────────────────┐
+ *   │              chrome (row 1)            │  ← spans full width
+ *   ├──────────────┬─────────────────────────┤
+ *   │ rail (col 1) │  body (col 2 / row 2)   │
+ *   └──────────────┴─────────────────────────┘
+ *
+ * The chrome MUST be the visually leftmost element in the top strip so
+ * the back button is the leftmost interactive element on the page. The
+ * earlier flex-row layout put the rail to the left of the chrome,
+ * burying the back arrow behind the rail's column — that's what this
+ * restructure fixes.
+ *
+ * DOM-wise the chrome and body are siblings emitted by the leaf page
+ * (chrome first, body second), wrapped in `.viewport` which uses
+ * `display: contents` so its children participate in the parent grid
+ * directly. The chrome (a `<header>` from MuseumChrome) gets placed
+ * across both columns of row 1; the body (any other element) sits in
+ * row 2 col 2 (or col 1 when no rail is rendered).
  */
 
 .shell {
-  display: flex;
+  display: grid;
   height: 100vh;
-  flex-direction: column;
-}
-
-/* Row containing the optional SiblingRail and the viewport body. The
-   rail is its own component (handles its own widths + responsive
-   drawer behavior); this row just gives it a flex parent to sit in. */
-.viewportRow {
-  position: relative;
-  display: flex;
-  flex: 1;
+  /* No rail: a single body column. Container layouts override to a
+     two-column grid via `.withRail`. */
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "chrome"
+    "body";
   min-height: 0;
 }
 
+.withRail {
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "chrome chrome"
+    "rail   body";
+}
+
+/* Rail slot (row 2, col 1). The SiblingRail component owns its own
+   width via `--rail-w`; the grid track uses `auto` so the cell is
+   sized by the rail. */
+.rail {
+  grid-area: rail;
+  min-height: 0;
+  /* Position context for SiblingRail's narrow-viewport drawer overlay. */
+  position: relative;
+}
+
+/* Viewport wrapper for the leaf's output. `display: contents` makes
+   this element disappear from layout so the two siblings inside
+   (chrome <header> and body wrapper) participate directly in the
+   shell's grid. */
 .viewport {
+  display: contents;
+}
+
+/* Chrome slot — the <header> emitted by MuseumChrome lands here. It
+   spans the full top row above the rail and body. We target via
+   `> header` because the chrome is always a real <header> element
+   and there is exactly one per leaf. */
+.viewport > header {
+  grid-area: chrome;
+}
+
+/* Body slot — anything that isn't the chrome. The leaf page wraps
+   its tier body in <main class="leafBody"> so this rule is
+   intentional rather than catch-all. */
+.leafBody {
+  grid-area: body;
   display: flex;
-  flex: 1;
   flex-direction: column;
+  min-height: 0;
+  /* Hide overflow at the body level so the chrome and rail (which
+     are pinned by grid) don't get pushed off-screen by a long
+     scrollable tier body. Individual tier bodies own their own
+     overflow strategy below this. */
   overflow: hidden;
 }

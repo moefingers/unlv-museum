@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProjectChrome } from "@/components/ui/ProjectChrome";
+import { museumPageShellStyles } from "@/components/ui/MuseumPageShell";
 import { findProject, renderProjectBody } from "@/lib/project-route";
 import type { ViewMode } from "@/lib/projects";
 
@@ -50,7 +51,9 @@ export default async function FlatProjectPage({
   return (
     <>
       <ProjectChrome project={project} />
-      {renderProjectBody({ project, tier, page })}
+      <main className={museumPageShellStyles.leafBody}>
+        {renderProjectBody({ project, tier, page })}
+      </main>
     </>
   );
 }

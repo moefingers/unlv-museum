@@ -16,6 +16,10 @@
   padding: calc(0.125rem * var(--app-pad, 1) * var(--chrome-pad, 1))
     calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
   border-radius: var(--radius-md);
+  /* Same warning-tinted surface as the expanded notes panel below,
+     so the button visually previews the panel it controls. The two
+     surfaces share `--warning @ 8% alpha`. */
+  background: oklch(from var(--warning) l c h / 0.08);
   font-size: calc(
     var(--font-size-xs) * var(--app-size, 1) * var(--chrome-size, 1)
   );

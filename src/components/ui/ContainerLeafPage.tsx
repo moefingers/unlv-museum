@@ -1,4 +1,5 @@
 import { ProjectChrome } from "@/components/ui/ProjectChrome";
+import { museumPageShellStyles } from "@/components/ui/MuseumPageShell";
 import { renderProjectBody, resolveContainerLeaf } from "@/lib/project-route";
 import type { ContainerId, ViewMode } from "@/lib/projects";
 
@@ -37,7 +38,9 @@ export async function ContainerLeafPage({
   return (
     <>
       <ProjectChrome project={project} />
-      {renderProjectBody({ project, tier, page })}
+      <main className={museumPageShellStyles.leafBody}>
+        {renderProjectBody({ project, tier, page })}
+      </main>
     </>
   );
 }
