@@ -2,8 +2,8 @@
   "js-dom-events": {
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready/original",
-    "commit": "4e0a34f58af1e841ab50d56f5d48178c4b26fa63",
-    "lockHash": "sha256:1b2719dc8ad34c94bc638fd461deecd41af6e3fa1a814b8bde3dca6e6c99d487",
+    "commit": "d8396998fc1fd57db54adf05654d6128a9a5133a",
+    "lockHash": "sha256:1a56f54a31418d9e7c78aafa8bf1fd07e28590353b7bc5c8b33bbb70c0ce03b7",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"
@@ -11,7 +11,7 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "3f40a1bcf1b9191ff010a28302192f505b9c1776",
+    "commit": "848f31acb683f0cd2cd737dc55b0d77db0422849",
     "lockHash": "sha256:92fa3c0148a074e3443d05b6e9322cdd0f2905e4bf2b5c150a55bdde93940845",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
