@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import { HelpModal } from "@/components/ui/HelpModal";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   ANCHOR_SWING_MS,
   ANCHOR_ZOOM_EASING,
@@ -866,6 +867,16 @@ function LandingViewInner() {
           {legendOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
         </button>
       </div>
+
+      {/*
+        Theme toggle — sibling to the HelpModal's closed-state button,
+        offset to its left. Fades out while the modal is open so the
+        corner cluster doesn't compete with the foregrounded card.
+        Lives outside HelpModal because the toggle's lifetime and
+        positioning are independent — it never opens into a modal,
+        it just flips a class on <html>.
+      */}
+      <ThemeToggle variant="landing" hidden={helpOpen} />
 
       {/*
         Help modal. Auto-opens on first visit (when no

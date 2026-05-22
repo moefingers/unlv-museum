@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SignInChip } from "@/components/auth/SignInChip";
+import { ThemeToggle } from "./ThemeToggle";
 import styles from "./MuseumChrome.module.css";
 
 /**
@@ -131,6 +132,7 @@ export function MuseumChrome({
               })}
             </nav>
           )}
+          <ThemeToggle variant="chrome" />
           <SignInChip />
         </div>
       </div>

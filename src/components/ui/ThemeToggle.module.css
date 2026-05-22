@@ -1,0 +1,76 @@
+/*
+ * ThemeToggle — two variants of the same circular icon button.
+ *
+ * The `.button` base sets the shape (2rem circle, centered icon,
+ * smooth color transitions). The variants layer position on top:
+ *   - .landingVariant: fixed top-right of viewport, next to the
+ *     HelpModal closed-state button. Same surface tokens as the
+ *     help button so the pair reads as a sibling group.
+ *   - .chromeVariant: inline, no positioning — drops into the
+ *     MuseumChrome trailGroup with flex layout doing the work.
+ *
+ * Both share the .button base so the actual button visual is
+ * identical between placements — only where it lives changes.
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: oklch(from var(--card) l c h / 0.92);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default),
+    opacity var(--duration-normal) var(--ease-default);
+}
+.button:hover {
+  color: var(--foreground);
+}
+
+/*
+ * Landing placement — fixed top-right, sibling to the HelpModal's
+ * closed-state morphing button (which lives at top/right space-4).
+ * We offset further left by `space-4 + 2rem (button width) +
+ * space-2 (gap)` so the two circles sit side-by-side with breathing
+ * room.
+ *
+ * z-index: 21 matches the help morph so neither one paints over the
+ * other (they're peers, not stacked).
+ */
+.landingVariant {
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  right: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) + 2rem +
+      var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  z-index: 21;
+}
+
+/*
+ * Hidden state — used by the landing variant when HelpModal opens.
+ * The toggle fades out (it's still positioned in the corner, but
+ * the modal has expanded over it). Pointer-events: none so a
+ * subsequent click on the modal's backdrop doesn't accidentally
+ * land on the toggle.
+ */
+.landingVariant[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * Chrome placement — inline, no positioning. Flex parent
+ * (.trailGroup) sets gap + alignment. Keep the same circular
+ * silhouette as landing so the two placements are recognizable
+ * as the same control.
+ */
+.chromeVariant {
+  /* No additional rules — the .button base is the whole visual. */
+}
