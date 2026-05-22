@@ -111,8 +111,26 @@ export function renderProjectBody({
   tier: ViewMode;
   page: string | undefined;
 }): React.ReactNode {
-  if (project.href && tier === "original") {
-    redirect(project.href);
+  // `href` means "this project's museum surface IS another route" — for
+  // backend-only API projects, that's the api-client viewer. The viewer
+  // is tier-agnostic: ONE route renders both Original (`?v=1`, default)
+  // and Enhanced (`?v=2`) endpoint lists, with cross-fade driven by
+  // React 19's <ViewTransition> boundary inside the client. So a rail
+  // click from any tier resolves to the same viewer, with the tier
+  // conveyed as `?v=`.
+  if (project.href) {
+    if (tier === "original") {
+      redirect(project.href);
+    }
+    if (tier === "enhanced") {
+      // Append `v=2` to the href, preserving any existing query string.
+      const sep = project.href.includes("?") ? "&" : "?";
+      redirect(`${project.href}${sep}v=2`);
+    }
+    // Reimagined falls through to the regular project.reimagined render
+    // path below — when an API project gains a Reimagined surface (e.g.
+    // a fully-replaced UI living outside the api-client), it'll provide
+    // a `reimagined` ReactNode and that's what renders.
   }
 
   let body: React.ReactNode;

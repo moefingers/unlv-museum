@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, ViewTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
@@ -22,21 +22,55 @@ export type { Tier } from "./api-data";
    color cascades automatically — no JS lookup table needed. */
 
 /**
- * Shared shell used by /api-client (Original) and /api-client/enhanced
- * (Enhanced). Tier is fixed per-route; switching tiers is a real navigation
- * (`<Link>` in the header strip), matching the rest of the museum's tier
- * pattern in ProjectChrome.
+ * The single api-client viewer. ONE component for ALL API versions —
+ * `?v=1` (default) shows the source-faithful endpoints, `?v=2` shows
+ * the Enhanced (audit log, batch, helpful 401, etc.) endpoints. The
+ * client stays mounted across version flips; only the displayed
+ * endpoint list and tab pill change, with the cross-fade driven by
+ * the <ViewTransition name="page-content"> boundary inside.
+ *
+ * `initialTier` from the server keeps SSR/CSR agreement on first
+ * paint; after mount, the URL's `?v=` is the source of truth and
+ * useSearchParams keeps the displayed tier in sync without a server
+ * round-trip.
  */
 export default function ApiClient({ tier }: { tier: Tier }) {
   return (
     <Suspense>
-      <ApiClientInner tier={tier} />
+      <ApiClientInner initialTier={tier} />
     </Suspense>
   );
 }
 
-function ApiClientInner({ tier }: { tier: Tier }) {
+/**
+ * Compose the destination URL for the tier picker pills.
+ *
+ * Preserves the currently-active api id when that api also exists in the
+ * destination tier's list — so a v1→v2 click on the music-tour API
+ * lands on `?api=music-tour&v=2` instead of bouncing to v2's default
+ * first api via the page's `if (!known)` redirect.
+ */
+function tierHref(destinationTier: Tier, activeApiId: string): string {
+  const destinationList =
+    destinationTier === "enhanced" ? APIS_ENHANCED : APIS_ORIGINAL;
+  const hasInDestination = destinationList.some((a) => a.id === activeApiId);
+  const params = new URLSearchParams();
+  if (hasInDestination) params.set("api", activeApiId);
+  if (destinationTier === "enhanced") params.set("v", "2");
+  const qs = params.toString();
+  return qs ? `/api-client?${qs}` : "/api-client";
+}
+
+function ApiClientInner({ initialTier }: { initialTier: Tier }) {
   const searchParams = useSearchParams();
+  // The URL is the source of truth after mount. `initialTier` keeps
+  // SSR/CSR agreement on the first render; on subsequent renders the
+  // `?v=` param drives which endpoint list shows. `useSearchParams`
+  // re-renders ApiClient when the URL changes, and the <ViewTransition>
+  // boundary fires the cross-fade.
+  const vParam = searchParams.get("v");
+  const tier: Tier =
+    vParam === "2" ? "enhanced" : vParam === "1" ? "original" : initialTier;
   const apis = tier === "enhanced" ? APIS_ENHANCED : APIS_ORIGINAL;
   // Server already redirected the bare URL to ?api=<first>; null means a
   // typo'd query param survived (or browser back to a hand-edited URL).
@@ -175,131 +209,149 @@ function ApiClientInner({ tier }: { tier: Tier }) {
         subtitle="Backend-only UNLV projects — live endpoints, interactive explorer"
         tiers={[
           {
+            // `?v=` is a soft URL change within the same route — Next
+            // re-renders ApiClient without remounting, the <ViewTransition>
+            // boundary around the body fires the cross-fade because its
+            // wrapped content changes, and the chrome's CSS
+            // `view-transition-name: site-header` keeps the header
+            // animating in place rather than fading with the body.
             label: "Original",
-            href: "/api-client",
+            href: tierHref("original", activeApiId),
             current: tier === "original",
           },
           {
             label: "Enhanced",
-            href: "/api-client/enhanced",
+            href: tierHref("enhanced", activeApiId),
             current: tier === "enhanced",
           },
         ]}
       />
 
-      <div className={styles.body}>
-        {/* Backdrop sits behind the drawer on narrow viewports; CSS hides
+      {/* Wrap the entire body (sidebar + main) in <ViewTransition> so
+          both panels cross-fade on `?v=` flips. If only the right pane
+          were wrapped, the sidebar's API list would snap instantly to
+          the new version's entries while the main pane fades — the
+          mismatch looks broken. The chrome above lives OUTSIDE this
+          boundary and persists via its own `view-transition-name:
+          site-header` so the header animates in place rather than
+          fading with the body. */}
+      <ViewTransition name="page-content">
+        <div className={styles.body}>
+          {/* Backdrop sits behind the drawer on narrow viewports; CSS hides
             it above the breakpoint. Click closes the drawer. */}
-        <button
-          type="button"
-          className={styles.sidebarBackdrop}
-          aria-hidden="true"
-          tabIndex={-1}
-          onClick={() => setSidebarOpen(false)}
-        />
+          <button
+            type="button"
+            className={styles.sidebarBackdrop}
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={() => setSidebarOpen(false)}
+          />
 
-        {/* Left: Knowledge Base */}
-        <aside
-          id="api-sidebar"
-          className={styles.sidebar}
-          aria-hidden={!sidebarOpen}
-        >
-          <div className={styles.sidebarHeader}>
-            <p className={`text-xs ${styles.sidebarIntro}`}>
-              Live endpoints backed by a real database.
-            </p>
-          </div>
-          <div>
-            {apis.map((api) => (
-              <div key={api.id} className={styles.kbEntry}>
-                <button
-                  onClick={() => switchApi(api.id)}
-                  className={`${styles.kbEntryButton} ${
-                    activeApiId === api.id ? styles.kbEntryButtonActive : ""
-                  }`}
-                >
-                  <p className={`text-sm ${styles.kbEntryTitle}`}>
-                    {api.title}
-                  </p>
-                  <p className={`text-xs ${styles.kbEntryTech}`}>{api.tech}</p>
-                </button>
-                <Collapsible open={activeApiId === api.id}>
-                  <div className={styles.kbDetailsPanel}>
-                    <p className={`text-xs ${styles.kbDetailsDescription}`}>
-                      {api.description}
-                    </p>
-                    <div className={styles.kbEndpoints}>
-                      {api.endpoints.map((ep, i) => (
-                        <button
-                          key={i}
-                          onClick={() => loadEndpoint(ep)}
-                          className={`text-xs ${styles.kbEndpoint}`}
-                        >
-                          <span
-                            className={styles.methodDot}
-                            data-method={ep.method}
-                          />
-                          <span
-                            className={styles.methodLabel}
-                            data-method={ep.method}
-                          >
-                            {ep.method}
-                          </span>
-                          <span className={styles.kbEndpointDescription}>
-                            {ep.description}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </Collapsible>
-              </div>
-            ))}
-          </div>
-
-          {history.length > 0 && (
-            <div className={styles.history}>
-              <p className={`text-xs ${styles.historyLabel}`}>History</p>
-              <div className={styles.historyList}>
-                {history.map((h, i) => (
-                  <div key={i} className={`text-xs ${styles.historyItem}`}>
-                    <span className={styles.methodDot} data-method={h.method} />
-                    <span style={{ fontFamily: "var(--font-mono)" }}>
-                      {h.method}
-                    </span>
-                    <span className={styles.historyApi}>{h.api}</span>
-                    <span className={styles.historyMeta}>
-                      {h.status} · {h.time}ms
-                    </span>
-                  </div>
-                ))}
-              </div>
+          {/* Left: Knowledge Base */}
+          <aside
+            id="api-sidebar"
+            className={styles.sidebar}
+            aria-hidden={!sidebarOpen}
+          >
+            <div className={styles.sidebarHeader}>
+              <p className={`text-xs ${styles.sidebarIntro}`}>
+                Live endpoints backed by a real database.
+              </p>
             </div>
-          )}
-        </aside>
+            <div>
+              {apis.map((api) => (
+                <div key={api.id} className={styles.kbEntry}>
+                  <button
+                    onClick={() => switchApi(api.id)}
+                    className={`${styles.kbEntryButton} ${
+                      activeApiId === api.id ? styles.kbEntryButtonActive : ""
+                    }`}
+                  >
+                    <p className={`text-sm ${styles.kbEntryTitle}`}>
+                      {api.title}
+                    </p>
+                    <p className={`text-xs ${styles.kbEntryTech}`}>
+                      {api.tech}
+                    </p>
+                  </button>
+                  <Collapsible open={activeApiId === api.id}>
+                    <div className={styles.kbDetailsPanel}>
+                      <p className={`text-xs ${styles.kbDetailsDescription}`}>
+                        {api.description}
+                      </p>
+                      <div className={styles.kbEndpoints}>
+                        {api.endpoints.map((ep, i) => (
+                          <button
+                            key={i}
+                            onClick={() => loadEndpoint(ep)}
+                            className={`text-xs ${styles.kbEndpoint}`}
+                          >
+                            <span
+                              className={styles.methodDot}
+                              data-method={ep.method}
+                            />
+                            <span
+                              className={styles.methodLabel}
+                              data-method={ep.method}
+                            >
+                              {ep.method}
+                            </span>
+                            <span className={styles.kbEndpointDescription}>
+                              {ep.description}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </Collapsible>
+                </div>
+              ))}
+            </div>
 
-        {/* Drawer toggle. Pinned to the right edge of the sidebar's open
+            {history.length > 0 && (
+              <div className={styles.history}>
+                <p className={`text-xs ${styles.historyLabel}`}>History</p>
+                <div className={styles.historyList}>
+                  {history.map((h, i) => (
+                    <div key={i} className={`text-xs ${styles.historyItem}`}>
+                      <span
+                        className={styles.methodDot}
+                        data-method={h.method}
+                      />
+                      <span style={{ fontFamily: "var(--font-mono)" }}>
+                        {h.method}
+                      </span>
+                      <span className={styles.historyApi}>{h.api}</span>
+                      <span className={styles.historyMeta}>
+                        {h.status} · {h.time}ms
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* Drawer toggle. Pinned to the right edge of the sidebar's open
             position. Hidden above the breakpoint via CSS — wide viewports
             render the sidebar permanently. The chevron rotates 180° when
             open (→ becomes ←) since both states are "pull this direction." */}
-        <button
-          type="button"
-          className={styles.sidebarToggle}
-          aria-controls="api-sidebar"
-          aria-expanded={sidebarOpen}
-          aria-label={sidebarOpen ? "Close API list" : "Open API list"}
-          onClick={() => setSidebarOpen((v) => !v)}
-        >
-          <ChevronLeft
-            size={18}
-            className={styles.sidebarToggleIcon}
-            aria-hidden="true"
-          />
-        </button>
+          <button
+            type="button"
+            className={styles.sidebarToggle}
+            aria-controls="api-sidebar"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Close API list" : "Open API list"}
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            <ChevronLeft
+              size={18}
+              className={styles.sidebarToggleIcon}
+              aria-hidden="true"
+            />
+          </button>
 
-        {/* Right: Client. Named page-content so tier swaps fade+blur the
-            body the same way project pages do. Sidebar (left) and header
-            (above) stay pinned via their own names.
+          {/* Right: Client.
 
             The .client itself is the scroll container; the controls
             block (api switcher + request builder + body editor +
@@ -308,55 +360,52 @@ function ApiClientInner({ tier }: { tier: Tier }) {
             the top of the pane while the response body underneath
             scrolls. The sticky group has a translucent backdrop so the
             scrolling response is visibly sliding under it. */}
-        <main
-          className={styles.client}
-          style={{ viewTransitionName: "page-content" }}
-        >
-          <div className={styles.controlsSticky}>
-            <div className={styles.apiSwitchRow}>
-              {apis.map((api, i) => (
-                <div key={api.id} className={styles.apiSwitchGroup}>
-                  {i > 0 && (
-                    <span className={styles.apiSwitchSeparator}>•</span>
-                  )}
-                  <button
-                    onClick={() => switchApi(api.id)}
-                    className={`${styles.apiSwitchButton} ${
-                      activeApiId === api.id ? "" : styles.apiSwitchInactive
-                    }`}
-                  >
-                    {api.title}
-                  </button>
-                  <Collapsible
-                    open={activeApiId === api.id}
-                    direction="horizontal"
-                    duration={200}
-                  >
-                    <span className={`text-xs ${styles.apiSwitchBaseUrl}`}>
-                      {api.baseUrl}
-                    </span>
-                  </Collapsible>
-                </div>
-              ))}
-            </div>
+          <main className={styles.client}>
+            <div className={styles.controlsSticky}>
+              <div className={styles.apiSwitchRow}>
+                {apis.map((api, i) => (
+                  <div key={api.id} className={styles.apiSwitchGroup}>
+                    {i > 0 && (
+                      <span className={styles.apiSwitchSeparator}>•</span>
+                    )}
+                    <button
+                      onClick={() => switchApi(api.id)}
+                      className={`${styles.apiSwitchButton} ${
+                        activeApiId === api.id ? "" : styles.apiSwitchInactive
+                      }`}
+                    >
+                      {api.title}
+                    </button>
+                    <Collapsible
+                      open={activeApiId === api.id}
+                      direction="horizontal"
+                      duration={200}
+                    >
+                      <span className={`text-xs ${styles.apiSwitchBaseUrl}`}>
+                        {api.baseUrl}
+                      </span>
+                    </Collapsible>
+                  </div>
+                ))}
+              </div>
 
-            <div className={styles.requestRow}>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value as Method)}
-                className={`method-button ${styles.methodSelect}`}
-                data-method={method}
-                aria-label="HTTP method"
-              >
-                {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map(
-                  (m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ),
-                )}
-              </select>
-              {/*
+              <div className={styles.requestRow}>
+                <select
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value as Method)}
+                  className={`method-button ${styles.methodSelect}`}
+                  data-method={method}
+                  aria-label="HTTP method"
+                >
+                  {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map(
+                    (m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ),
+                  )}
+                </select>
+                {/*
                 baseUrl prefix is a per-API segment glued to the path input.
                 Rendering ALL candidates side-by-side (each wrapped in a
                 horizontal Collapsible, only the active one open) makes
@@ -364,70 +413,71 @@ function ApiClientInner({ tier }: { tier: Tier }) {
                 while the new one slides open in the same row — rather than
                 swap text in place.
               */}
-              <div className={styles.pathGroup}>
-                {apis.map((api) => (
-                  <Collapsible
-                    key={api.id}
-                    open={api.id === activeApiId}
-                    direction="horizontal"
-                    duration={300}
-                  >
-                    <span className={`text-sm ${styles.baseUrlPrefix}`}>
-                      {api.baseUrl}
-                    </span>
-                  </Collapsible>
-                ))}
-                <input
-                  value={path}
-                  onChange={(e) => setPath(e.target.value)}
-                  className={`text-sm ${styles.pathInput}`}
-                  placeholder="/endpoint"
-                />
-              </div>
-              <button
-                onClick={send}
-                disabled={loading}
-                className={`btn btn-primary ${styles.sendButton}`}
-              >
-                {loading ? "..." : "Send"}
-              </button>
-            </div>
-
-            {method !== "GET" && (
-              <div className={styles.bodyEditor}>
-                <label>Request Body</label>
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={5}
-                  className={styles.bodyTextarea}
-                  placeholder='{"key": "value"}'
-                />
-              </div>
-            )}
-
-            <div className={styles.responseHeader}>
-              <span className={`text-xs ${styles.responseLabel}`}>
-                Response
-              </span>
-              {status !== null && (
-                <span
-                  className={`text-xs ${styles.statusBadge} ${statusClass}`}
+                <div className={styles.pathGroup}>
+                  {apis.map((api) => (
+                    <Collapsible
+                      key={api.id}
+                      open={api.id === activeApiId}
+                      direction="horizontal"
+                      duration={300}
+                    >
+                      <span className={`text-sm ${styles.baseUrlPrefix}`}>
+                        {api.baseUrl}
+                      </span>
+                    </Collapsible>
+                  ))}
+                  <input
+                    value={path}
+                    onChange={(e) => setPath(e.target.value)}
+                    className={`text-sm ${styles.pathInput}`}
+                    placeholder="/endpoint"
+                  />
+                </div>
+                <button
+                  onClick={send}
+                  disabled={loading}
+                  className={`btn btn-primary ${styles.sendButton}`}
                 >
-                  {status}
-                </span>
-              )}
-              {responseContentType && (
-                <span className={`text-xs ${styles.contentType}`}>
-                  Content-Type: {responseContentType}
-                </span>
-              )}
-            </div>
-          </div>
+                  {loading ? "..." : "Send"}
+                </button>
+              </div>
 
-          <ResponseBody text={response} contentType={responseContentType} />
-        </main>
-      </div>
+              {method !== "GET" && (
+                <div className={styles.bodyEditor}>
+                  <label>Request Body</label>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={5}
+                    className={styles.bodyTextarea}
+                    placeholder='{"key": "value"}'
+                  />
+                </div>
+              )}
+
+              <div className={styles.responseHeader}>
+                <span className={`text-xs ${styles.responseLabel}`}>
+                  Response
+                </span>
+                {status !== null && (
+                  <span
+                    className={`text-xs ${styles.statusBadge} ${statusClass}`}
+                  >
+                    {status}
+                  </span>
+                )}
+                {responseContentType && (
+                  <span className={`text-xs ${styles.contentType}`}>
+                    Content-Type: {responseContentType}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <ResponseBody text={response} contentType={responseContentType} />
+          </main>
+        </div>
+      </ViewTransition>
     </div>
   );
 }

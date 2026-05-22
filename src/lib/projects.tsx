@@ -2,7 +2,6 @@ import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
 import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
-import { ApiOriginal } from "@/components/originals/ApiOriginal";
 import { JsDomEventsEnhanced } from "@/components/enhanced/JsDomEventsEnhanced";
 import sourcesGenerated from "./sources.generated.json";
 
@@ -934,6 +933,11 @@ export const PROJECTS: Project[] = [
   {
     slug: "music-tour-api",
     repo: "moefingers/SQL-Music-Tour-API",
+    // Backend-only API project — its museum surface IS the /api-client
+    // viewer. project-route.tsx redirects rail clicks from any tier to
+    // the right path-segment leaf (/api-client for original,
+    // /api-client/v2 for enhanced), so this project's tier-body fields
+    // are intentionally unset — they'd never render.
     href: "/api-client?api=music-tour",
     title: "Music Tour API",
     description: "REST API for music tour management.",
@@ -942,9 +946,7 @@ export const PROJECTS: Project[] = [
     year: "Apr 2024",
     category: "api",
     techOriginal: ["Express", "PostgreSQL", "Sequelize"],
-    original: <ApiOriginal startWith="Music Tour API" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
+    plannedTiers: ["original", "enhanced"],
   },
   {
     slug: "sql-injection-demo",
@@ -970,6 +972,9 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "sql-injection-demo-api",
+    // Backend-only — `href` drives the rail click to /api-client; the
+    // tier-body fields are intentionally unset because project-route
+    // redirects before any of them would render.
     href: "/api-client?api=sql-demo",
     title: "SQL Injection Demo API",
     description:
@@ -977,9 +982,7 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "api",
     techOriginal: ["Express", "SQLite"],
-    original: <ApiOriginal startWith="SQL Injection Demo" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
+    plannedTiers: ["original", "enhanced"],
     notes: {
       original:
         "Backend half of the SQL Demo pair — the original Express server returned an HTML success page or a hash-redirect; this card exposes the same vulnerable + safe queries with structured JSON responses (parsed rows, the raw SQL string, an `injected` flag) so visitors can dissect what the queries actually do. The visitor-facing form lives at /sql-injection-demo.",
@@ -987,6 +990,9 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "admin-portal-api",
+    // Backend-only — `href` drives the rail click to /api-client; the
+    // tier-body fields are intentionally unset because project-route
+    // redirects before any of them would render.
     href: "/api-client?api=admin-portal",
     title: "Admin Portal API",
     description:
@@ -994,9 +1000,7 @@ export const PROJECTS: Project[] = [
     year: "Dec 2023",
     category: "api",
     techOriginal: ["Express", "JSON file store"],
-    original: <ApiOriginal startWith="Admin Portal" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
+    plannedTiers: ["original", "enhanced"],
     notes: {
       original:
         "Backend half of the Admin Portal pair — the original Express server served both JSON endpoints (listBooks/addBook/updateBook/removeBook) and HTML at /  and /index.html. The frontend lives at /admin-portal as a separate entry; this one is the API itself, browsable via the api-client.",
