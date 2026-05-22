@@ -20,6 +20,7 @@ Read the CONTEXT docs for decisions already made:
 - [Rate limiting](CONTEXT/internal_docs/rate-limiting.md) — Vercel WAF + Better Auth built-in, per-path windows, when to add Upstash
 - [Security overview](CONTEXT/internal_docs/security.md) — cross-cutting principles + pointers to auth + rate-limiting
 - [Database](CONTEXT/internal_docs/database.md) — Neon, Drizzle, per-project schemas
+- [View transitions](CONTEXT/internal_docs/view-transitions.md) — participant inventory, the "stays still" pattern, intentional non-namings
 
 ## Quick Reference
 

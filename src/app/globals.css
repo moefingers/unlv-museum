@@ -1162,26 +1162,55 @@
 
 /* ─── View Transitions ────────────────────────────── */
 
-/* The chrome should appear pinned in place across navigations — no
-   cross-fade, no slide. Both old and new snapshots stack with no
-   animation; the new one is painted on top at frame 0 of the
-   transition and stays until the transition finishes.
-
-   Earlier this used `display: none` on the old snapshot, which caused
-   a 1–2 frame gap where the old was gone but the new hadn't yet been
-   captured into a snapshot — visible as a "flash of no chrome." Both
-   snapshots are present throughout now; they just don't animate. */
+/*
+ * site-header — the museum's sticky chrome bar. Across route
+ * navigations it should APPEAR pinned in place: no perceptible
+ * crossfade, no slide. The mechanism is asymmetric:
+ *
+ *   - The NEW snapshot renders fully opaque from frame 0 (no
+ *     animation) and stays put for the entire transition. This is
+ *     what the viewer's eye locks onto.
+ *
+ *   - The OLD snapshot fades out FAST (vt-header-fade-out, 60ms).
+ *     The browser otherwise paints both pseudos at full opacity by
+ *     default during a `animation: none` setup, which creates a
+ *     brief co-opaque "double vision" window — two headers stacked
+ *     at full alpha showing different content (e.g. different
+ *     subtitle text). A quick fade-out on the old eliminates the
+ *     overlap window without introducing a perceptible crossfade.
+ *
+ * Earlier iterations used `display: none` on the old snapshot, which
+ * caused a 1–2 frame gap where the old was gone but the new hadn't
+ * yet been captured into a snapshot — visible as a "flash of no
+ * chrome." The fast fade-out avoids both that gap AND the double-
+ * vision effect.
+ *
+ * `inset: 0` pins both snapshots to the top-left of the transition
+ * group so they overlap perfectly regardless of any height delta
+ * (e.g. notes panel open vs collapsed). `z-index: 100` keeps the
+ * group above page-content's animated old/new pair so the header
+ * stays on top while the body crossfades underneath.
+ */
 ::view-transition-group(site-header) {
   animation: none;
   z-index: 100;
 }
-::view-transition-old(site-header),
+::view-transition-old(site-header) {
+  animation: 60ms ease-out both vt-header-fade-out;
+  inset: 0;
+}
 ::view-transition-new(site-header) {
   animation: none;
-  /* Pin both snapshots to the top-left of the transition group so
-     they overlap perfectly regardless of any height delta between
-     the old and new chrome (e.g. notes panel open vs collapsed). */
   inset: 0;
+}
+
+@keyframes vt-header-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 ::view-transition-old(page-content) {

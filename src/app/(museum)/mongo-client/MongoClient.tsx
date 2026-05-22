@@ -6,6 +6,7 @@ import {
   useRef,
   useCallback,
   Suspense,
+  ViewTransition,
   type KeyboardEvent,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -366,61 +367,66 @@ function MongoClientInner({ tier }: { tier: Tier }) {
           />
         </button>
 
-        {/* Right: terminal */}
-        <main
-          className={styles.terminal}
-          style={{ viewTransitionName: "page-content" }}
-        >
-          <div className={styles.terminalHeader}>
-            <span className={styles.terminalProject}>
-              {activeProject.title}
-            </span>
-            <span className={styles.terminalSeparator}>·</span>
-            <span className={styles.terminalDb}>db: {currentDb}</span>
-            <span className={styles.terminalSeparator}>·</span>
-            <span className={styles.terminalTier} data-tier={tier}>
-              {tier === "enhanced" ? "Enhanced" : "Original"} tier
-            </span>
-            <span className={styles.terminalGrow} />
-            <button
-              type="button"
-              onClick={() => setPretty((v) => !v)}
-              className={styles.prettyToggle}
-              data-on={pretty}
-              aria-pressed={pretty}
-              title={
-                pretty
-                  ? "Pretty output (multi-line, indented). Click for compact."
-                  : "Compact output (one document per line). Click for pretty."
-              }
-            >
-              pretty: {pretty ? "on" : "off"}
-            </button>
-            {!sessionPending && !session && (
+        {/* Right: terminal. Wrapped in <ViewTransition name="page-content">
+            so it picks up the keyframed fade+blur+slide in globals.css
+            (same treatment as every other museum route body). The other
+            three call sites — landing, project-route, api-client — all
+            use this wrapper; this used to be inline `style={{
+            viewTransitionName }}` for the same effect, but the wrapper
+            form is the canonical one and keeps the page-content
+            participants consistent. */}
+        <ViewTransition name="page-content">
+          <main className={styles.terminal}>
+            <div className={styles.terminalHeader}>
+              <span className={styles.terminalProject}>
+                {activeProject.title}
+              </span>
+              <span className={styles.terminalSeparator}>·</span>
+              <span className={styles.terminalDb}>db: {currentDb}</span>
+              <span className={styles.terminalSeparator}>·</span>
+              <span className={styles.terminalTier} data-tier={tier}>
+                {tier === "enhanced" ? "Enhanced" : "Original"} tier
+              </span>
+              <span className={styles.terminalGrow} />
               <button
                 type="button"
-                disabled={signingIn}
-                onClick={startSignIn}
-                className={`btn ${styles.signInInline}`}
-                title="Sign in with GitHub — required for writes"
+                onClick={() => setPretty((v) => !v)}
+                className={styles.prettyToggle}
+                data-on={pretty}
+                aria-pressed={pretty}
+                title={
+                  pretty
+                    ? "Pretty output (multi-line, indented). Click for compact."
+                    : "Compact output (one document per line). Click for pretty."
+                }
               >
-                {signingIn ? (
-                  <Loader2 size={12} className={styles.spin} />
-                ) : (
-                  <GithubMark size={12} />
-                )}
-                Sign in to write
+                pretty: {pretty ? "on" : "off"}
               </button>
-            )}
-            {!sessionPending && session && (
-              <span className={styles.signedInBadge}>
-                <GithubMark size={11} />
-                {session.user.name}
-              </span>
-            )}
-          </div>
+              {!sessionPending && !session && (
+                <button
+                  type="button"
+                  disabled={signingIn}
+                  onClick={startSignIn}
+                  className={`btn ${styles.signInInline}`}
+                  title="Sign in with GitHub — required for writes"
+                >
+                  {signingIn ? (
+                    <Loader2 size={12} className={styles.spin} />
+                  ) : (
+                    <GithubMark size={12} />
+                  )}
+                  Sign in to write
+                </button>
+              )}
+              {!sessionPending && session && (
+                <span className={styles.signedInBadge}>
+                  <GithubMark size={11} />
+                  {session.user.name}
+                </span>
+              )}
+            </div>
 
-          {/*
+            {/*
             Welcome banner overlays the top of the scrolling transcript as
             a translucent, blurred surface — visitors see the transcript
             faintly through it, signalling "this UI is layered on top of a
@@ -428,54 +434,58 @@ function MongoClientInner({ tier }: { tier: Tier }) {
             its top-padding tracks the banner's measured height so the first
             command isn't trapped under the banner.
           */}
-          <WelcomeBanner ref={welcomeRef} project={activeProject} tier={tier} />
-          <div
-            ref={scrollerRef}
-            className={styles.transcript}
-            onScroll={checkAtBottom}
-          >
-            {transcript.map((entry, i) => (
-              <TranscriptBlock key={i} entry={entry} pretty={pretty} />
-            ))}
-            {/* Active prompt */}
-            <div className={styles.promptRow}>
-              <span className={styles.promptPrefix}>
-                <span className={styles.promptDb}>{currentDb}</span>
-                <span className={styles.promptArrow}>&gt;</span>
-              </span>
-              <textarea
-                ref={promptRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={onPromptKeyDown}
-                rows={Math.min(8, Math.max(1, draft.split("\n").length))}
-                className={styles.promptInput}
-                placeholder={
-                  running
-                    ? "..."
-                    : "type a command (Enter to run, Shift+Enter for newline)"
-                }
-                spellCheck={false}
-                disabled={running}
-                aria-label="Mongo shell prompt"
-              />
-              <button
-                type="button"
-                onClick={() => void send(draft)}
-                disabled={running || !draft.trim()}
-                className={`btn ${styles.runButton}`}
-                aria-label="Run command"
-              >
-                {running ? (
-                  <Loader2 size={14} className={styles.spin} />
-                ) : (
-                  <Play size={14} />
-                )}
-              </button>
+            <WelcomeBanner
+              ref={welcomeRef}
+              project={activeProject}
+              tier={tier}
+            />
+            <div
+              ref={scrollerRef}
+              className={styles.transcript}
+              onScroll={checkAtBottom}
+            >
+              {transcript.map((entry, i) => (
+                <TranscriptBlock key={i} entry={entry} pretty={pretty} />
+              ))}
+              {/* Active prompt */}
+              <div className={styles.promptRow}>
+                <span className={styles.promptPrefix}>
+                  <span className={styles.promptDb}>{currentDb}</span>
+                  <span className={styles.promptArrow}>&gt;</span>
+                </span>
+                <textarea
+                  ref={promptRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={onPromptKeyDown}
+                  rows={Math.min(8, Math.max(1, draft.split("\n").length))}
+                  className={styles.promptInput}
+                  placeholder={
+                    running
+                      ? "..."
+                      : "type a command (Enter to run, Shift+Enter for newline)"
+                  }
+                  spellCheck={false}
+                  disabled={running}
+                  aria-label="Mongo shell prompt"
+                />
+                <button
+                  type="button"
+                  onClick={() => void send(draft)}
+                  disabled={running || !draft.trim()}
+                  className={`btn ${styles.runButton}`}
+                  aria-label="Run command"
+                >
+                  {running ? (
+                    <Loader2 size={14} className={styles.spin} />
+                  ) : (
+                    <Play size={14} />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/*
+            {/*
             Floating "scroll to bottom" affordance. Sits at the lower edge
             of the terminal pane (above the transcript's last visible line)
             and is only shown when the visitor has scrolled up. The radial
@@ -484,28 +494,29 @@ function MongoClientInner({ tier }: { tier: Tier }) {
             — gives it a "fading up from the floor" feel rather than a hard
             floating button.
           */}
-          <div
-            className={styles.scrollHintWrap}
-            data-visible={!atBottom}
-            aria-hidden={atBottom}
-          >
-            <div className={styles.scrollHintGlow} />
-            <button
-              type="button"
-              className={styles.scrollHintButton}
-              onClick={() => {
-                const el = scrollerRef.current;
-                if (el)
-                  el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-              }}
-              tabIndex={atBottom ? -1 : 0}
-              aria-label="Scroll to bottom"
+            <div
+              className={styles.scrollHintWrap}
+              data-visible={!atBottom}
+              aria-hidden={atBottom}
             >
-              <ChevronDown size={14} aria-hidden="true" />
-              <span>jump to latest</span>
-            </button>
-          </div>
-        </main>
+              <div className={styles.scrollHintGlow} />
+              <button
+                type="button"
+                className={styles.scrollHintButton}
+                onClick={() => {
+                  const el = scrollerRef.current;
+                  if (el)
+                    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+                }}
+                tabIndex={atBottom ? -1 : 0}
+                aria-label="Scroll to bottom"
+              >
+                <ChevronDown size={14} aria-hidden="true" />
+                <span>jump to latest</span>
+              </button>
+            </div>
+          </main>
+        </ViewTransition>
       </div>
     </div>
   );
