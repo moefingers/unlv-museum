@@ -8,6 +8,7 @@ import { siGithub } from "simple-icons";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
 import {
+  pageSlug,
   projectPath,
   resolveSiblingLink,
   resolveTierSources,
@@ -90,13 +91,24 @@ export function ProjectChrome({ project }: { project: Project }) {
     "enhanced",
     "reimagined",
   ];
+  // For multi-page originals, link directly to the first page's
+  // `?page=<slug>` URL rather than the bare `/<path>`. The bare URL
+  // triggers a server-side redirect to the first-page query, which
+  // would fire the view transition twice (once on click, again after
+  // the redirect lands) — visible as a "flash of no chrome" on the
+  // landing tier nav. Bypassing the redirect keeps the transition
+  // single-shot.
+  const firstPageSuffix =
+    project.pages && project.pages.length > 0
+      ? `?page=${pageSlug(project.pages[0]!.label)}`
+      : "";
   const tiers: TierSpec[] = TIERS.filter(({ mode }) =>
     planned.includes(mode),
   ).map(({ mode, label }) => ({
     label,
     href: available[mode]
       ? mode === "original"
-        ? `/${path}`
+        ? `/${path}${firstPageSuffix}`
         : `/${path}/${mode}`
       : undefined,
     current: currentTier === mode,

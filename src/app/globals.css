@@ -1162,15 +1162,26 @@
 
 /* ─── View Transitions ────────────────────────────── */
 
+/* The chrome should appear pinned in place across navigations — no
+   cross-fade, no slide. Both old and new snapshots stack with no
+   animation; the new one is painted on top at frame 0 of the
+   transition and stays until the transition finishes.
+
+   Earlier this used `display: none` on the old snapshot, which caused
+   a 1–2 frame gap where the old was gone but the new hadn't yet been
+   captured into a snapshot — visible as a "flash of no chrome." Both
+   snapshots are present throughout now; they just don't animate. */
 ::view-transition-group(site-header) {
   animation: none;
   z-index: 100;
 }
-::view-transition-old(site-header) {
-  display: none;
-}
+::view-transition-old(site-header),
 ::view-transition-new(site-header) {
   animation: none;
+  /* Pin both snapshots to the top-left of the transition group so
+     they overlap perfectly regardless of any height delta between
+     the old and new chrome (e.g. notes panel open vs collapsed). */
+  inset: 0;
 }
 
 ::view-transition-old(page-content) {

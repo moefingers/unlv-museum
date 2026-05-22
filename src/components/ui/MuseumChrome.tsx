@@ -77,13 +77,21 @@ export function MuseumChrome({
   belowRow,
 }: MuseumChromeProps) {
   return (
-    <header className={styles.header}>
+    <header
+      className={styles.header}
+      // Inline style so the literal identifier survives CSS Modules
+      // scoping — the global ::view-transition-old/new(site-header)
+      // rules in globals.css must match this exact name. Same reason
+      // applies to backLink / tierCurrent / SignInChip / SiblingRail.
+      style={{ viewTransitionName: "site-header" }}
+    >
       <div className={styles.row}>
         <div className={styles.leadGroup}>
           <Link
             href={backHref}
             className={styles.backLink}
             aria-label={backLabel}
+            style={{ viewTransitionName: "site-back-link" }}
           >
             <ArrowLeft size={18} />
           </Link>
@@ -125,6 +133,14 @@ export function MuseumChrome({
                     href={t.href}
                     className={`${styles.tier} ${stateClass}`}
                     aria-current={t.current ? "page" : undefined}
+                    // Inline view-transition-name on the active pill so
+                    // its background morphs across tier nav — see the
+                    // header's inline-style comment for why.
+                    style={
+                      t.current
+                        ? { viewTransitionName: "tier-pill-bg" }
+                        : undefined
+                    }
                   >
                     {t.label}
                   </Link>
