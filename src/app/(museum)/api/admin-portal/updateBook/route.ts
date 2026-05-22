@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { books } from "../_schema";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
+import { books, auditLog } from "../_schema";
 
 /**
  * Mirrors original Express PATCH /updateBook from server.js — id arrives
@@ -9,6 +11,9 @@ import { books } from "../_schema";
  * row.
  */
 export async function PATCH(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as {
     id?: number;
     title?: string;
@@ -63,6 +68,20 @@ export async function PATCH(request: Request) {
     })
     .where(eq(books.id, body.id))
     .returning();
+
+  await writeAuditEntry(
+    {
+      auditLogTable: auditLog,
+      tier: guard.tier,
+      actor: guard.actor,
+    },
+    {
+      collection: "books",
+      op: "updateOne",
+      before: existing,
+      after: updated,
+    },
+  );
 
   // Rename `imageUrl` → `imageURL` on the wire to match the source's
   // db.json shape. No fallback — source returned whatever was in the

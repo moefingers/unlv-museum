@@ -534,6 +534,149 @@ export const APIS_ENHANCED: ApiProject[] = [
       },
     ],
   },
+  {
+    id: "admin-portal",
+    title: "Admin Portal (v2)",
+    baseUrl: "/api/v2/admin-portal",
+    description:
+      "Enhanced tier — same book-inventory data as v1 plus: REST-shaped aliases (/books, /books/:id) alongside the original verb-prefixed paths on v1, a transactional /batch endpoint, /search across title+description, /low-stock for operational reports, /audit-log over every mutation in both tiers, and /rate-limit observability. Writes on both tiers now require GitHub sign-in (anti-abuse carve-out) and are attributed in the audit log.",
+    tech: "Next.js + Drizzle + @vercel/firewall + Better Auth PAT",
+    endpoints: [
+      // ── REST aliases (v2 modern shape) ──────────────────────────────
+      {
+        label: "List books (REST)",
+        method: "GET",
+        path: "/books",
+        description:
+          "v2 alias for v1's /listBooks — supports ?sort=, ?order=, ?limit=, ?ids=1,2,3",
+      },
+      {
+        label: "Batch read books by id",
+        method: "GET",
+        path: "/books?ids=1,2,3",
+        description: "v2 only — comma-separated ids returns just those rows",
+      },
+      {
+        label: "Get one book",
+        method: "GET",
+        path: "/books/1",
+        description: "v2 only — REST single-resource fetch by id",
+      },
+      {
+        label: "Create book (REST)",
+        method: "POST",
+        path: "/books",
+        description:
+          "v2 alias for v1's /addBook — same body shape, sign-in required, audit row tier=enhanced",
+        body: JSON.stringify(
+          {
+            title: "v2 Probe Book",
+            description: "Inserted via REST alias",
+            year: "2026",
+            quantity: 1,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Update book (REST)",
+        method: "PATCH",
+        path: "/books/1",
+        description:
+          "v2 only — id in URL (REST), not body. v1's /updateBook still wants id in the body for source-faithfulness.",
+        body: JSON.stringify({ quantity: 99 }, null, 2),
+      },
+      {
+        label: "Delete book (REST)",
+        method: "DELETE",
+        path: "/books/1",
+        description:
+          "v2 alias for v1's /removeBook/:id — sign-in required, audit row records the deleted row",
+      },
+      // ── v2-only endpoints ────────────────────────────────────────────
+      {
+        label: "Search (title + description)",
+        method: "GET",
+        path: "/search?q=node",
+        description:
+          "v2 only — case-insensitive substring match across title and description",
+      },
+      {
+        label: "Low-stock report",
+        method: "GET",
+        path: "/low-stock?threshold=5",
+        description:
+          "v2 only — books with quantity <= threshold, sorted by quantity asc. Operational visibility era-impossible without server-side query support.",
+      },
+      {
+        label: "Compound write (batch)",
+        method: "POST",
+        path: "/batch",
+        description:
+          "v2 only — single Postgres transaction over multiple book ops. All succeed or all roll back. Sign-in required; one audit row per op.",
+        body: JSON.stringify(
+          {
+            ops: [
+              {
+                method: "POST",
+                path: "/books",
+                body: {
+                  title: "Batch Probe 1",
+                  description: "First of two created atomically",
+                  quantity: 3,
+                },
+              },
+              {
+                method: "POST",
+                path: "/books",
+                body: {
+                  title: "Batch Probe 2",
+                  description:
+                    "Second of two — if either fails, both roll back",
+                  quantity: 7,
+                },
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Audit log (newest 50)",
+        method: "GET",
+        path: "/audit-log",
+        description:
+          "v2 only — read every mutation across BOTH tiers (Original + Enhanced) with GitHub-login attribution. No sign-in required to READ.",
+      },
+      {
+        label: "Audit log: filter by op",
+        method: "GET",
+        path: "/audit-log?op=insertOne",
+        description: "Slice to creates only",
+      },
+      {
+        label: "Audit log: by GitHub actor",
+        method: "GET",
+        path: "/audit-log?actor=moefingers",
+        description: "Who-did-what for a specific GitHub login",
+      },
+      {
+        label: "Audit log: by tier",
+        method: "GET",
+        path: "/audit-log?tier=original",
+        description: "Only writes that came through /api/admin-portal/* (v1)",
+      },
+      {
+        label: "Rate-limit policy",
+        method: "GET",
+        path: "/rate-limit",
+        description:
+          "Returns your current tier (anon vs auth), the budgets each tier carries, and notes about how unconsumed budget surfaces (or doesn't) today",
+      },
+    ],
+  },
 ];
 
 export type Tier = "original" | "enhanced";

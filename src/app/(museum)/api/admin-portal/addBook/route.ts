@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { books } from "../_schema";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
+import { books, auditLog } from "../_schema";
 
 /**
  * Mirrors original Express POST /addBook from server.js. The original
  * required title + quantity + description in the body and returned 400
  * with a specific error string for each missing field; we preserve those
  * messages so the frontend's expected validation messaging keeps working.
+ *
+ * The auth gate + audit log are the museum-era anti-abuse carve-out
+ * (memory: project_enhanced_api_conventions.md). Unauth visitors get a
+ * helpful 401 with a worked example; signed-in writes record an audit row.
  */
 export async function POST(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as {
     title?: string;
     description?: string;
@@ -67,6 +76,20 @@ export async function POST(request: Request) {
       imageUrl: body.imageURL?.slice(0, 500) ?? null,
     })
     .returning();
+
+  await writeAuditEntry(
+    {
+      auditLogTable: auditLog,
+      tier: guard.tier,
+      actor: guard.actor,
+    },
+    {
+      collection: "books",
+      op: "insertOne",
+      before: null,
+      after: book,
+    },
+  );
 
   // Rename `imageUrl` → `imageURL` on the wire to match the source's
   // db.json shape. No synthesis: if the visitor didn't pass an imageURL,
