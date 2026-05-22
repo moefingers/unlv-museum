@@ -231,8 +231,12 @@ export const APIS_ORIGINAL: ApiProject[] = [
     title: "Rest-Rant API",
     baseUrl: "/api/rest-rant",
     description:
-      "Restaurant review backend. CRUD on places, threaded comments, signup/login auth. Same monorepo as the Rest-Rant SPA card on the landing globe — the original Express server packaged the frontend + the API together.",
+      "Restaurant review backend. CRUD on places, threaded comments, signup/login auth. Same monorepo as the Rest-Rant SPA card on the landing globe — the original Express server packaged the frontend + the API together. The museum carve-out applies: writes (including signup/login) require GitHub sign-in, and project-level users are locked to museum identities via museum_user_id FK.",
     tech: "Originally Express + PostgreSQL + Sequelize + bcrypt",
+    relatedRoute: {
+      label: "Open the Rest-Rant frontend",
+      url: "/rest-rant",
+    },
     endpoints: [
       {
         label: "Rest-Rant page",
@@ -698,6 +702,180 @@ export const APIS_ENHANCED: ApiProject[] = [
         path: "/rate-limit",
         description:
           "Returns your current tier (anon vs auth), the budgets each tier carries, and notes about how unconsumed budget surfaces (or doesn't) today",
+      },
+    ],
+  },
+  {
+    id: "rest-rant",
+    title: "Rest-Rant API (v2)",
+    baseUrl: "/api/v2/rest-rant",
+    description:
+      "Enhanced tier — same restaurant-review CRUD as v1 plus: /search across places (name/city/cuisines), a transactional /batch endpoint for compound place+comment writes, /audit-log over every mutation AND every login attempt in both tiers (with the password never recorded), and /rate-limit observability. Writes on both tiers require GitHub sign-in (anti-abuse carve-out). Per the identity-and-signup contract, project-level signup links each rest-rant user to a museum identity via museum_user_id FK, and login is three-factor (email + password + matching museum_user_id) — you can't log into someone else's project account even if you know their password.",
+    tech: "Next.js + Drizzle + @vercel/firewall + bcrypt + Better Auth PAT",
+    relatedRoute: {
+      label: "Open the Rest-Rant frontend",
+      url: "/rest-rant",
+    },
+    endpoints: [
+      // ── places ──────────────────────────────────────────────────────
+      {
+        label: "List places",
+        method: "GET",
+        path: "/places",
+        description: "Same as v1 — every place, newest first",
+      },
+      {
+        label: "Get place + comments",
+        method: "GET",
+        path: "/places/1",
+        description: "Place row + nested comments with author info",
+      },
+      {
+        label: "Create place",
+        method: "POST",
+        path: "/places",
+        description:
+          "Sign-in required — audit row tier=enhanced. name + cuisines required; city/state/pic/founded optional.",
+        body: JSON.stringify(
+          {
+            name: "Magnolia Bakery",
+            city: "Las Vegas",
+            state: "NV",
+            cuisines: "Bakery, Coffee",
+            pic: "https://placebear.com/g/405/400",
+            founded: 2014,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Update place",
+        method: "PUT",
+        path: "/places/1",
+        description: "Partial update; audit row records before + after",
+        body: JSON.stringify({ cuisines: "Thai" }, null, 2),
+      },
+      {
+        label: "Delete place",
+        method: "DELETE",
+        path: "/places/5",
+        description: "Cascades to comments; audit row records pre-delete state",
+      },
+      // ── comments ────────────────────────────────────────────────────
+      {
+        label: "Add comment",
+        method: "POST",
+        path: "/places/2/comments",
+        description:
+          "Sign-in required. authorId optional — when present, looked up and resolved to first+last name on the comment row.",
+        body: JSON.stringify(
+          {
+            authorId: 1,
+            stars: 5,
+            content: "Best cappuccino in Phoenix.",
+            rant: false,
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Delete comment",
+        method: "DELETE",
+        path: "/places/1/comments/1",
+        description: "Hard delete; audit row records the deleted comment",
+      },
+      // ── users + auth ────────────────────────────────────────────────
+      {
+        label: "List users",
+        method: "GET",
+        path: "/users",
+        description: "Same as v1 — no passwords in the response",
+      },
+      {
+        label: "Sign up",
+        method: "POST",
+        path: "/users",
+        description:
+          "Sign-in required (museum-level). Per identity-and-signup.md, the project user is locked to YOUR museum identity via museum_user_id FK — you can't sign up under another museum identity's name.",
+        body: JSON.stringify(
+          {
+            firstName: "Alex",
+            lastName: "Sample",
+            email: "alex@example.com",
+            password: "password",
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Login (three-factor)",
+        method: "POST",
+        path: "/authentication",
+        description:
+          "Three-factor: email + password + matching museum_user_id. A login under a museum identity that doesn't own the account returns the SAME 404 as a wrong password — never leaks whether the account exists.",
+        body: JSON.stringify(
+          { email: "alex@example.com", password: "password" },
+          null,
+          2,
+        ),
+      },
+      // ── v2-only endpoints ───────────────────────────────────────────
+      {
+        label: "Search places",
+        method: "GET",
+        path: "/search?q=bakery",
+        description:
+          "v2 only — case-insensitive substring match across name + city + cuisines",
+      },
+      {
+        label: "Compound write (batch)",
+        method: "POST",
+        path: "/batch",
+        description:
+          "v2 only — single Postgres transaction over place + comment ops. All succeed or all roll back; one audit row per op. Users/auth are deliberately NOT supported here.",
+        body: JSON.stringify(
+          {
+            ops: [
+              {
+                method: "POST",
+                path: "/places",
+                body: { name: "Batch Cafe", cuisines: "Coffee" },
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      },
+      {
+        label: "Audit log (newest 50)",
+        method: "GET",
+        path: "/audit-log",
+        description:
+          "v2 only — every mutation AND every login event across both tiers, attributed to the museum visitor's GitHub login. Passwords are NEVER recorded.",
+      },
+      {
+        label: "Audit log: only logins",
+        method: "GET",
+        path: "/audit-log?op=loginAttempt",
+        description:
+          "Slice to login attempts (failed + missing-field). loginSuccess is a separate op.",
+      },
+      {
+        label: "Audit log: by table",
+        method: "GET",
+        path: "/audit-log?table=comments",
+        description: "Only comment mutations",
+      },
+      {
+        label: "Rate-limit policy",
+        method: "GET",
+        path: "/rate-limit",
+        description:
+          "Returns your current tier (anon vs auth), the budgets, plus a note about the identity-and-signup contract that rest-rant enforces on top of the standard guard",
       },
     ],
   },

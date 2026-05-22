@@ -32,17 +32,31 @@ export interface AuditWriteContext {
 export interface AuditEvent {
   /** Table name within the project schema (e.g. "bands", "events"). */
   collection: string;
-  /** Mutation kind. Use plural for batch ops ("insertMany", "deleteMany"). */
+  /**
+   * Event kind. The first six are the standard insert/update/delete
+   * shapes (plural variants for batch ops). The auth-related kinds are
+   * for projects that surface signup/login per the identity-and-signup
+   * contract — those events aren't INSERT/UPDATE on a user row from
+   * the visitor's POV, they're attempts and outcomes:
+   *   - `loginAttempt`: a login was tried (record `after.email` +
+   *     `after.outcome`, never the password). Both failed and pre-bcrypt
+   *     attempts use this op.
+   *   - `loginSuccess`: a login matched all three factors (email +
+   *     password + museum_user_id). `after` records userId + safe
+   *     identity fields (NEVER passwordDigest, even hashed).
+   */
   op:
     | "insertOne"
     | "insertMany"
     | "updateOne"
     | "updateMany"
     | "deleteOne"
-    | "deleteMany";
-  /** Pre-mutation snapshot (null for inserts). */
+    | "deleteMany"
+    | "loginAttempt"
+    | "loginSuccess";
+  /** Pre-event snapshot (null for inserts and login events). */
   before: unknown;
-  /** Post-mutation snapshot (null for deletes). */
+  /** Post-event snapshot (null for deletes). */
   after: unknown;
 }
 

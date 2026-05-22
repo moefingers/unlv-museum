@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
-import { users } from "@/lib/schema/rest-rant";
+import { users, auditLog } from "@/lib/schema/rest-rant";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { serializeUser } from "@/lib/rest-rant";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function GET() {
   const rows = await db.select().from(users);
@@ -11,6 +13,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
   const body = (await request.json()) as Partial<{
     firstName: string;
     lastName: string;
@@ -34,9 +38,13 @@ export async function POST(request: Request) {
     );
   }
   const passwordDigest = bcrypt.hashSync(body.password, 10);
+  // museumUserId is mandatory by the identity-and-signup contract — every
+  // project-level user is locked to one museum identity. guard.actor.id
+  // is the auth.user.id from the visitor's GitHub-authenticated session.
   const [row] = await db
     .insert(users)
     .values({
+      museumUserId: guard.actor.id,
       firstName: body.firstName.slice(0, 100),
       lastName: body.lastName.slice(0, 100),
       email: body.email.toLowerCase().trim().slice(0, 200),
@@ -49,5 +57,18 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await writeAuditEntry(
+    { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+    {
+      collection: "users",
+      op: "insertOne",
+      before: null,
+      // Don't include passwordDigest in the audit row — even hashed, it's
+      // sensitive and the audit log is publicly readable.
+      after: { ...row, passwordDigest: undefined },
+    },
+  );
+
   return NextResponse.json(serializeUser(row));
 }

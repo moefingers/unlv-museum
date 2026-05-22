@@ -1,13 +1,18 @@
 import { db } from "@/lib/db";
-import { places, comments, users } from "@/lib/schema/rest-rant";
+import { places, comments, users, auditLog } from "@/lib/schema/rest-rant";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { serializeComment } from "@/lib/rest-rant";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ placeId: string }> },
 ) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { placeId } = await params;
   const id = Number(placeId);
   if (!Number.isFinite(id) || id <= 0) {
@@ -74,5 +79,11 @@ export async function POST(
       { status: 500 },
     );
   }
+
+  await writeAuditEntry(
+    { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+    { collection: "comments", op: "insertOne", before: null, after: comment },
+  );
+
   return NextResponse.json(serializeComment(comment, author));
 }

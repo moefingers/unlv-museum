@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
-import { places } from "@/lib/schema/rest-rant";
+import { places, auditLog } from "@/lib/schema/rest-rant";
 import { desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { serializePlace } from "@/lib/rest-rant";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 export async function GET() {
   const rows = await db.select().from(places).orderBy(desc(places.createdAt));
@@ -10,6 +12,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const body = (await request.json()) as Partial<{
     name: string;
     city: string;
@@ -44,5 +49,11 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await writeAuditEntry(
+    { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+    { collection: "places", op: "insertOne", before: null, after: row },
+  );
+
   return NextResponse.json(serializePlace(row));
 }

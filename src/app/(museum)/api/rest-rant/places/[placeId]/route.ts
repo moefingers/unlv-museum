@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
-import { places, comments, users } from "@/lib/schema/rest-rant";
+import { places, comments, users, auditLog } from "@/lib/schema/rest-rant";
 import { eq, asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { serializePlace, serializeComment } from "@/lib/rest-rant";
+import { guardMutation } from "@/lib/api-guard";
+import { writeAuditEntry } from "@/lib/audit";
 
 function parseId(raw: string) {
   const n = Number(raw);
@@ -44,6 +46,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ placeId: string }> },
 ) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { placeId } = await params;
   const id = parseId(placeId);
   if (id === null) {
@@ -71,15 +76,18 @@ export async function PUT(
       typeof body.founded === "number" && body.founded > 0
         ? body.founded
         : null;
+  // Snapshot `before` so the audit row carries both pre- and post-state.
+  // Also short-circuits the "empty patch" branch — both code paths need
+  // the lookup anyway.
+  const [before] = await db.select().from(places).where(eq(places.id, id));
+  if (!before) {
+    return NextResponse.json(
+      { message: `Could not find place with id "${id}"` },
+      { status: 404 },
+    );
+  }
   if (Object.keys(patch).length === 0) {
-    const [place] = await db.select().from(places).where(eq(places.id, id));
-    if (!place) {
-      return NextResponse.json(
-        { message: `Could not find place with id "${id}"` },
-        { status: 404 },
-      );
-    }
-    return NextResponse.json(serializePlace(place));
+    return NextResponse.json(serializePlace(before));
   }
   const [updated] = await db
     .update(places)
@@ -92,13 +100,22 @@ export async function PUT(
       { status: 404 },
     );
   }
+
+  await writeAuditEntry(
+    { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+    { collection: "places", op: "updateOne", before, after: updated },
+  );
+
   return NextResponse.json(serializePlace(updated));
 }
 
 export async function DELETE(
-  _req: Request,
+  request: Request,
   { params }: { params: Promise<{ placeId: string }> },
 ) {
+  const guard = await guardMutation(request);
+  if (guard.response) return guard.response;
+
   const { placeId } = await params;
   const id = parseId(placeId);
   if (id === null) {
@@ -117,5 +134,11 @@ export async function DELETE(
       { status: 404 },
     );
   }
+
+  await writeAuditEntry(
+    { auditLogTable: auditLog, tier: guard.tier, actor: guard.actor },
+    { collection: "places", op: "deleteOne", before: deleted, after: null },
+  );
+
   return NextResponse.json(serializePlace(deleted));
 }
