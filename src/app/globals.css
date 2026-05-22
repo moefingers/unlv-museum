@@ -106,8 +106,8 @@
        layer a category color on top of these stops and live in
        PolyhedronGlobe's <defs> because they're built from
        `var(--category-...)` already. */
-    --glass-fill: oklch(0.4 0.16 250 / 0.18);
-    --glass-stroke: oklch(0.4 0.18 250 / 0.75);
+    --glass-fill: oklch(from var(--foreground) l c h / 0.04);
+    --glass-stroke: oklch(from var(--foreground) l c h / 0.45);
     --glass-text: oklch(0.25 0.1 250 / 0.95);
     --glass-text-muted: oklch(0.38 0.06 250 / 0.78);
     --glass-text-secondary: oklch(0.3 0.08 250 / 0.88);

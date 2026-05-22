@@ -199,21 +199,28 @@ export function UnfoldingBillboard({
         <defs>
           {/* Glass inner-glow gradient — bright at the edge, fades to
               fully-transparent toward the center so the shape's border
-              picks up light without occluding interior content. */}
+              picks up light without occluding interior content.
+              Uses --glass-stroke at the rim so the inner-glow tracks
+              whatever the glass treatment is for the current mode. */}
           <radialGradient id="ub-inner-glow" cx="50%" cy="50%" r="70%">
-            <stop offset="0%" stopColor="rgba(255, 255, 255, 0)" />
-            <stop offset="80%" stopColor="rgba(255, 255, 255, 0)" />
-            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.25)" />
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="80%" stopColor="transparent" />
+            <stop
+              offset="100%"
+              stopColor="var(--glass-stroke)"
+              stopOpacity="0.3"
+            />
           </radialGradient>
         </defs>
 
-        {/* The morphing shape itself. Filled with translucent white
-            for the glass surface, stroked with a brighter rim. */}
+        {/* The morphing shape itself. Glass body (fill) + rim (stroke);
+            both track --glass-* tokens so they invert cleanly between
+            modes. */}
         <path
           d={pathStr}
           className={styles.shape}
-          fill="rgba(255, 255, 255, 0.08)"
-          stroke="rgba(255, 255, 255, 0.65)"
+          fill="var(--glass-fill)"
+          stroke="var(--glass-stroke)"
           strokeWidth={1.5}
           strokeLinejoin="round"
         />
@@ -232,7 +239,7 @@ export function UnfoldingBillboard({
             cx={p.x}
             cy={p.y}
             r={2.5}
-            fill="rgba(255, 255, 255, 0.85)"
+            fill="var(--glass-stroke)"
           />
         ))}
       </svg>

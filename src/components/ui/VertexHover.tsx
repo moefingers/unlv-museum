@@ -67,11 +67,17 @@ export interface VertexHoverProps {
   glowGradientId?: string;
 }
 
+/**
+ * Default text shadow for the typed-title. Tracks --glass-text-shadow
+ * (which is mode-aware) plus two additional softer halos for the
+ * deeper background fade — those use --glow-mid which is already
+ * the right tint per mode. Per-instance overrides via the
+ * `textShadow` prop still work as before.
+ */
 const DEFAULT_TEXT_SHADOW = [
-  "0 0 4px rgba(180, 200, 255, 0.95)",
-  "0 0 10px rgba(140, 180, 255, 0.7)",
-  "0 0 24px rgba(100, 160, 240, 0.45)",
-  "0 0 48px rgba(80, 140, 220, 0.25)",
+  "var(--glass-text-shadow)",
+  "0 0 24px var(--glow-mid)",
+  "0 0 48px var(--glow-far)",
 ].join(", ");
 
 export function VertexHover({
