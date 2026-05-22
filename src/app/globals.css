@@ -1246,13 +1246,40 @@
 }
 
 /* ─── Museum: api-client response-frame shimmer ───
-   Animated conic-gradient border that wraps a 2px padding ring
-   around the iframe in the API client's HTML response viewer —
-   signals "this is a whole frontend embedded here, served by
-   the API you just hit." Not part of the design system; lives
-   here because it's a global utility class. */
+   Animated conic-gradient ring around the iframe in the API client's
+   HTML response viewer — signals "this is a whole frontend embedded
+   here, served by the API you just hit."
+
+   Implementation note (2026): the ring lives on a `::before` pseudo
+   that's positioned `inset: 0` with the conic-gradient as background.
+   The content (the iframe) is offset inward by `--shimmer-thickness`,
+   and its border-radius is the outer radius MINUS the thickness so
+   the concentric rounding lines up exactly. This is structurally
+   cleaner than the earlier "padding as fake border" trick — which
+   had an asymmetric-looking bottom edge because iframes have a
+   line-box descender slot that made the bottom gap read thicker
+   than the top/left/right.
+
+   The `@property --shimmer-angle` declaration registers the angle
+   as a typed CSS custom property so the keyframe interpolation
+   actually animates (untyped --vars can't tween).
+
+   Used as: <div class="response-html-shimmer">...iframe...</div>
+   Each user of the class is responsible for clipping/positioning
+   their inner content. The local .responseHtmlShell rule in
+   api-client/ApiClient.module.css sets the outer radius, the
+   thickness, and positions the iframe inside the ring. */
 
 .response-html-shimmer {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--shimmer-outer-radius, var(--radius-lg));
+}
+.response-html-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: conic-gradient(
     from var(--shimmer-angle, 0deg),
     #3b82f6,
@@ -1263,6 +1290,10 @@
     #3b82f6
   );
   animation: response-html-shimmer-spin 6s linear infinite;
+  /* z-index 0 (default) sits above the parent's background under the
+     isolation context, but BELOW any positioned children that get
+     z-index: 1 (the iframe wrapper does). */
+  z-index: 0;
 }
 
 @property --shimmer-angle {
@@ -1295,7 +1326,7 @@
     animation-delay: 0s !important;
   }
 
-  .response-html-shimmer {
+  .response-html-shimmer::before {
     animation: none;
   }
 }

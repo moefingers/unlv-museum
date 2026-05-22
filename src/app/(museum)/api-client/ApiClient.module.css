@@ -645,21 +645,64 @@
   white-space: pre-wrap;
 }
 
+/*
+ * Container for the iframe response viewer. Composed in JSX with the
+ * global `.response-html-shimmer` class — that class supplies the
+ * animated conic-gradient ring via a ::before pseudo. This module
+ * sets the geometry knobs:
+ *   --shimmer-thickness: how thick the ring reads (≈ a padding value)
+ *   --shimmer-outer-radius: the outer radius of the ring
+ *
+ * The iframe inside is offset by `--shimmer-thickness` on all sides
+ * via inset/positioning, NOT via parent padding — padding-on-parent
+ * was the prior implementation and produced a visible asymmetry at
+ * the bottom edge (iframes carry a baseline descender slot inline-
+ * by-default, which leaked extra space below). With explicit
+ * positioning the four sides are pixel-symmetric.
+ *
+ * The iframe's border-radius is `calc(outer - thickness)` so the
+ * inner rounded corner sits CONCENTRICALLY inside the outer one.
+ * Without this, the inner radius would visually float — equal-radius
+ * concentric circles look misaligned because the ring has thickness.
+ */
 .responseHtmlShell {
-  position: relative;
-  border-radius: var(--radius-lg);
-  padding: 0.125rem;
-  /* .response-html-shimmer in globals.css supplies the conic-gradient
-     animation. We compose with that class via JSX, so this module's
-     local wrapper just controls the padding ring + rounded corners. */
+  --shimmer-thickness: 0.375rem;
+  --shimmer-outer-radius: var(--radius-lg);
+  /* Min-height: the iframe sets its own min via .responseIframe, but
+     the absolute-positioned iframe needs its containing block to be
+     at least that tall plus the ring thickness on both sides. */
+  min-height: calc(37.5rem + var(--shimmer-thickness) * 2);
 }
 
 .responseIframe {
-  min-height: 37.5rem;
-  width: 100%;
+  /* Absolute-position inside the .responseHtmlShell relative container
+     so the iframe occupies exactly the inset region (outer minus
+     shimmer thickness on all sides).
+
+     The width/height calc is explicit (not just `inset: <thickness>`)
+     because `<iframe>` has intrinsic dimensions (300×150 in user-agent
+     stylesheets), and `width: auto` falls back to that intrinsic size
+     rather than deriving from inset like a `<div>` would. Setting
+     width/height explicitly to 100% of the parent forces it to fill.
+
+     display: block kills the line-box baseline slot that was
+     producing the bottom-thickness artifact in the prior padding-as-
+     border implementation. */
+  position: absolute;
+  top: var(--shimmer-thickness, 0.125rem);
+  left: var(--shimmer-thickness, 0.125rem);
+  width: calc(100% - var(--shimmer-thickness, 0.125rem) * 2);
+  height: calc(100% - var(--shimmer-thickness, 0.125rem) * 2);
+  display: block;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: calc(
+    var(--shimmer-outer-radius, var(--radius-lg)) -
+      var(--shimmer-thickness, 0.125rem)
+  );
   background: #ffffff;
+  /* z-index: 1 lifts the iframe above the ::before pseudo's conic
+     gradient under the parent's isolation context. */
+  z-index: 1;
 }
 
 /* SVG image-response viewer. The cover-art endpoint returns image/svg+xml
