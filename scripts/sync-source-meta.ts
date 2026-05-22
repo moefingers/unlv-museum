@@ -487,21 +487,24 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
       ? !isComingSoon(project.reimagined)
       : project.reimaginedExternal != null
     : false;
+  // Each tier links to its own museum URL (or external override). The
+  // bold tier names are *inside* the link markdown so GitHub emphasizes
+  // them — `[**enhanced**](url)` renders as a bolded link.
+  const enhancedUrl = project?.enhancedExternal ?? `${homepage}/enhanced`;
+  const reimaginedUrl = project?.reimaginedExternal ?? `${homepage}/reimagined`;
   const liveExtras: string[] = [];
-  if (liveEnhanced) liveExtras.push("**enhanced**");
-  if (liveReimagined) liveExtras.push("**reimagined**");
+  if (liveEnhanced) liveExtras.push(`[**enhanced**](${enhancedUrl})`);
+  if (liveReimagined) liveExtras.push(`[**reimagined**](${reimaginedUrl})`);
   const extrasPhrase =
     liveExtras.length === 0
       ? null
       : liveExtras.length === 1
         ? liveExtras[0]
         : `${liveExtras[0]} and ${liveExtras[1]}`;
-  // Rewrites the trailing call-to-action to celebrate the non-original
-  // tiers when they're live. GitHub renders bold inside link text, so
-  // the tier names land emphasized in the README. When only the original
-  // exists, falls back to the bare "Open in museum →" link.
+  // Celebratory trailing call-to-action with per-tier links. Falls back
+  // to the bare "Open in museum →" link when only the original exists.
   const museumCta = extrasPhrase
-    ? `[This project has been ${extrasPhrase}! →](${homepage})`
+    ? `This project has been ${extrasPhrase}!`
     : `[Open in museum →](${homepage})`;
 
   const banner = `${BANNER_START}

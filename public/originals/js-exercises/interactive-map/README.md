@@ -1,8 +1,8 @@
 <!-- unlv-museum-banner-start -->
 <a href="https://unlv-museum.infinite-syndicate.com/js-exercises/interactive-map" target="_blank" rel="noopener">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://unlv-museum.infinite-syndicate.com/github-banners/interactive-map?theme=dark&v=b0f795a732">
-    <img src="https://unlv-museum.infinite-syndicate.com/github-banners/interactive-map?theme=light&v=b0f795a732" alt="Geolocation mapping in vanilla JS — the browser's GPS pin is plotted on a Leaflet + OpenStreetMap tile map, and a select-then-submit form queries the Foursquare Places API to drop nearby business markers around the user's location." width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="https://unlv-museum.infinite-syndicate.com/github-banners/interactive-map?theme=dark&v=10ca0ba497">
+    <img src="https://unlv-museum.infinite-syndicate.com/github-banners/interactive-map?theme=light&v=10ca0ba497" alt="Geolocation mapping in vanilla JS — the browser's GPS pin is plotted on a Leaflet + OpenStreetMap tile map, and a select-then-submit form queries the Foursquare Places API to drop nearby business markers around the user's location." width="100%">
   </picture>
 </a>
 
