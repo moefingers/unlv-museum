@@ -39,7 +39,7 @@ export function MuseumPageShell({
   return (
     <div className={`${styles.shell} ${rail ? styles.withRail : ""}`}>
       {rail && <div className={styles.rail}>{rail}</div>}
-      <div className={styles.viewport}>{children}</div>
+      {children}
     </div>
   );
 }

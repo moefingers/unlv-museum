@@ -60,5 +60,9 @@ dev.log
 # Pre-refactor visual baseline (Tailwind → zcanon migration)
 .refactor-baseline/
 
-# Local scratch dir (screenshots, ad-hoc artifacts from Chrome MCP)
+# Local scratch dirs (screenshots, ad-hoc artifacts from Chrome MCP,
+# preview/ffmpeg outputs). All three hold large binaries and one-off
+# captures that shouldn't enter git history.
 .tmp/
+.devnotes/
+CONTEXT/temp/

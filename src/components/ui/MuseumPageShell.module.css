@@ -5,12 +5,7 @@
  *   - the catch-all layout: app/(museum)/[...path]/layout.tsx
  *     (rail = none — flat slugs have no siblings)
  *
- * Both layouts render <MuseumPageShell rail={...}>{children}</MuseumPageShell>
- * so the shell DOM is identical regardless of how a project was routed.
- * That symmetry is what lets a flat slug and a containerized leaf feel
- * like the same kind of page apart from the rail.
- *
- * The layout is a CSS grid:
+ * The shell is a CSS grid with named areas:
  *
  *   ┌────────────────────────────────────────┐
  *   │              chrome (row 1)            │  ← spans full width
@@ -19,17 +14,12 @@
  *   └──────────────┴─────────────────────────┘
  *
  * The chrome MUST be the visually leftmost element in the top strip so
- * the back button is the leftmost interactive element on the page. The
- * earlier flex-row layout put the rail to the left of the chrome,
- * burying the back arrow behind the rail's column — that's what this
- * restructure fixes.
+ * the back button is the leftmost interactive element on the page.
  *
- * DOM-wise the chrome and body are siblings emitted by the leaf page
- * (chrome first, body second), wrapped in `.viewport` which uses
- * `display: contents` so its children participate in the parent grid
- * directly. The chrome (a `<header>` from MuseumChrome) gets placed
- * across both columns of row 1; the body (any other element) sits in
- * row 2 col 2 (or col 1 when no rail is rendered).
+ * The leaf's <header> (from MuseumChrome) and <main> (the body
+ * wrapper) are direct children of the shell — no intermediate
+ * wrapper — so view transitions on the <header> don't briefly empty
+ * out a grid row and cause the body to jump.
  */
 
 .shell {
@@ -62,25 +52,17 @@
   position: relative;
 }
 
-/* Viewport wrapper for the leaf's output. `display: contents` makes
-   this element disappear from layout so the two siblings inside
-   (chrome <header> and body wrapper) participate directly in the
-   shell's grid. */
-.viewport {
-  display: contents;
-}
-
-/* Chrome slot — the <header> emitted by MuseumChrome lands here. It
-   spans the full top row above the rail and body. We target via
-   `> header` because the chrome is always a real <header> element
-   and there is exactly one per leaf. */
-.viewport > header {
+/* Chrome slot — the <header> emitted by MuseumChrome. Lands in the
+   top row and spans full width regardless of the rail's presence.
+   Element selector + global grid-area is sufficient because the
+   chrome is always a real <header> element and there is at most one
+   per leaf. */
+.shell > header {
   grid-area: chrome;
 }
 
-/* Body slot — anything that isn't the chrome. The leaf page wraps
-   its tier body in <main class="leafBody"> so this rule is
-   intentional rather than catch-all. */
+/* Body slot — the leaf wraps its tier output in <main class="leafBody">
+   so this rule is intentional rather than catch-all. */
 .leafBody {
   grid-area: body;
   display: flex;
