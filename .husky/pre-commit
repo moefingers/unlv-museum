@@ -1,2 +1,10 @@
-pnpm exec lint-staged
-pnpm exec tsx scripts/verify-locks.ts
+# Pre-commit hook — direct binary invocation (no pnpm-exec shim).
+#
+# `pnpm exec <bin>` spawns an extra Node process to resolve the bin
+# path before launching the actual tool, doubling the process count
+# of every commit. Using `node_modules/.bin/<bin>` directly skips
+# the resolver. On Windows where Husky uses Git Bash, the .bin
+# entries are POSIX shell shims that exec node themselves, so this
+# is functionally equivalent and avoids the second spawn.
+node_modules/.bin/lint-staged
+node_modules/.bin/tsx scripts/verify-locks.ts
