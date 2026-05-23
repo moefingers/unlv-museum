@@ -21,6 +21,7 @@ Read the CONTEXT docs for decisions already made:
 - [Security overview](CONTEXT/internal_docs/security.md) — cross-cutting principles + pointers to auth + rate-limiting
 - [Database](CONTEXT/internal_docs/database.md) — Neon, Drizzle, per-project schemas
 - [View transitions](CONTEXT/internal_docs/view-transitions.md) — participant inventory, the "stays still" pattern, intentional non-namings
+- [Social unfurls](CONTEXT/internal_docs/social-unfurls.md) — **REQUIRED before touching `og:*` / `twitter:*` metadata or `public/og/`.** Per-platform card matrix, the LinkedInBot UA carve-out, ffmpeg `+faststart` requirement, favicon regeneration.
 
 ## Quick Reference
 
