@@ -20,16 +20,34 @@ export interface ApiProject {
   id: string;
   title: string;
   baseUrl: string;
+  /**
+   * One-line teaser shown in the rail sidebar's per-API entry — the
+   * "short bit" that helps visitors decide if they want to dig in.
+   * Full long-form prose lives in `notes` (rendered by the chrome's
+   * Notes panel), so keep this tight: one sentence, the headline
+   * idea only.
+   */
   description: string;
+  /**
+   * Long-form per-API notes shown in the api-client's chrome Notes
+   * panel (the same surface ProjectChrome uses for `Project.notes`).
+   * Multi-sentence prose: what the API is, era-impossible additions
+   * the Enhanced tier brings, security/auth carve-outs, etc.
+   *
+   * Required for every entry — keeps the chrome's notes panel
+   * useful no matter which API is selected. Tier-specific
+   * commentary lives here (each tier has its own ApiProject entry
+   * in APIS_ORIGINAL / APIS_ENHANCED).
+   */
+  notes: string;
   tech: string;
   endpoints: Endpoint[];
   /**
-   * Optional museum-route cross-link surfaced in the api-client's
-   * details panel. Used to point visitors from the API view to its
-   * paired frontend (or to a related Replaced UI). Mirrors the
-   * `siblingFrontend` field on the backend's projects.tsx entry, but
-   * lives here because the api-client viewer has its own per-API
-   * details panel that ProjectChrome doesn't render.
+   * Optional museum-route cross-link surfaced in the chrome's Notes
+   * panel (and historically in the sidebar's details panel — now
+   * promoted to the chrome). Mirrors the `siblingFrontend` field
+   * on the backend's projects.tsx entry but lives here because the
+   * api-client has its own context.
    */
   relatedRoute?: { label: string; url: string };
 }
@@ -39,7 +57,8 @@ export const APIS_ORIGINAL: ApiProject[] = [
     id: "music-tour",
     title: "Music Tour API",
     baseUrl: "/api/music-tour",
-    description:
+    description: "Bands, events, stages — source-faithful CRUD.",
+    notes:
       "REST API for music tour management — bands, events, stages, and the cross-references between them. Mirrors the UNLV exercise's three controllers verbatim: lookups go by NAME, mutations go by integer ID, and the GET-by-name responses include the nested join data the source's Sequelize `include` chain produced.",
     tech: "Originally Express + PostgreSQL + Sequelize",
     endpoints: [
@@ -169,7 +188,8 @@ export const APIS_ORIGINAL: ApiProject[] = [
     id: "admin-portal",
     title: "Admin Portal",
     baseUrl: "/api/admin-portal",
-    description:
+    description: "Book inventory CRUD + the admin HTML served alongside.",
+    notes:
       "Book inventory management. The original Express server served the admin UI HTML at / alongside these JSON routes, so the frontend reads as a sibling endpoint that opens a URL.",
     tech: "Originally Express + JSON file store",
     relatedRoute: {
@@ -230,7 +250,8 @@ export const APIS_ORIGINAL: ApiProject[] = [
     id: "rest-rant",
     title: "Rest-Rant API",
     baseUrl: "/api/rest-rant",
-    description:
+    description: "Restaurant reviews, threaded comments, museum-gated auth.",
+    notes:
       "Restaurant review backend. CRUD on places, threaded comments, signup/login auth. Same monorepo as the Rest-Rant SPA card on the landing globe — the original Express server packaged the frontend + the API together. The museum carve-out applies: writes (including signup/login) require GitHub sign-in, and project-level users are locked to museum identities via museum_user_id FK.",
     tech: "Originally Express + PostgreSQL + Sequelize + bcrypt",
     relatedRoute: {
@@ -342,7 +363,8 @@ export const APIS_ORIGINAL: ApiProject[] = [
     id: "sql-demo",
     title: "SQL Injection Demo",
     baseUrl: "/api/sql-demo",
-    description:
+    description: "Vulnerable + safe SQL queries against a real database.",
+    notes:
       "Educational demo showing vulnerable vs safe SQL queries against a real database. The visitor-facing form lives at /sql-injection-demo — this card is the structured-inspection lab. Museum carve-out: writes require GitHub sign-in (every attempt audited under your GitHub login), the locked-down `sql_demo_runner` Postgres role keeps blast radius scoped to sql_demo.users — UNION SELECT against auth.user or sql_demo.audit_log returns permission denied.",
     tech: "Originally Express + SQLite",
     relatedRoute: {
@@ -423,7 +445,8 @@ export const APIS_ENHANCED: ApiProject[] = [
     id: "music-tour",
     title: "Music Tour API (v2)",
     baseUrl: "/api/v2/music-tour",
-    description:
+    description: "v1 + batch, search, audit-log, rate-limit (Enhanced).",
+    notes:
       "Enhanced tier — same source-faithful CRUD as v1 plus: batch reads via `?names=A,B,C`, a transactional `/batch` endpoint for compound writes, cross-resource `/search`, a public `/audit-log` window onto every mutation across both tiers (with GitHub-login attribution), and a `/rate-limit` observability endpoint. Mutations on both v1 and v2 require sign-in; the audit log makes any abuse self-attributing.",
     tech: "Next.js + Drizzle + @vercel/firewall + Better Auth PAT",
     endpoints: [
@@ -560,10 +583,12 @@ export const APIS_ENHANCED: ApiProject[] = [
     title: "Admin Portal (v2)",
     baseUrl: "/api/v2/admin-portal",
     description:
+      "REST aliases (/books), search, low-stock, batch, audit (Enhanced).",
+    notes:
       "Enhanced tier — same book-inventory data as v1 plus: REST-shaped aliases (/books, /books/:id) alongside the original verb-prefixed paths on v1, a transactional /batch endpoint, /search across title+description, /low-stock for operational reports, /audit-log over every mutation in both tiers, and /rate-limit observability. Writes on both tiers now require GitHub sign-in (anti-abuse carve-out) and are attributed in the audit log.",
     tech: "Next.js + Drizzle + @vercel/firewall + Better Auth PAT",
     relatedRoute: {
-      label: "Open the Replaced admin UI",
+      label: "Open the Enhanced admin UI",
       url: "/js-exercises/admin-portal/enhanced",
     },
     endpoints: [
@@ -714,6 +739,8 @@ export const APIS_ENHANCED: ApiProject[] = [
     title: "Rest-Rant API (v2)",
     baseUrl: "/api/v2/rest-rant",
     description:
+      "Search + batch + three-factor login + audited mutations (Enhanced).",
+    notes:
       "Enhanced tier — same restaurant-review CRUD as v1 plus: /search across places (name/city/cuisines), a transactional /batch endpoint for compound place+comment writes, /audit-log over every mutation AND every login attempt in both tiers (with the password never recorded), and /rate-limit observability. Writes on both tiers require GitHub sign-in (anti-abuse carve-out). Per the identity-and-signup contract, project-level signup links each rest-rant user to a museum identity via museum_user_id FK, and login is three-factor (email + password + matching museum_user_id) — you can't log into someone else's project account even if you know their password.",
     tech: "Next.js + Drizzle + @vercel/firewall + bcrypt + Better Auth PAT",
     relatedRoute: {
@@ -888,6 +915,8 @@ export const APIS_ENHANCED: ApiProject[] = [
     title: "SQL Injection Demo (v2)",
     baseUrl: "/api/v2/sql-demo",
     description:
+      "Same vulnerability surface, gated + REVOKE-locked audit (Enhanced).",
+    notes:
       "Enhanced tier — same vulnerable-vs-safe pedagogy as v1, with museum-session gating on the POSTs (the demo is still 'see how injection works,' just now under your auditable GitHub identity) and a /audit-log endpoint exposing every attempt. The locked-down `sql_demo_runner` Postgres role still scopes blast radius, AND the audit-log table is REVOKE'd from that role — even a successful injection cannot read or write the audit history.",
     tech: "Next.js + Drizzle + @vercel/firewall + locked-down Postgres role + Better Auth PAT",
     relatedRoute: {

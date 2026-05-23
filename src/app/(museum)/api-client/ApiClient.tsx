@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, ViewTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ArrowRightLeft } from "lucide-react";
+import { ChevronLeft, ChevronDown, ArrowRightLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { MuseumChrome } from "@/components/ui/MuseumChrome";
 import {
@@ -14,6 +14,12 @@ import {
   type Tier,
 } from "./api-data";
 import styles from "./ApiClient.module.css";
+// Reuse the notes-panel classes from ProjectChrome so /api-client's
+// chrome notes match the per-project page chrome (same warning-tint
+// background, same Notes toggle, same link-list styling). These are
+// chrome-domain classes that ProjectChrome happens to host; rather
+// than duplicate them, we import the module directly.
+import notesStyles from "@/components/ui/ProjectChrome.module.css";
 
 export type { Tier } from "./api-data";
 
@@ -100,6 +106,10 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
   // breakpoint pins the sidebar open regardless of this flag, so toggling
   // it on a desktop is a no-op visually but harmless to leave wired.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Chrome notes panel — same pattern ProjectChrome uses. Default open
+  // so the per-API context is visible without an extra click; visitors
+  // who don't want it can collapse and the chrome stays compact.
+  const [notesOpen, setNotesOpen] = useState(true);
 
   // Esc closes the sidebar drawer on narrow viewports. Bound only while
   // open to keep the document key surface clean.
@@ -260,7 +270,30 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
       */}
       <MuseumChrome
         title="API Client"
-        subtitle="Backend-only UNLV projects — live endpoints, interactive explorer"
+        subtitle={
+          <>
+            {/* Subtitle reflects the currently-active API so the chrome
+                carries the same context the rail does — open Notes for
+                the full prose + cross-link to the partner project. */}
+            {activeApi.title}
+            {activeApi.tech ? ` · ${activeApi.tech}` : ""}
+          </>
+        }
+        titleExtra={
+          <button
+            onClick={() => setNotesOpen(!notesOpen)}
+            className={notesStyles.notesToggle}
+            type="button"
+            aria-expanded={notesOpen}
+            aria-controls="api-client-notes-panel"
+          >
+            <ChevronDown
+              size={12}
+              className={`${notesStyles.notesChevron} ${notesOpen ? notesStyles.notesChevronOpen : ""}`}
+            />
+            Notes
+          </button>
+        }
         tiers={[
           {
             // `?v=` is a soft URL change within the same route — Next
@@ -279,6 +312,33 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
             current: tier === "enhanced",
           },
         ]}
+        belowRow={
+          <Collapsible open={notesOpen} duration={200}>
+            <div
+              id="api-client-notes-panel"
+              className={`text-sm ${notesStyles.notesPanel}`}
+            >
+              <p className={notesStyles.notesText}>{activeApi.notes}</p>
+              {activeApi.relatedRoute && (
+                <ul className={notesStyles.repoLinkList}>
+                  <li>
+                    {/* Internal navigation — next/link so the cross-link
+                        participates in the view-transition pipeline and
+                        the destination project's chrome takes over with
+                        client-side state preserved. */}
+                    <Link
+                      href={activeApi.relatedRoute.url}
+                      className={notesStyles.repoLink}
+                    >
+                      <ArrowRightLeft size={14} aria-hidden="true" />
+                      <span>{activeApi.relatedRoute.label}</span>
+                    </Link>
+                  </li>
+                </ul>
+              )}
+            </div>
+          </Collapsible>
+        }
       />
 
       {/* Wrap the entire body (sidebar + main) in <ViewTransition> so
@@ -330,23 +390,14 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
                   </button>
                   <Collapsible open={activeApiId === api.id}>
                     <div className={styles.kbDetailsPanel}>
+                      {/* One-line teaser — the long-form notes + the
+                          relatedRoute cross-link both live in the
+                          chrome's Notes panel above. Keep the rail
+                          tight; visitors who want the full prose open
+                          Notes. */}
                       <p className={`text-xs ${styles.kbDetailsDescription}`}>
                         {api.description}
                       </p>
-                      {api.relatedRoute && (
-                        // Cross-link to the paired museum route (the
-                        // frontend half of an api+client pair, or a
-                        // Replaced UI). Sits between the description
-                        // and the endpoints list so visitors notice
-                        // it before they start poking endpoints.
-                        <Link
-                          href={api.relatedRoute.url}
-                          className={`text-xs ${styles.kbRelatedRoute}`}
-                        >
-                          <ArrowRightLeft size={12} aria-hidden="true" />
-                          <span>{api.relatedRoute.label}</span>
-                        </Link>
-                      )}
                       <div className={styles.kbEndpoints}>
                         {api.endpoints.map((ep, i) => {
                           // Expand the description to its full multi-line
