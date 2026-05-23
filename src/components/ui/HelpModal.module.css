@@ -265,27 +265,45 @@
 }
 
 /*
- * The pivotal word ("light mode" / "dark mode") is the actual
- * actionable toggle. Visually a text link — underline on hover,
- * inherits the surrounding type rhythm — but functionally clicks
- * through to the same toggleMode the corner button calls.
+ * Trailing icon cluster — the gear + theme icons + period travel
+ * together as one whitespace-nowrap unit so the sentence wraps
+ * BEFORE the cluster rather than mid-cluster (otherwise the period
+ * orphans onto its own line and the two icons split across lines).
  */
-.themePitchButton {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: var(--foreground);
-  font-weight: var(--font-weight-medium);
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 0.18em;
-  cursor: pointer;
-  transition: color var(--duration-normal) var(--ease-default);
+.appearanceIconCluster {
+  white-space: nowrap;
 }
-.themePitchButton:hover {
-  color: var(--primary);
-  text-decoration-style: solid;
+
+/*
+ * Inline appearance icons (gear + sun/moon) inside the pitch line.
+ * Visually they read as little chips: tinted background, slight pad,
+ * matching the corner-button silhouette in miniature. Bigger than a
+ * bare icon so the click target stays comfortable on touch, smaller
+ * than the corner buttons so they don't overpower the surrounding
+ * prose. Vertical alignment uses `vertical-align: middle` because
+ * they're inline with text — flex sibling layout would force a line
+ * break.
+ */
+.appearanceIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default);
+}
+.appearanceIconButton:hover {
+  color: var(--foreground);
+  background: oklch(from var(--muted) calc(l * 1.05) c h);
 }
 
 /* Smaller transitional line between the welcome lede and the steps

@@ -12,8 +12,12 @@ import {
   Hand,
   Pointer,
   Smartphone,
+  Settings,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useGraphics } from "@/hooks/use-graphics";
 import styles from "./HelpModal.module.css";
 
 /**
@@ -169,15 +173,28 @@ export function HelpModal({
   open,
   onOpen,
   onClose,
+  onOpenGraphics,
 }: {
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
+  /**
+   * Open the GraphicsModal. Threaded through so the onboarding pitch
+   * line in this modal can act as a direct entry point — clicking the
+   * gear icon closes help and opens graphics, mirroring the corner
+   * cluster's mutual-exclusion behavior.
+   */
+  onOpenGraphics: () => void;
 }) {
-  // Theme toggle exposed here as an inline pitch — the corner toggle
-  // is easy to miss when the help modal is open; this surfaces the
-  // feature alongside the welcome lede.
+  // Theme + graphics surfaced here as an inline onboarding pitch:
+  // the corner cluster is easy to overlook while the help modal is
+  // open, so we restate the two appearance controls alongside the
+  // welcome lede with the same icons that live in the corner.
+  // useGraphics is consulted only for the detected/active tier label
+  // — clicking the gear opens the dedicated modal where the real
+  // controls live.
   const { resolvedMode, toggleMode } = useTheme();
+  const { settings: graphics } = useGraphics();
 
   // SSR-safe init: default to mouse; the effect below runs on mount
   // and re-derives from matchMedia. Hydration mismatch is avoided
@@ -280,22 +297,50 @@ export function HelpModal({
           </p>
 
           {/*
-            Inline theme nudge. The corner toggle is easy to overlook
-            while the modal is open; this surfaces the alternate mode
-            as a verb the reader can act on right here. The button is
-            visually subtle (text-link styling) but functionally the
-            same as the corner button.
+            Inline appearance pitch. The two corner controls (graphics
+            gear + theme toggle) are easy to overlook while the help
+            modal is open; this restates both as clickable icons inside
+            the prose. The gear opens the dedicated GraphicsModal (with
+            mutual-exclusion against this modal); the theme icon flips
+            light/dark in place. Showing the auto-detected tier name
+            alongside makes the onboarding feel tailored — "we picked
+            medium for your device, change anytime."
           */}
           <p className={styles.themePitch}>
-            Try{" "}
-            <button
-              type="button"
-              className={styles.themePitchButton}
-              onClick={toggleMode}
-            >
-              {resolvedMode === "dark" ? "light" : "dark"} mode
-            </button>{" "}
-            today!
+            Change your graphics and appearance in the top right
+            {/*
+              Keep the trailing icon pair (+ period) as one unbreakable
+              unit so the line doesn't wrap mid-cluster — without this,
+              the two icons split across lines and the period orphans
+              onto its own line. The leading non-breaking space pins
+              the cluster to the last word of the sentence too.
+            */}
+            <span className={styles.appearanceIconCluster}>
+              {" "}
+              <button
+                type="button"
+                className={styles.appearanceIconButton}
+                onClick={onOpenGraphics}
+                aria-label={`Open graphics settings (detected: ${graphics.preset})`}
+              >
+                <Settings size={14} />
+              </button>{" "}
+              <button
+                type="button"
+                className={styles.appearanceIconButton}
+                onClick={toggleMode}
+                aria-label={`Switch to ${
+                  resolvedMode === "dark" ? "light" : "dark"
+                } mode`}
+              >
+                {resolvedMode === "dark" ? (
+                  <Sun size={14} />
+                ) : (
+                  <Moon size={14} />
+                )}
+              </button>
+              .
+            </span>
           </p>
 
           {/*

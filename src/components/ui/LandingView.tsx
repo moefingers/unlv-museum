@@ -1156,6 +1156,14 @@ function LandingViewInner() {
           setHelpOpen(true);
         }}
         onClose={closeHelp}
+        onOpenGraphics={() => {
+          // Mutual-exclusion with the help modal — close help first so
+          // the two morphing cards don't overlap mid-transition. Same
+          // contract the corner buttons use when one opens while the
+          // other is already open.
+          setHelpOpen(false);
+          setGraphicsOpen(true);
+        }}
       />
     </div>
   );

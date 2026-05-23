@@ -90,13 +90,14 @@ export const PRESET_DEFINITIONS: Record<
 };
 
 /*
- * Default preset for first-visit users. Configurable for DX so the
- * project lead can try a few defaults before committing. To enable
- * silent auto-detection on first visit, change this to
- * "auto-detect" — the hook will run the static-signal probe (see
- * detectStaticSignal below) and use its result as the initial value.
+ * Default preset for first-visit users. "auto-detect" runs the
+ * static-signal probe (cores + memory + prefers-reduced-motion) on
+ * first read and picks "low" or "medium" — never "high", which is
+ * opt-in only. The help modal surfaces the detected tier as part of
+ * the onboarding nudge so visitors know it was tailored, not random.
  */
-const GRAPHICS_FIRST_VISIT_DEFAULT: GraphicsPreset | "auto-detect" = "medium";
+const GRAPHICS_FIRST_VISIT_DEFAULT: GraphicsPreset | "auto-detect" =
+  "auto-detect";
 
 /*
  * Static-signal auto-detect: classify a device into a preset based
