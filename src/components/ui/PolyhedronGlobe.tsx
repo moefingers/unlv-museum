@@ -7,34 +7,16 @@ import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { projectLandingUrl, type Project } from "@/lib/projects";
 import {
   fromAxisAngle,
-  fromUnitVectors,
   multiply as quatMultiply,
   slerp as quatSlerp,
   toMatrix3,
   type Quat,
 } from "@/lib/quaternion";
+import { useLatestRef } from "@/hooks/use-latest-ref";
+import { useAnchorPhase } from "@/hooks/use-anchor-phase";
 import { VertexHover } from "./VertexHover";
 import { UnfoldingBillboard } from "./UnfoldingBillboard";
 import styles from "./PolyhedronGlobe.module.css";
-
-/**
- * Mirror a reactive value (state/prop) into a ref so side-effect
- * callbacks (rAF ticks, pointer-event handlers, etc.) can read the
- * LATEST value without depending on it — listing the value as a
- * dep would re-create the callback on every change, which we don't
- * want for the rAF loop or memoized event handlers.
- *
- * The pattern is "useRef + useEffect to sync"; this hook just
- * names the pattern so the four usages in PolyhedronGlobe don't
- * each redeclare it inline.
- */
-function useLatestRef<T>(value: T) {
-  const ref = useRef(value);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref;
-}
 
 // Locked tuning from the /hover-dot sandbox in svg-experiments. Mono
 // font + slow typing + caret + dismissal flash + subtle hologram
@@ -180,14 +162,13 @@ const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
 // speed — so the anchored point stays put while the rest of the globe
 // spins around it.
 //
-// ANCHOR_NDC_X/Y is the target screen position in normalized (-1, 1)
-// sphere-radius units. (-0.13, 0.55) reads as "upper portion of the
-// sphere, slightly left of center" — perspectivally the viewer feels
-// like they're looking down slightly ON the vertex, with the rest
-// of the sphere bowed beneath it. Leaves the lower area free for
-// the hex billboard (Stage 3) to project upward from the dot.
-const ANCHOR_NDC_X = -0.13;
-const ANCHOR_NDC_Y = 0.55;
+// The target screen position the anchored vertex lands on
+// ((-0.13, 0.55) — upper portion of the sphere, slightly left of
+// center, leaving the lower area free for the hex billboard to
+// project upward into) lives inside useAnchorPhase as the constants
+// ANCHOR_NDC_X / ANCHOR_NDC_Y. It's part of the state machine's
+// projection-reverse math and belongs with that machine.
+//
 // Duration of the swing-in slerp from the user's current orientation
 // to the anchor pose. Slow enough to read as a deliberate gesture.
 export const ANCHOR_SWING_MS = 900;
@@ -254,12 +235,11 @@ const CONE_HALF_ANGLE_DEG = 24;
 // slerp reads ANCHOR_SWING_MS directly; the phase machine's swing
 // completion is signaled by the slerp's finish-tick rather than a
 // timer.
-const CONE_RISE_MS = 280;
-const WIDENING_MS = 600; // hex cascade + cone widen, run together
-const CONE_WIDEN_FRACTION = 0.4; // cone reaches full width at 40% of the widening phase
-const COLLAPSING_MS = 480; // hex close + cone narrow (run together)
-const CONE_FALL_MS = 220;
-const UNSWING_MS = 900;
+// Phase timing constants (CONE_RISE_MS, WIDENING_MS,
+// CONE_WIDEN_FRACTION, COLLAPSING_MS, CONE_FALL_MS, UNSWING_MS)
+// live with the state machine — see useAnchorPhase. They're not
+// imported here because no JSX in this file references them
+// directly any more; the hook owns its own timing.
 
 // ─── Anchored-state camera move ──────────────────────────────
 // When anchored, the entire sphere zooms in and drops lower on the
@@ -492,69 +472,6 @@ export function PolyhedronGlobe({
     amplitudePitch: 0,
   });
 
-  // ─── Anchor state machine: TYPE + state + accessor ──────────
-  //
-  // The anchor state machine is split across three sections in
-  // this file due to mutual dependencies on the engagement model
-  // between them:
-  //
-  //   1. (HERE) type + `phase` state + `getAnchoredVi()` accessor.
-  //      Declared first so the engagement model below can
-  //      ask "is this vertex currently anchored?" via the
-  //      accessor.
-  //   2. (below "Hover engagement model") swing-animation state
-  //      (anchorAnim ref, anchoredAxis ref) + `computeAnchorTarget`
-  //      helper. Doesn't depend on engagement, but is read by the
-  //      phase drivers in (3).
-  //   3. (below that) phase drivers — the timer + effect chain
-  //      that advances phases, plus `handleDotClick` and
-  //      `releaseAnchor`. Uses `setEngagedVertexIdx` from the
-  //      engagement model, so it must follow it.
-  //
-  // Anchor open/close is a multi-phase sequence; this state machine
-  // makes every phase explicit so no two animations race each
-  // other on timers. Phases (see top-of-file comment for the full
-  // story):
-  //
-  //   idle → swinging → coneRising → widening → open
-  //   open → collapsing → coneFalling → unswinging → idle
-  //   (cross-anchor handoff jumps from coneFalling back to swinging
-  //    with the new target instead of unswinging)
-  //
-  // `pendingVertex` rides on collapsing / coneFalling to remember
-  // which vertex we'll swing to next; null means "full dismiss."
-  type AnchorPhase =
-    | { kind: "idle" }
-    | { kind: "swinging"; vi: number }
-    | { kind: "coneRising"; vi: number }
-    | { kind: "widening"; vi: number }
-    | { kind: "open"; vi: number }
-    | { kind: "collapsing"; vi: number; nextVi: number | null }
-    | { kind: "coneFalling"; vi: number; nextVi: number | null }
-    | { kind: "unswinging" };
-
-  const [phase, setPhase] = useState<AnchorPhase>({ kind: "idle" });
-  const phaseRef = useLatestRef(phase);
-
-  // Helper: anchored vi for the CURRENT phase (read from the ref so
-  // side-effect callbacks like the rAF tick get the latest value
-  // without depending on phase changes to re-create their closures).
-  // Returns null for idle / unswinging; the carried vi otherwise.
-  const getAnchoredVi = (): number | null => {
-    const p = phaseRef.current;
-    if (
-      p.kind === "swinging" ||
-      p.kind === "coneRising" ||
-      p.kind === "widening" ||
-      p.kind === "open" ||
-      p.kind === "collapsing" ||
-      p.kind === "coneFalling"
-    ) {
-      return p.vi;
-    }
-    return null;
-  };
-
   // ─── Hover engagement model ──────────────────────────────────
   //
   // Engagement is STICKY and PARENT-CONTROLLED. Once the user hovers
@@ -608,31 +525,58 @@ export function PolyhedronGlobe({
     cursorPos: null,
   });
 
-  const handleDotEnter = useCallback((vi: number) => {
-    const now = performance.now();
-    const intent = now - hover.current.lastMoveAt < INTENT_WINDOW_MS;
-    if (!intent) {
-      // Geometry drift — dot rolled under a motionless cursor. Ignore.
-      return;
-    }
-    // While a vertex is anchored (card open), suppress label
-    // engagement on THAT vertex — the card has already supplanted
-    // the label as the presentation of that project. Hovering it
-    // shouldn't re-engage the label.
-    if (getAnchoredVi() === vi) {
-      return;
-    }
-    // Different vertex → new engagement + maybe new hover cycle.
-    setEngagedVertexIdx((prev) => {
-      if (prev === vi) return prev; // same dot, already engaged
-      // Trigger a fresh hover cycle if the sphere is back near cruise.
-      const currentMul = computeHoverSpeedMul(now, hover.current.cycleStart);
-      if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
-        hover.current.cycleStart = now;
+  // ─── Anchor state machine ───────────────────────────────────
+  //
+  // The multi-phase open/close sequence (idle → swinging → coneRising
+  // → widening → open → collapsing → coneFalling → unswinging → idle)
+  // lives in useAnchorPhase. This call returns the full API: phase
+  // state, refs the rAF loop reads (anchorAnim, anchoredAxis,
+  // phaseRef), the rAF→state-machine signal (notifySwingComplete),
+  // all derived values for JSX (anchoredVertexIdx, hexOpen, cone
+  // progress + transition durations), and the user-action handlers
+  // (handleDotClick, releaseAnchor).
+  //
+  // Declared AFTER engagedVertexIdx + hover so the hook can receive
+  // setEngagedVertexIdx (via clearEngagementFor) and read the hover
+  // ref. The handleDotEnter callback below uses anchor.getAnchoredVi
+  // to suppress engagement on a vertex that is already anchored.
+  const anchor = useAnchorPhase({
+    meshVertices: mesh.vertices,
+    latestQRef: latestQ,
+    autoRotateAxisRef: autoRotateAxis,
+    hoverCycleStartRef: hover,
+    clearEngagementFor: (vi) =>
+      setEngagedVertexIdx((prev) => (prev === vi ? null : prev)),
+  });
+
+  const handleDotEnter = useCallback(
+    (vi: number) => {
+      const now = performance.now();
+      const intent = now - hover.current.lastMoveAt < INTENT_WINDOW_MS;
+      if (!intent) {
+        // Geometry drift — dot rolled under a motionless cursor. Ignore.
+        return;
       }
-      return vi;
-    });
-  }, []);
+      // While a vertex is anchored (card open), suppress label
+      // engagement on THAT vertex — the card has already supplanted
+      // the label as the presentation of that project. Hovering it
+      // shouldn't re-engage the label.
+      if (anchor.getAnchoredVi() === vi) {
+        return;
+      }
+      // Different vertex → new engagement + maybe new hover cycle.
+      setEngagedVertexIdx((prev) => {
+        if (prev === vi) return prev; // same dot, already engaged
+        // Trigger a fresh hover cycle if the sphere is back near cruise.
+        const currentMul = computeHoverSpeedMul(now, hover.current.cycleStart);
+        if (currentMul >= HOVER_RETRIGGER_THRESHOLD) {
+          hover.current.cycleStart = now;
+        }
+        return vi;
+      });
+    },
+    [anchor],
+  );
 
   // Dot mouseleave is INTENTIONALLY IGNORED — geometry drift would
   // fire it spuriously. Engagement only releases via SVG-level leave
@@ -640,390 +584,6 @@ export function PolyhedronGlobe({
   const handleDotLeave = useCallback(() => {
     // noop
   }, []);
-
-  // ─── Anchor state machine (2/3): swing animation state ──────
-  //
-  // Continued from "Anchor state machine: TYPE + state + accessor"
-  // above the engagement model. Side-effect callbacks (rAF loop,
-  // pointer handlers) read `phaseRef.current` / `getAnchoredVi()`
-  // for the current vertex — no separate `anchoredVertexIdx` ref.
-
-  // Swing animation state. When set, the rAF loop interpolates `q`
-  // from `fromQ` to `toQ` over [startedAt, startedAt + ANCHOR_SWING_MS]
-  // via slerp and ignores the normal drag/auto-rotate update.
-  const anchorAnim = useRef<{
-    startedAt: number;
-    fromQ: Quat;
-    toQ: Quat;
-  } | null>(null);
-
-  // After settle, this holds the world-space axis through the
-  // anchored vertex (used by the auto-rotate path in the rAF loop in
-  // place of the default world-Y axis). It's the unit vector that
-  // `q · v_mesh` produces after the swing-in completes.
-  const anchoredAxis = useRef<{ x: number; y: number; z: number } | null>(null);
-
-  // Compute the target quaternion that puts mesh vertex `v` at the
-  // ANCHOR_NDC_(X,Y) screen position. Decomposes the projection
-  // pipeline backward:
-  //   1. Pick a target post-rotation point on the unit sphere that
-  //      projects (under axial tilt + perspective + scale) to the
-  //      desired NDC. Here we approximate: ignore perspective scaling
-  //      (~5% effect at our cameraZ), reverse only the axial tilt,
-  //      and snap to the unit sphere via z = sqrt(1 - x² - y²).
-  //   2. The rotation that takes `v` to that target point IS the
-  //      target quaternion (via fromUnitVectors).
-  // Returns both the target quaternion AND the world-space axis the
-  // vertex lands on (== the target point itself), which the auto-
-  // rotate uses post-settle.
-  const computeAnchorTarget = useCallback(
-    (vMesh: {
-      x: number;
-      y: number;
-      z: number;
-    }): { toQ: Quat; axis: { x: number; y: number; z: number } } => {
-      // Reverse the axial Z tilt. Forward tilt is (x,y) → (x·cosZ -
-      // y·sinZ, x·sinZ + y·cosZ); inverse is (x·cosZ + y·sinZ,
-      // -x·sinZ + y·cosZ).
-      const angZ = (AXIAL_TILT_DEG * Math.PI) / 180;
-      const cZ = Math.cos(angZ);
-      const sZ = Math.sin(angZ);
-      // Screen NDC y is FLIPPED relative to math y (sy = -y · ...).
-      // So a target screen NDC of +0.35 ("upper" on screen) maps to
-      // math y = +0.35 (a positive y above the equator after the
-      // axial tilt). We pass the math-y directly here.
-      const ndcX = ANCHOR_NDC_X;
-      const ndcY = ANCHOR_NDC_Y;
-      // Inverse axial-tilt → the post-rotation, pre-tilt (x,y).
-      const px = ndcX * cZ + ndcY * sZ;
-      const py = -ndcX * sZ + ndcY * cZ;
-      // Snap to the front-facing hemisphere of the unit sphere.
-      const r2 = px * px + py * py;
-      const pz = r2 >= 1 ? 0 : Math.sqrt(1 - r2);
-      // Target point on the unit sphere in pre-tilt world space.
-      const tx = px;
-      const ty = py;
-      const tz = pz;
-      // Rotation that takes vMesh → target.
-      const toQ = fromUnitVectors(vMesh.x, vMesh.y, vMesh.z, tx, ty, tz);
-      return { toQ, axis: { x: tx, y: ty, z: tz } };
-    },
-    [],
-  );
-
-  // ─── Anchor state machine (3/3): phase drivers + handlers ───
-  //
-  // Final piece of the state machine. Continued from sections
-  // (1/3) above the engagement model and (2/3) just above.
-  //
-  // What lives here: the timer + effect chain that drives phase
-  // transitions (scheduleNextPhase, the phase-driven side-effect
-  // useEffect, handleDotClick, releaseAnchor). This is the last
-  // piece because handlers in this section call
-  // `setEngagedVertexIdx` to clear engagement when entering an
-  // anchored phase — that setter is declared in the engagement
-  // model above.
-  //
-  // Single shared timer for phase advancement. Clearing it before
-  // every new phase means rapid clicks (e.g., spam-clicking
-  // different vertices) never leave orphan timers firing.
-  const phaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearPhaseTimer = () => {
-    if (phaseTimer.current) {
-      clearTimeout(phaseTimer.current);
-      phaseTimer.current = null;
-    }
-  };
-  const scheduleNextPhase = (
-    ms: number,
-    next: AnchorPhase,
-    /**
-     * Optional side-effect to fire alongside the phase transition.
-     * Used by cross-anchor handoff to clear in-flight label
-     * engagement on the incoming vi so the new card opens against
-     * a clean backdrop. Co-scheduling in the same timer callback
-     * means both state updates batch into one React commit.
-     */
-    onTransition?: () => void,
-  ) => {
-    clearPhaseTimer();
-    phaseTimer.current = setTimeout(() => {
-      phaseTimer.current = null;
-      if (onTransition) onTransition();
-      setPhase(next);
-    }, ms);
-  };
-
-  // ─── Phase-driven side effects ──────────────────────────────
-  //
-  // Each phase transition triggers:
-  //   1. The state-derived rotation/zoom/cone/hex visual changes
-  //      (these are all derived directly from `phase` in the JSX +
-  //      anchored-axis ref below — no extra state needed).
-  //   2. A timer to advance to the next phase after the phase's
-  //      duration elapses.
-  //   3. Side effects on refs (e.g., autoRotateAxis swap) at the
-  //      points where they matter.
-  //
-  // Side effects ride this effect rather than embedded in
-  // setPhase calls so the order is deterministic and inspectable.
-  useEffect(() => {
-    if (phase.kind === "idle") {
-      clearPhaseTimer();
-      anchoredAxis.current = null;
-      autoRotateAxis.current = { x: 0, y: 1, z: 0 };
-      return;
-    }
-    if (phase.kind === "swinging") {
-      // Kick off the rotation slerp. The rAF loop owns the slerp
-      // and signals back via swingCompletionTick; we listen below
-      // to advance the phase.
-      const v = mesh.vertices[phase.vi];
-      if (!v) return;
-      const { toQ } = computeAnchorTarget(v);
-      anchorAnim.current = {
-        startedAt: performance.now(),
-        fromQ: latestQ.current,
-        toQ,
-      };
-      hover.current.cycleStart = null;
-      anchoredAxis.current = null;
-      // No setTimeout here — the slerp completion in the rAF loop
-      // bumps swingCompletionTick which advances to coneRising via
-      // a watcher effect below.
-      return;
-    }
-    if (phase.kind === "coneRising") {
-      scheduleNextPhase(CONE_RISE_MS, { kind: "widening", vi: phase.vi });
-      return;
-    }
-    if (phase.kind === "widening") {
-      scheduleNextPhase(WIDENING_MS, { kind: "open", vi: phase.vi });
-      return;
-    }
-    if (phase.kind === "open") {
-      // Anchored rotation runs in this phase only (see rAF loop's
-      // anchoredRotationActive check).
-      clearPhaseTimer();
-      return;
-    }
-    if (phase.kind === "collapsing") {
-      scheduleNextPhase(COLLAPSING_MS, {
-        kind: "coneFalling",
-        vi: phase.vi,
-        nextVi: phase.nextVi,
-      });
-      return;
-    }
-    if (phase.kind === "coneFalling") {
-      const nextVi = phase.nextVi;
-      const after: AnchorPhase =
-        nextVi !== null
-          ? { kind: "swinging", vi: nextVi }
-          : { kind: "unswinging" };
-      // On cross-anchor handoff (nextVi !== null), dismiss any
-      // in-flight label engagement on the incoming vi so the card
-      // opens cleanly on top of a label-free vertex. Co-scheduled
-      // with the phase transition in the same timer callback so
-      // both state updates batch.
-      if (nextVi !== null) {
-        scheduleNextPhase(CONE_FALL_MS, after, () => {
-          setEngagedVertexIdx((prev) => (prev === nextVi ? null : prev));
-        });
-      } else {
-        scheduleNextPhase(CONE_FALL_MS, after);
-      }
-      return;
-    }
-    if (phase.kind === "unswinging") {
-      scheduleNextPhase(UNSWING_MS, { kind: "idle" });
-      return;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
-
-  // The rAF loop's slerp-completion notification. When the swing
-  // phase's slerp finishes, advance to coneRising. We don't react
-  // to the tick during other phases — the rAF loop also nulls
-  // anchorAnim on completion during phases like unswinging. The
-  // bump-and-watch pattern (incrementing state to fire an effect)
-  // bridges from an imperative rAF write into React's data flow.
-  const [swingCompletionTick, setSwingCompletionTick] = useState(0);
-  useEffect(() => {
-    const p = phaseRef.current;
-    if (p.kind === "swinging") {
-      setPhase({ kind: "coneRising", vi: p.vi });
-    }
-    // unswinging also completes via the rAF loop's slerp finish
-    // but we don't need to advance — the unswinging phase's own
-    // timer (UNSWING_MS) takes care of the idle transition. (The
-    // unswinging slerp here is no-op — we don't actually slerp on
-    // unswing, we just let the existing rotation continue while
-    // zoom retracts; see below.)
-  }, [swingCompletionTick]);
-
-  // anchoredVertexIdx is derived from phase. It's the vertex the
-  // sphere is currently displaying as anchored, regardless of
-  // which open/close sub-phase we're in. Used by:
-  //   - anchorGeometry (cone + hex position)
-  //   - VertexHover (which vertex shows engaged-state visuals)
-  const anchoredVertexIdx: number | null =
-    phase.kind === "idle" || phase.kind === "unswinging"
-      ? null
-      : phase.kind === "swinging" ||
-          phase.kind === "coneRising" ||
-          phase.kind === "widening" ||
-          phase.kind === "open" ||
-          phase.kind === "collapsing" ||
-          phase.kind === "coneFalling"
-        ? phase.vi
-        : null;
-
-  // hexOpen drives UnfoldingBillboard: true during widening + open,
-  // false during collapsing/coneFalling (so the reverse cascade
-  // plays out) and all other phases.
-  const hexOpen = phase.kind === "widening" || phase.kind === "open";
-
-  // Cone progress: derived from phase.
-  //   coneHeightProgress: 0 in pre-rising phases, 1 from widening
-  //     onwards through open, 0 again in coneFalling/unswinging/idle
-  //     (CSS transitions handle the actual interpolation).
-  //   coneWidthProgress: 0 during coneRising, 1 during widening +
-  //     open, 0 during collapsing onwards.
-  //
-  // Each is driven by the CSS transition on the cone group's style,
-  // with phase-specific transition-duration to match the timing we
-  // want for that segment.
-  let coneHeightProgress = 0;
-  let coneWidthProgress = 0;
-  let coneHeightTransitionMs = CONE_RISE_MS;
-  let coneWidthTransitionMs = WIDENING_MS * CONE_WIDEN_FRACTION;
-  if (
-    phase.kind === "coneRising" ||
-    phase.kind === "widening" ||
-    phase.kind === "open" ||
-    phase.kind === "collapsing"
-  ) {
-    coneHeightProgress = 1;
-  }
-  if (phase.kind === "widening" || phase.kind === "open") {
-    coneWidthProgress = 1;
-  }
-  if (phase.kind === "coneFalling") {
-    coneHeightProgress = 0;
-    coneHeightTransitionMs = CONE_FALL_MS;
-  }
-  if (phase.kind === "collapsing") {
-    coneWidthProgress = 0;
-    coneWidthTransitionMs = COLLAPSING_MS;
-  }
-
-  // Click on an assigned vertex. Behavior depends on current phase:
-  //   - idle: kick off the open sequence (phase = swinging)
-  //   - swinging/coneRising/widening on SAME vertex: no-op (already
-  //     in-flight toward this vertex)
-  //   - any active phase on a DIFFERENT vertex: trigger the close
-  //     cascade, with nextVi set so we hop to swinging the new
-  //     vertex after coneFalling completes
-  //   - open on SAME vertex: no-op
-  //   - open on DIFFERENT vertex: start close cascade with nextVi
-  const handleDotClick = useCallback(
-    (vi: number) => {
-      const v = mesh.vertices[vi];
-      if (!v) return;
-      const p = phaseRef.current;
-      // Same-vertex no-op for all "in this vertex's flow" phases.
-      if (
-        (p.kind === "swinging" ||
-          p.kind === "coneRising" ||
-          p.kind === "widening" ||
-          p.kind === "open") &&
-        p.vi === vi
-      ) {
-        return;
-      }
-      // From idle (or unswinging tail end), straight to swinging.
-      // Also dismiss any in-flight label engagement for THIS vi —
-      // the card is about to supplant the label as the project's
-      // presentation. Co-scheduling the engagement clear with the
-      // phase transition keeps the two state updates in one
-      // event-handler tick so React batches them; doing it from a
-      // useEffect would be a derived-state-via-effect anti-pattern.
-      if (p.kind === "idle" || p.kind === "unswinging") {
-        setEngagedVertexIdx((prev) => (prev === vi ? null : prev));
-        setPhase({ kind: "swinging", vi });
-        return;
-      }
-      // From any active open-direction phase to a DIFFERENT vertex,
-      // start the close cascade with nextVi set. The vi we're
-      // closing from is the one currently being displayed.
-      if (
-        p.kind === "swinging" ||
-        p.kind === "coneRising" ||
-        p.kind === "widening" ||
-        p.kind === "open"
-      ) {
-        setPhase({ kind: "collapsing", vi: p.vi, nextVi: vi });
-        return;
-      }
-      // From a close-direction phase (collapsing / coneFalling),
-      // update nextVi so the chain ends at the new target rather
-      // than at idle. Don't interrupt the in-progress phase —
-      // letting it complete keeps motion legible.
-      if (p.kind === "collapsing") {
-        setPhase({ ...p, nextVi: vi });
-        return;
-      }
-      if (p.kind === "coneFalling") {
-        setPhase({ ...p, nextVi: vi });
-        return;
-      }
-    },
-    [mesh.vertices],
-  );
-
-  // ─── Dismissal (Stage 4) ─────────────────────────────────────
-  //
-  // Triggers the close cascade with nextVi = null (full dismiss).
-  // From idle/unswinging: no-op. From any active phase: collapse
-  // the visuals, run the reverse choreography, then unswing the
-  // sphere back to base zoom + restore world-Y cruise axis.
-  const releaseAnchor = useCallback(() => {
-    const p = phaseRef.current;
-    if (p.kind === "idle" || p.kind === "unswinging") return;
-    if (
-      p.kind === "swinging" ||
-      p.kind === "coneRising" ||
-      p.kind === "widening" ||
-      p.kind === "open"
-    ) {
-      setPhase({ kind: "collapsing", vi: p.vi, nextVi: null });
-      return;
-    }
-    if (p.kind === "collapsing" || p.kind === "coneFalling") {
-      // Already closing — just clear any pending handoff so we
-      // end at idle.
-      setPhase({ ...p, nextVi: null });
-      return;
-    }
-  }, []);
-
-  // Cleanup all timers on unmount.
-  useEffect(() => {
-    return () => {
-      clearPhaseTimer();
-    };
-  }, []);
-
-  // ESC to dismiss.
-  useEffect(() => {
-    if (anchoredVertexIdx === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") releaseAnchor();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [anchoredVertexIdx, releaseAnchor]);
 
   // SVG-level pointer handlers.
   //
@@ -1118,7 +678,7 @@ export function PolyhedronGlobe({
       // entirely. Drag momentum is suppressed; auto-rotate is paused.
       // The slerp progress is ease-in-out (cubic) so the swing
       // feels deliberate at both ends instead of mechanically linear.
-      const anim = anchorAnim.current;
+      const anim = anchor.anchorAnim.current;
       if (anim) {
         const elapsed = now - anim.startedAt;
         const tRaw = Math.min(1, elapsed / ANCHOR_SWING_MS);
@@ -1133,24 +693,24 @@ export function PolyhedronGlobe({
           // the new auto-rotate axis. Recompute it (instead of trusting
           // the stored target) so the axis is exactly q · v_mesh — no
           // drift from numerical slerp.
-          const vi = getAnchoredVi();
+          const vi = anchor.getAnchoredVi();
           if (vi !== null) {
             const vMesh = mesh.vertices[vi];
             if (vMesh) {
               const m = toMatrix3(latestQ.current);
-              anchoredAxis.current = {
+              anchor.anchoredAxis.current = {
                 x: m[0] * vMesh.x + m[1] * vMesh.y + m[2] * vMesh.z,
                 y: m[3] * vMesh.x + m[4] * vMesh.y + m[5] * vMesh.z,
                 z: m[6] * vMesh.x + m[7] * vMesh.y + m[8] * vMesh.z,
               };
-              autoRotateAxis.current = anchoredAxis.current;
+              autoRotateAxis.current = anchor.anchoredAxis.current;
             }
           }
-          anchorAnim.current = null;
+          anchor.anchorAnim.current = null;
           // Notify the swing-completion effect (above) that the
           // slerp has just settled. Functional setter monotonically
           // increments → effect's [swingCompletionTick] dep fires.
-          setSwingCompletionTick((n) => n + 1);
+          anchor.notifySwingComplete();
         }
         frame = requestAnimationFrame(tick);
         return;
@@ -1201,7 +761,7 @@ export function PolyhedronGlobe({
           // The hover cycle (decel → hold → resume on dot hover)
           // only modulates speed during idle. Once anchored, the
           // anchored 0.6× speed is steady — no per-hover cycle.
-          const p = phaseRef.current.kind;
+          const p = anchor.phaseRef.current.kind;
           const rotationActive =
             p === "idle" || p === "unswinging" || p === "open";
           if (rotationActive) {
@@ -1266,8 +826,8 @@ export function PolyhedronGlobe({
   // Notify the parent whenever anchored state changes so it can
   // apply the matching transform on globeScaleHost.
   useEffect(() => {
-    onAnchoredChange?.(anchoredVertexIdx !== null);
-  }, [anchoredVertexIdx, onAnchoredChange]);
+    onAnchoredChange?.(anchor.anchoredVertexIdx !== null);
+  }, [anchor.anchoredVertexIdx, onAnchoredChange]);
 
   // (Anchored-vertex label dismissal happens at the transition
   // sites that move INTO an anchored phase:
@@ -1499,7 +1059,7 @@ export function PolyhedronGlobe({
             vbPoint,
             CROSSHAIR_ENGAGEMENT_RADIUS,
           );
-          if (vi !== null && getAnchoredVi() !== vi) {
+          if (vi !== null && anchor.getAnchoredVi() !== vi) {
             setEngagedVertexIdx(vi);
           }
           g.startedAt = performance.now();
@@ -1515,8 +1075,8 @@ export function PolyhedronGlobe({
       // user wants to drag rather than read. Dismiss the card and
       // start the drag in the same gesture; the reverse
       // choreography plays out underneath the user's drag motion.
-      if (getAnchoredVi() !== null) {
-        releaseAnchor();
+      if (anchor.getAnchoredVi() !== null) {
+        anchor.releaseAnchor();
       }
       activePointers.current.set(e.pointerId, {
         x: e.clientX,
@@ -1544,7 +1104,7 @@ export function PolyhedronGlobe({
       }
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
-    [releaseAnchor, clientToViewBox, findNearestAssignedVertex],
+    [anchor, clientToViewBox, findNearestAssignedVertex],
   );
 
   // Pointermove handles both rotation (centroid-driven yaw/pitch)
@@ -1583,7 +1143,7 @@ export function PolyhedronGlobe({
         // Only re-engage if it's a different vertex AND it isn't
         // the anchored one. Anchored vi is already presented as
         // a card; re-engaging would type the label on top of it.
-        const anchoredVi = getAnchoredVi();
+        const anchoredVi = anchor.getAnchoredVi();
         if (vi !== null && vi !== anchoredVi) {
           setEngagedVertexIdx((prev) => (prev === vi ? prev : vi));
         } else if (vi === null) {
@@ -1668,7 +1228,7 @@ export function PolyhedronGlobe({
       drag.current.lastMouse = { x: c.x, y: c.y };
       drag.current.lastTime = now;
     },
-    [applyQ, onWheelZoom, clientToViewBox, findNearestAssignedVertex],
+    [anchor, applyQ, onWheelZoom, clientToViewBox, findNearestAssignedVertex],
   );
 
   const handlePointerUp = useCallback(
@@ -1689,7 +1249,7 @@ export function PolyhedronGlobe({
             CROSSHAIR_ENGAGEMENT_RADIUS,
           );
           if (vi !== null) {
-            handleDotClick(vi);
+            anchor.handleDotClick(vi);
           }
         }
         // Linger: keep the crosshair rendered for an additional
@@ -1759,7 +1319,7 @@ export function PolyhedronGlobe({
       drag.current.angularVelocityYaw = 0;
       drag.current.angularVelocityPitch = 0;
     },
-    [findNearestAssignedVertex, handleDotClick],
+    [findNearestAssignedVertex, anchor],
   );
 
   // ─── per-frame projection ─────────────────────────────────────────
@@ -1897,8 +1457,8 @@ export function PolyhedronGlobe({
   // for the dot's POSITION, but tiny float wobble keeps anchorGeometry
   // stable across renders by way of being deterministic.
   const anchorGeometry = useMemo(() => {
-    if (anchoredVertexIdx === null) return null;
-    const dot = projected[anchoredVertexIdx];
+    if (anchor.anchoredVertexIdx === null) return null;
+    const dot = projected[anchor.anchoredVertexIdx];
     if (!dot) return null;
     const hexRadius = radius * HEX_RADIUS_RATIO;
     const hexOffset = radius * HEX_OFFSET_RATIO;
@@ -1937,12 +1497,12 @@ export function PolyhedronGlobe({
       coneBottomY,
       coneTopHalfW,
     };
-  }, [anchoredVertexIdx, projected, radius]);
+  }, [anchor.anchoredVertexIdx, projected, radius]);
 
   // Project for the anchored vertex (for billboard title content).
   const anchoredProject =
-    anchoredVertexIdx !== null
-      ? assignmentByVertex.get(anchoredVertexIdx)
+    anchor.anchoredVertexIdx !== null
+      ? assignmentByVertex.get(anchor.anchoredVertexIdx)
       : undefined;
 
   // Per-render: check whether the cursor is still over the engaged dot.
@@ -2043,7 +1603,7 @@ export function PolyhedronGlobe({
       // would bail).
       onClick={() => {
         if (drag.current.didDrag) return;
-        if (getAnchoredVi() !== null) releaseAnchor();
+        if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
       }}
     >
       <svg
@@ -2261,7 +1821,7 @@ export function PolyhedronGlobe({
                   engaged={engagedVertexIdx === v.vi}
                   onHitTargetEnter={() => handleDotEnter(v.vi)}
                   onHitTargetLeave={handleDotLeave}
-                  onHitTargetClick={() => handleDotClick(v.vi)}
+                  onHitTargetClick={() => anchor.handleDotClick(v.vi)}
                   typeDuration={HOVER_DOT_TYPE_DURATION}
                   idleGlowRadius={HOVER_DOT_IDLE_GLOW}
                   expandedGlowRadius={HOVER_DOT_EXPANDED_GLOW}
@@ -2363,10 +1923,10 @@ export function PolyhedronGlobe({
         {anchorGeometry && (
           <g
             style={{
-              transform: `scaleY(${coneHeightProgress})`,
+              transform: `scaleY(${anchor.coneHeightProgress})`,
               transformOrigin: `${anchorGeometry.dotX}px ${anchorGeometry.coneBottomY}px`,
               transformBox: "view-box",
-              transition: `transform ${coneHeightTransitionMs}ms ease-out`,
+              transition: `transform ${anchor.coneHeightTransitionMs}ms ease-out`,
             }}
             pointerEvents="none"
             // Cone tracks the anchored project's category — gradient
@@ -2377,10 +1937,10 @@ export function PolyhedronGlobe({
           >
             <g
               style={{
-                transform: `scaleX(${coneWidthProgress})`,
+                transform: `scaleX(${anchor.coneWidthProgress})`,
                 transformOrigin: `${anchorGeometry.dotX}px ${anchorGeometry.coneBottomY}px`,
                 transformBox: "view-box",
-                transition: `transform ${coneWidthTransitionMs}ms ease-out`,
+                transition: `transform ${anchor.coneWidthTransitionMs}ms ease-out`,
               }}
             >
               <linearGradient
@@ -2462,7 +2022,8 @@ export function PolyhedronGlobe({
             // the cone height grows.
             top:
               anchorGeometry.dotY +
-              (anchorGeometry.hexCy - anchorGeometry.dotY) * coneHeightProgress,
+              (anchorGeometry.hexCy - anchorGeometry.dotY) *
+                anchor.coneHeightProgress,
             transform: "translate(-50%, -50%)",
             // CSS transition on `top` ONLY during the cone
             // rise/fall phases. During swinging, the dot's screen
@@ -2472,10 +2033,11 @@ export function PolyhedronGlobe({
             // render's top to the current render's top, smearing
             // the hex through space behind the moving dot.
             transition:
-              phase.kind === "coneRising" || phase.kind === "coneFalling"
-                ? `top ${coneHeightTransitionMs}ms ease-out`
+              anchor.phase.kind === "coneRising" ||
+              anchor.phase.kind === "coneFalling"
+                ? `top ${anchor.coneHeightTransitionMs}ms ease-out`
                 : "none",
-            pointerEvents: hexOpen ? "auto" : "none",
+            pointerEvents: anchor.hexOpen ? "auto" : "none",
             // Override the ancestor stage's `touch-action: none`.
             // `none` is required on the sphere (so the browser
             // doesn't pan/zoom natively while we drive rotation +
@@ -2520,7 +2082,7 @@ export function PolyhedronGlobe({
           data-glass-category={anchoredProject?.category}
         >
           <UnfoldingBillboard
-            open={hexOpen}
+            open={anchor.hexOpen}
             radius={anchorGeometry.hexRadius}
             stageDelay={90}
             spring={{ stiffness: 260, damping: 18 }}
