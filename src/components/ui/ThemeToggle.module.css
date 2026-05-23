@@ -52,6 +52,34 @@
   );
   z-index: 21;
 }
+/*
+ * Narrow-viewport stacking: on screens too tight for all four
+ * corner buttons to fit alongside the floating header pill in one
+ * row, theme drops to row 2 below the chevron+help row, snapping
+ * to the rightmost column. Slot math mirrors the help and graphics
+ * modal positioning. The base .button transition (color/bg/opacity)
+ * is extended here with top/right at the SAME 360ms duration the
+ * morph modals and chevron fold use — uniform timing keeps the
+ * cluster reading as a single choreographed shift when the viewport
+ * crosses 480px.
+ */
+.landingVariant {
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default),
+    opacity var(--duration-normal) var(--ease-default),
+    top 360ms var(--ease-default),
+    right 360ms var(--ease-default);
+}
+@media (max-width: 480px) {
+  .landingVariant {
+    top: calc(
+      var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) + 2rem +
+        var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+    );
+    right: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  }
+}
 
 /*
  * Hidden state — used by the landing variant when HelpModal opens.

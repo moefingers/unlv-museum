@@ -122,6 +122,14 @@ export interface UseAnchorPhaseConfig {
    * handoff when the new vi takes over.
    */
   clearEngagementFor: (vi: number) => void;
+  /**
+   * NDC-X target for the anchored vertex. Override the default
+   * (-0.13) per viewport width — narrow screens want the vertex
+   * closer to center horizontally so the hex card has equal room
+   * on both sides. Optional; defaults to ANCHOR_NDC_X when
+   * unspecified.
+   */
+  anchorNdcX?: number;
 }
 
 export interface AnchorPhaseAPI {
@@ -170,6 +178,7 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
     autoRotateAxisRef,
     hoverCycleStartRef,
     clearEngagementFor,
+    anchorNdcX,
   } = config;
 
   const [phase, setPhase] = useState<AnchorPhase>({ kind: "idle" });
@@ -244,7 +253,7 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
       // coneRising in that callback.
       const v = meshVertices[phase.vi];
       if (!v) return;
-      const { toQ } = computeAnchorTarget(v);
+      const { toQ } = computeAnchorTarget(v, anchorNdcX ?? ANCHOR_NDC_X);
       anchorAnim.current = {
         startedAt: performance.now(),
         fromQ: latestQRef.current,
@@ -295,6 +304,44 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // Re-aim the anchored vertex when anchorNdcX changes (typically
+  // because the viewport resized across a breakpoint that shifts
+  // the anchor target horizontally — narrow viewports want ndcX≈0,
+  // wide viewports want ndcX=-0.13). Without this effect, an
+  // already-open anchor stays at its original X target until the
+  // user closes and re-opens it. With it, the rotation re-slerps
+  // to the new target so the hex card visually re-centers in place.
+  //
+  // The re-aim ONLY fires when:
+  //   - a vertex is anchored (open / coneRising / widening / swinging)
+  //   - anchorNdcX has changed since last render
+  //
+  // We don't restart the phase machine; just hand the rAF loop a
+  // new slerp target. `latestQRef.current` is the swing's fromQ
+  // because that's where the visible rotation IS right now —
+  // whether the swing was mid-flight or settled, latestQ is the
+  // ground truth.
+  useEffect(() => {
+    const p = phaseRef.current;
+    const anchoredVi =
+      p.kind === "swinging" ||
+      p.kind === "coneRising" ||
+      p.kind === "widening" ||
+      p.kind === "open"
+        ? p.vi
+        : null;
+    if (anchoredVi === null) return;
+    const v = meshVertices[anchoredVi];
+    if (!v) return;
+    const { toQ } = computeAnchorTarget(v, anchorNdcX ?? ANCHOR_NDC_X);
+    anchorAnim.current = {
+      startedAt: performance.now(),
+      fromQ: latestQRef.current,
+      toQ,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorNdcX, meshVertices]);
 
   // ─── rAF → state-machine signal ──────────────────────────────
   //
@@ -487,7 +534,10 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
  * Pure utility — no React, no hook state. Kept here because it's
  * exclusive to the swing-in machinery.
  */
-function computeAnchorTarget(vMesh: Vec3): { toQ: Quat; axis: Vec3 } {
+function computeAnchorTarget(
+  vMesh: Vec3,
+  ndcX: number,
+): { toQ: Quat; axis: Vec3 } {
   // Reverse the axial Z tilt. Forward tilt is (x,y) → (x·cosZ −
   // y·sinZ, x·sinZ + y·cosZ); inverse is (x·cosZ + y·sinZ,
   // −x·sinZ + y·cosZ).
@@ -497,8 +547,10 @@ function computeAnchorTarget(vMesh: Vec3): { toQ: Quat; axis: Vec3 } {
   // Screen NDC y is FLIPPED relative to math y (sy = −y · …). So a
   // target screen NDC of +0.35 ("upper" on screen) maps to math y =
   // +0.35 (a positive y above the equator after axial tilt). We pass
-  // math-y directly here.
-  const ndcX = ANCHOR_NDC_X;
+  // math-y directly here. ndcX is passed in so callers can shift the
+  // anchor's horizontal position based on viewport (narrow screens
+  // want the anchor near x=0 for symmetric layout around the hex
+  // card; wide screens want the museum's traditional -0.13).
   const ndcY = ANCHOR_NDC_Y;
   const px = ndcX * cZ + ndcY * sZ;
   const py = -ndcX * sZ + ndcY * cZ;

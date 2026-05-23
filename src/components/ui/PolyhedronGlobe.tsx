@@ -118,6 +118,16 @@ interface PolyhedronGlobeProps {
    * too fast unless we slow it down proportionally. Defaults to 1.
    */
   userZoom?: number;
+  /**
+   * NDC-X target for anchored vertices. Overrides the default
+   * (-0.13) so callers can shift the horizontal anchor toward 0 on
+   * narrow viewports — the hex card then sits more centered on
+   * screen rather than leaning toward the right edge where it'd
+   * otherwise clip on small phones. Passed straight to
+   * useAnchorPhase. Default kept here so callers who don't care
+   * get the museum's traditional desktop framing.
+   */
+  anchorNdcX?: number;
 }
 
 // Auto-rotation angular speed in radians/second. Equivalent to the
@@ -266,7 +276,14 @@ const CONE_HALF_ANGLE_DEG = 24;
 // them — keeping the tuning numbers next to the rotation/anchor math
 // they're calibrated against.
 export const ANCHOR_ZOOM_SCALE = 1.25;
-export const ANCHOR_ZOOM_TRANSLATE_Y_PCT = 10; // % of stage height
+// % of stage height to translate down when anchored. The sphere
+// drops below its idle resting position to make room for the
+// unfolding hex card above. Mobile devices need a deeper drop
+// because the hex card claims more vertical space relative to a
+// narrow viewport — see ANCHOR_ZOOM_TRANSLATE_Y_PCT_MOBILE below
+// and the viewport-conditional pick in LandingView.
+export const ANCHOR_ZOOM_TRANSLATE_Y_PCT = 14;
+export const ANCHOR_ZOOM_TRANSLATE_Y_PCT_MOBILE = 22;
 // Easing for the zoom transition. Matches the slerp's ease-in-out
 // cubic flavor so both gestures feel governed by the same curve.
 export const ANCHOR_ZOOM_EASING = "cubic-bezier(0.65, 0, 0.35, 1)";
@@ -374,6 +391,7 @@ export function PolyhedronGlobe({
   onWheelZoom,
   touchMode = "tap",
   userZoom = 1,
+  anchorNdcX,
 }: PolyhedronGlobeProps) {
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
@@ -561,6 +579,7 @@ export function PolyhedronGlobe({
     hoverCycleStartRef: hover,
     clearEngagementFor: (vi) =>
       setEngagedVertexIdx((prev) => (prev === vi ? null : prev)),
+    anchorNdcX,
   });
 
   const handleDotEnter = useCallback(

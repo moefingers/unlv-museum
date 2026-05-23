@@ -14,11 +14,14 @@ import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import { HelpModal } from "@/components/ui/HelpModal";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { GraphicsModal } from "@/components/ui/GraphicsModal";
+import { FoldingChevron } from "@/components/ui/FoldingChevron";
+import { SlidingToggle } from "@/components/ui/SlidingToggle";
 import {
   ANCHOR_SWING_MS,
   ANCHOR_ZOOM_EASING,
   ANCHOR_ZOOM_SCALE,
   ANCHOR_ZOOM_TRANSLATE_Y_PCT,
+  ANCHOR_ZOOM_TRANSLATE_Y_PCT_MOBILE,
   PolyhedronGlobe,
   USER_ZOOM_MAX,
   USER_ZOOM_MIN,
@@ -38,8 +41,6 @@ import {
   List,
   FolderTree,
   Clock,
-  ChevronDown,
-  ChevronUp,
   Hand,
   Crosshair,
   HelpCircle,
@@ -428,6 +429,51 @@ function LandingViewInner() {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
+
+  // Header-pill collapse — hides the top toggle row (view, sort, touch-
+  // mode) behind a single chevron in the corner cluster. Defaults
+  // expanded on desktop and collapsed on touch (touch viewports are
+  // tight on space and the user has fewer reasons to swap modes
+  // mid-session). Persisted to localStorage as a boolean so the
+  // choice sticks across visits.
+  //
+  // First-visit default + persistence model:
+  //   1. SSR initial value: true (expanded). We can't do better on
+  //      the server because matchMedia + localStorage are
+  //      client-only.
+  //   2. On first client render, useState's lazy initializer reads
+  //      localStorage and matchMedia synchronously and resolves to
+  //      the correct value. If the value differs from the SSR
+  //      default, React's hydration mismatch warning would fire —
+  //      we accept that by gating the read on `typeof window`,
+  //      which is undefined during SSR (returns the safe default
+  //      there) and defined on the client (returns the real one).
+  //   3. The corner chevron consumes this state via its `open`
+  //      prop. By computing the final value at first render
+  //      rather than via a post-mount effect, the chevron's
+  //      animation-on-change logic doesn't fire spuriously on the
+  //      "real default appears" transition. User toggles after
+  //      mount work normally.
+  const HEADER_PILL_KEY = "unlv-museum.header-pill-open";
+  const [headerPillOpen, setHeaderPillOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(HEADER_PILL_KEY);
+    if (stored === "1" || stored === "0") return stored === "1";
+    // No stored preference — derive from matchMedia (coarse +
+    // no-hover → collapsed by default; everything else → expanded).
+    return !window.matchMedia("(pointer: coarse) and (hover: none)").matches;
+  });
+  const toggleHeaderPill = () => {
+    setHeaderPillOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(HEADER_PILL_KEY, next ? "1" : "0");
+      } catch {
+        // localStorage blocked / private mode — accept session-only state.
+      }
+      return next;
+    });
+  };
   // Help modal — defaults closed so the SSR render matches the
   // first-paint client render (avoids hydration mismatch). On mount,
   // if localStorage doesn't have the dismissed flag, open it. Manual
@@ -543,7 +589,18 @@ function LandingViewInner() {
   // cutout therefore tracks the visible sphere automatically.
   const viewToggleScale = view === "globe" ? 1 : 0;
   const outerScale = viewToggleScale * (anchored ? ANCHOR_ZOOM_SCALE : 1);
-  const outerTranslateY = anchored ? ANCHOR_ZOOM_TRANSLATE_Y_PCT : 0;
+  // Anchored Y-drop. Touch devices use the larger value because
+  // the hex card consumes more relative vertical space on a
+  // narrow viewport — the bigger drop keeps comfortable separation
+  // between the card and the sphere it's anchored to. The
+  // `isTouchDevice` signal (coarse pointer + no hover) is a better
+  // proxy for "phone" than viewport width: a narrow desktop window
+  // doesn't need the mobile treatment.
+  const outerTranslateY = anchored
+    ? isTouchDevice
+      ? ANCHOR_ZOOM_TRANSLATE_Y_PCT_MOBILE
+      : ANCHOR_ZOOM_TRANSLATE_Y_PCT
+    : 0;
 
   // ─── Viewport-aware vertical framing ─────────────────────────
   //
@@ -580,11 +637,44 @@ function LandingViewInner() {
   const [viewportH, setViewportH] = useState(() =>
     typeof window === "undefined" ? 800 : window.innerHeight,
   );
+  // viewport WIDTH drives the anchored vertex's NDC X target (see
+  // anchorNdcX below). Tracked separately so each dimension's
+  // listener can fire independently and stay cheap.
+  const [viewportW, setViewportW] = useState(() =>
+    typeof window === "undefined" ? 1200 : window.innerWidth,
+  );
   useEffect(() => {
-    const onResize = () => setViewportH(window.innerHeight);
+    const onResize = () => {
+      setViewportH(window.innerHeight);
+      setViewportW(window.innerWidth);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // NDC X for anchored vertices — approaches 0 as the viewport
+  // narrows. On a wide desktop the museum traditionally puts the
+  // anchored vertex slightly left of center (-0.13) so the hex
+  // card hovers to the right with room to breathe; on a phone-
+  // sized viewport (~480px or less) that offset eats half the
+  // available width and the card clips against the right edge.
+  // Linearly interpolate from -0.13 at 1200px+ down to 0 at 480px
+  // and below; clamped at both ends so we don't overshoot.
+  //
+  // The math: t = (viewportW - 480) / (1200 - 480), clamped 0..1.
+  // At t=0 (narrow): ndcX = 0. At t=1 (wide): ndcX = -0.13.
+  const NDC_X_DESKTOP = -0.13;
+  const NDC_X_WIDE_THRESHOLD = 1200;
+  const NDC_X_NARROW_THRESHOLD = 480;
+  const ndcXProgress = Math.max(
+    0,
+    Math.min(
+      1,
+      (viewportW - NDC_X_NARROW_THRESHOLD) /
+        (NDC_X_WIDE_THRESHOLD - NDC_X_NARROW_THRESHOLD),
+    ),
+  );
+  const anchorNdcX = NDC_X_DESKTOP * ndcXProgress;
   const targetSphereTop = viewportH * TOP_ANCHOR_FRACTION;
   const hostLayoutTop = (viewportH - STAGE_SIZE) / 2;
   // Anchored state adds an additional drop (matches the prior
@@ -665,8 +755,24 @@ function LandingViewInner() {
         The museum title + lede moved to the HelpModal welcome card so
         the header stays compact and the intro content lives in the
         same place visitors can summon it from later.
+
+        Collapsible: the entire pill slides up out of view when the
+        chevron in the corner cluster is clicked. data-header-pill-open
+        drives the CSS transform + opacity + pointer-events transition.
+        The toggles inside stay mounted so view/sort/touch-mode state
+        survives the collapse — this is purely visual.
       */}
-      <div className={styles.floatingHeader}>
+      <div
+        className={styles.floatingHeader}
+        data-header-pill-open={headerPillOpen}
+        // Server renders the SSR-safe default (true) but client
+        // computes the matchMedia/localStorage-derived value at
+        // first render. We suppress the hydration warning on this
+        // ONE attribute boundary — React still patches the value,
+        // and from the user's perspective the matchMedia-derived
+        // state is what they want anyway.
+        suppressHydrationWarning
+      >
         <div
           className={styles.headerBody}
           // Inline backdrop-filter (Lightning CSS strips it from CSS
@@ -677,60 +783,86 @@ function LandingViewInner() {
           }}
         >
           <div className={styles.toggleRow}>
-            <div className={styles.viewToggle}>
-              <button
-                onClick={() => setView("globe")}
-                className={`${styles.viewButton} ${
-                  view === "globe"
-                    ? styles.viewButtonActive
-                    : styles.viewButtonIdle
-                }`}
-              >
-                <GlobeIcon size={14} />
-                Globe
-              </button>
-              <button
-                onClick={() => setView("list")}
-                className={`${styles.viewButton} ${
-                  view === "list"
-                    ? styles.viewButtonActive
-                    : styles.viewButtonIdle
-                }`}
-              >
-                <List size={14} />
-                List
-              </button>
-            </div>
+            {/*
+              View toggle: Globe / List. SlidingToggle handles the
+              animated indicator — it measures whichever button is
+              active and slides a same-width pill across to it. We
+              pass `registerRef` from the render prop into each
+              button's ref so SlidingToggle can read positions.
+            */}
+            <SlidingToggle<ViewMode> activeKey={view}>
+              {(registerRef) => (
+                <>
+                  <button
+                    ref={(el) => registerRef("globe", el)}
+                    onClick={() => setView("globe")}
+                    className={`${styles.viewButton} ${
+                      view === "globe"
+                        ? styles.viewButtonActive
+                        : styles.viewButtonIdle
+                    }`}
+                  >
+                    {/*
+                      Globe is bumped slightly larger than the other
+                      toggle icons. Lucide's globe icon has more
+                      internal detail than its 14px neighbors so at
+                      the same nominal size it reads as visually
+                      smaller. 16 brings it perceptually level.
+                    */}
+                    <GlobeIcon size={16} />
+                    Globe
+                  </button>
+                  <button
+                    ref={(el) => registerRef("list", el)}
+                    onClick={() => setView("list")}
+                    className={`${styles.viewButton} ${
+                      view === "list"
+                        ? styles.viewButtonActive
+                        : styles.viewButtonIdle
+                    }`}
+                  >
+                    <List size={14} />
+                    List
+                  </button>
+                </>
+              )}
+            </SlidingToggle>
             {/*
               Sort axis: applies to both views. In List it swaps section
               grouping; in Globe it re-shuffles Fibonacci-sphere positions
               and cards fly to their new spots (stable `key={item.id}` +
               a CSS transition on .item's transform).
             */}
-            <div className={styles.viewToggle}>
-              <button
-                onClick={() => setSort("category")}
-                className={`${styles.viewButton} ${
-                  sort === "category"
-                    ? styles.viewButtonActive
-                    : styles.viewButtonIdle
-                }`}
-              >
-                <FolderTree size={14} />
-                Category
-              </button>
-              <button
-                onClick={() => setSort("time")}
-                className={`${styles.viewButton} ${
-                  sort === "time"
-                    ? styles.viewButtonActive
-                    : styles.viewButtonIdle
-                }`}
-              >
-                <Clock size={14} />
-                Time
-              </button>
-            </div>
+            <SlidingToggle<SortMode> activeKey={sort}>
+              {(registerRef) => (
+                <>
+                  <button
+                    ref={(el) => registerRef("category", el)}
+                    onClick={() => setSort("category")}
+                    className={`${styles.viewButton} ${
+                      sort === "category"
+                        ? styles.viewButtonActive
+                        : styles.viewButtonIdle
+                    }`}
+                  >
+                    <FolderTree size={14} />
+                    Category
+                  </button>
+                  <button
+                    ref={(el) => registerRef("time", el)}
+                    onClick={() => setSort("time")}
+                    className={`${styles.viewButton} ${
+                      sort === "time"
+                        ? styles.viewButtonActive
+                        : styles.viewButtonIdle
+                    }`}
+                  >
+                    <Clock size={14} />
+                    Time
+                  </button>
+                </>
+              )}
+            </SlidingToggle>
             {/*
               Touch-mode toggle. Only rendered on touch devices (coarse
               pointer + no hover). Lets touch users opt into a crosshair-
@@ -738,30 +870,36 @@ function LandingViewInner() {
               labels instead of immediately opening cards.
             */}
             {isTouchDevice && view === "globe" && (
-              <div className={styles.viewToggle}>
-                <button
-                  onClick={() => setTouchMode("tap")}
-                  className={`${styles.viewButton} ${
-                    touchMode === "tap"
-                      ? styles.viewButtonActive
-                      : styles.viewButtonIdle
-                  }`}
-                >
-                  <Hand size={14} />
-                  Tap
-                </button>
-                <button
-                  onClick={() => setTouchMode("hover")}
-                  className={`${styles.viewButton} ${
-                    touchMode === "hover"
-                      ? styles.viewButtonActive
-                      : styles.viewButtonIdle
-                  }`}
-                >
-                  <Crosshair size={14} />
-                  Hover
-                </button>
-              </div>
+              <SlidingToggle<TouchMode> activeKey={touchMode}>
+                {(registerRef) => (
+                  <>
+                    <button
+                      ref={(el) => registerRef("tap", el)}
+                      onClick={() => setTouchMode("tap")}
+                      className={`${styles.viewButton} ${
+                        touchMode === "tap"
+                          ? styles.viewButtonActive
+                          : styles.viewButtonIdle
+                      }`}
+                    >
+                      <Hand size={14} />
+                      Tap
+                    </button>
+                    <button
+                      ref={(el) => registerRef("hover", el)}
+                      onClick={() => setTouchMode("hover")}
+                      className={`${styles.viewButton} ${
+                        touchMode === "hover"
+                          ? styles.viewButtonActive
+                          : styles.viewButtonIdle
+                      }`}
+                    >
+                      <Crosshair size={14} />
+                      Hover
+                    </button>
+                  </>
+                )}
+              </SlidingToggle>
             )}
           </div>
         </div>
@@ -816,6 +954,7 @@ function LandingViewInner() {
               onWheelZoom={handleWheelZoom}
               touchMode={touchMode}
               userZoom={userZoom}
+              anchorNdcX={anchorNdcX}
             />
           </div>
         </div>
@@ -929,7 +1068,15 @@ function LandingViewInner() {
           aria-label={legendOpen ? "Hide legend" : "Show legend"}
           aria-expanded={legendOpen}
         >
-          {legendOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          {/*
+            Same FoldingChevron as the header pill. The legend sits
+            at the BOTTOM of the viewport — expanded state should
+            point the chevron DOWN (click to collapse downward
+            into the natural edge). That's the inverse of the
+            header-pill chevron's semantics, so we pass !legendOpen
+            as `open` to get the chevron-down resting pose.
+          */}
+          <FoldingChevron open={!legendOpen} size={16} />
         </button>
       </div>
 
@@ -941,6 +1088,35 @@ function LandingViewInner() {
         positioning are independent — it never opens into a modal,
         it just flips a class on <html>.
       */}
+      {/*
+        Header-pill chevron — leftmost in the four-button corner
+        cluster. Controls the floating header (view/sort/touch-mode
+        toggles) collapse state. Lives outside the floatingHeader
+        DOM tree so the chevron stays clickable when the pill itself
+        is hidden — the button is the only entry point back.
+      */}
+      <button
+        type="button"
+        className={styles.headerPillToggle}
+        onClick={toggleHeaderPill}
+        aria-label={
+          headerPillOpen
+            ? "Hide view + sort toggles"
+            : "Show view + sort toggles"
+        }
+        aria-expanded={headerPillOpen}
+        suppressHydrationWarning
+      >
+        {/*
+          Custom SVG chevron that folds through a vertical-line
+          midpoint when toggled. `open=true` → chevron points up
+          (click to collapse), `open=false` → points down (click to
+          expand). See FoldingChevron.tsx for the two-line, three-
+          point fold-and-unfold geometry.
+        */}
+        <FoldingChevron open={headerPillOpen} size={16} />
+      </button>
+
       {/*
         Theme toggle stays visible whenever a modal is open — same
         as the corner help and graphics buttons. The corner cluster

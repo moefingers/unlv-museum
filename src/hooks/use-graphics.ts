@@ -61,7 +61,15 @@ export const PRESET_DEFINITIONS: Record<
     vertexGlows: "engaged-only",
     breathingMesh: false,
     backgroundHalo: false,
-    reducedMotion: "force-on",
+    // reducedMotion stays on "auto" even for Low. The Force-on path
+    // zeroes ALL transition durations site-wide, which is way more
+    // aggressive than the actual perf goal (cutting rendering fillrate
+    // on the globe). It would also visibly break the help/graphics
+    // modal morph animations — they rely on transition timings for
+    // the open/close choreography. Visitors who specifically want
+    // reduced motion can still set it explicitly via the Advanced
+    // toggle; on Low, we leave that as their OS preference.
+    reducedMotion: "auto",
   },
   medium: {
     edgeGlow: false,

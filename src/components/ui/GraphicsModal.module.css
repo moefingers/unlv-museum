@@ -64,15 +64,37 @@
   box-shadow: var(--shadow-sm);
   z-index: 21;
   overflow: hidden;
+  /*
+   * top/right transition at 360ms — matches the chevron fold +
+   * header pill collapse + theme toggle repositioning so the
+   * narrow-viewport corner-button stack reads as one coordinated
+   * shift. Other properties (width, max-height, etc.) keep the
+   * morph's 900ms for the cinematic modal open/close animation.
+   */
   transition:
-    top var(--graphics-morph-duration) var(--graphics-morph-easing),
-    right var(--graphics-morph-duration) var(--graphics-morph-easing),
+    top 360ms var(--graphics-morph-easing),
+    right 360ms var(--graphics-morph-easing),
     width var(--graphics-morph-duration) var(--graphics-morph-easing),
     max-height var(--graphics-morph-duration) var(--graphics-morph-easing),
     transform var(--graphics-morph-duration) var(--graphics-morph-easing),
     border-radius var(--graphics-morph-duration) var(--graphics-morph-easing),
     box-shadow var(--graphics-morph-duration) var(--graphics-morph-easing),
     background var(--duration-normal) var(--ease-default);
+}
+@media (max-width: 480px) {
+  .morph {
+    /* Row 3 in the stacked layout — gear drops to the bottom of
+       the three-button stack on narrow viewports. Right stays at
+       the rightmost column (var(--space-4) inset). The morph's
+       own top + right transitions at 360ms carry the move
+       smoothly when the viewport crosses 480px. */
+    top: calc(
+      var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) +
+        (2rem + var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)) *
+        2
+    );
+    right: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  }
 }
 
 .morph[data-open="true"] {

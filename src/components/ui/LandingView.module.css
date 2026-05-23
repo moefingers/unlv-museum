@@ -43,7 +43,16 @@
  */
 .floatingHeader {
   position: fixed;
-  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  /*
+   * Top inset tuned so the pill's INNER toggle buttons align with
+   * the corner-cluster button centerline (which sits at space-4 +
+   * 1rem from the viewport top — half the corner-button height
+   * past its space-4 inset). The pill's own padding-top is space-3
+   * (~12px) and the toggle-button center is another ~14px below
+   * that, so space-2 here puts the toggle center roughly even
+   * with the corner-button center.
+   */
+  top: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
@@ -52,6 +61,75 @@
   align-items: center;
   pointer-events: none;
 }
+
+/*
+ * Corner chevron — leftmost in the top-right cluster, controls the
+ * floating header's collapse state. Same visual treatment as the
+ * gear/theme/help buttons (2rem circle, --card surface) so the four
+ * read as a single row of corner controls. Offset further left by
+ * three full slots (button width + gap) from the rightmost help
+ * button. Slot math mirrors GraphicsModal.module.css's morph
+ * positioning.
+ */
+.headerPillToggle {
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  right: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) +
+      (2rem + var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)) * 3
+  );
+  z-index: 21;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: oklch(from var(--card) l c h / 0.92);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /*
+   * 360ms top/right matches the modals' narrow-viewport repositioning
+   * timing — when the breakpoint crosses 480px, all four corner
+   * buttons slide to their new positions in unison.
+   */
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default),
+    top 360ms var(--ease-default),
+    right 360ms var(--ease-default);
+}
+.headerPillToggle:hover {
+  color: var(--foreground);
+}
+@media (max-width: 480px) {
+  /*
+   * Narrow-viewport: chevron stays in row 1 next to help, which has
+   * dropped from slot 1 to ALSO be in row 1 in the stacked layout
+   * (the help anchor stays top-right). Chevron moves from slot 4
+   * (way out left, where it lived on desktop) to slot 2 — one button
+   * + gap left of help — so they read as a tight pair anchoring the
+   * top of the corner cluster.
+   */
+  .headerPillToggle {
+    right: calc(
+      var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) + 2rem +
+        var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+    );
+  }
+}
+
+/*
+ * Chevron fold-through animation lives in the FoldingChevron
+ * component (SVG-driven) — see ./FoldingChevron.tsx. The earlier
+ * CSS-only fold attempt was abandoned because pure transitions
+ * can't express a U-shape on a single property; rendering the
+ * chevron as two animated SVG lines is both simpler and gives the
+ * exact "ends pinch together then reverse expands" visual the
+ * design called for.
+ */
 
 .headerBody {
   pointer-events: auto;
@@ -73,10 +151,32 @@
     oklch(from var(--background) l c h / 0) 100%
   );
   border-radius: var(--radius-lg);
+  /*
+   * Duration matches FoldingChevron's ANIM_DURATION_MS (360ms) so
+   * the chevron's fold-through animation and the panel's collapse
+   * land together. Keeping them in sync means the chevron's
+   * "vertical line midpoint" lines up with the panel being half-
+   * collapsed — a deliberate coordinated gesture rather than two
+   * independent UI motions racing each other.
+   */
   transition:
-    opacity var(--duration-normal) var(--ease-default),
-    transform var(--duration-normal) var(--ease-default);
+    opacity 360ms var(--ease-default),
+    transform 360ms var(--ease-default);
   transform-origin: top center;
+}
+/*
+ * Collapsed state — mirror of the legend's collapse (which lives at
+ * the bottom and pulls toward its bottom edge). This one is anchored
+ * to the top and pulls upward: shrink slightly + lift -8px so the
+ * pill reads as tucked away into the top edge rather than rocketing
+ * off screen. Same duration + easing tokens as the legend, so the
+ * two collapse gestures feel like the same gesture mirrored across
+ * the viewport.
+ */
+.floatingHeader[data-header-pill-open="false"] .headerBody {
+  opacity: 0;
+  transform: scale(0.92) translateY(-8px);
+  pointer-events: none;
 }
 
 /*
@@ -108,16 +208,61 @@
   justify-content: center;
 }
 
+/*
+ * Toggle group with a sliding background indicator that resizes
+ * AND repositions to match the active button.
+ *
+ * Structure: a flex row of N content-sized buttons inside
+ * .viewToggle. An absolutely-positioned .viewToggleIndicator sits
+ * underneath as the moving background — its `left` and `width`
+ * are set inline in JSX from a useLayoutEffect that reads the
+ * active button's offsetLeft / offsetWidth. CSS transitions both
+ * properties so the indicator slides AND stretches/shrinks to fit
+ * "Globe" (narrow) ↔ "Frontend & UI" (wide) in one motion.
+ *
+ * Why measure with JS instead of equal-width flex slots: buttons
+ * with variable text widths (which our toggles all have) look
+ * cramped if forced equal width. The measure-and-position approach
+ * lets buttons size naturally to their content while the indicator
+ * matches the active one's actual rendered size.
+ */
 .viewToggle {
   display: inline-flex;
+  position: relative;
   border-radius: var(--radius-lg);
   background: var(--muted);
   padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1));
+  isolation: isolate;
+}
+.viewToggleIndicator {
+  position: absolute;
+  top: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1));
+  bottom: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1));
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  z-index: 0;
+  /*
+   * left + width are set inline from JSX (measured per render).
+   * Initial values fall back to 0 so the first paint doesn't show
+   * a wild stretched indicator before the layout effect runs;
+   * once measured, the transition carries subsequent moves and
+   * width changes at the 360ms cadence used by the rest of the
+   * museum's coordinated motion (chevron fold, header pill collapse).
+   */
+  left: 0;
+  width: 0;
+  transition:
+    left 360ms var(--ease-default),
+    width 360ms var(--ease-default);
 }
 
 .viewButton {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
   gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
   border-radius: var(--radius-md);
   padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
@@ -126,14 +271,23 @@
     var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
   );
   font-weight: var(--font-weight-medium);
-  transition:
-    background var(--duration-normal) var(--ease-default),
-    color var(--duration-normal) var(--ease-default);
+  transition: color var(--duration-normal) var(--ease-default);
+}
+/*
+ * Globals.css applies `svg { display: block; max-width: 100% }` to
+ * all SVGs for responsive content. Without the override the toggle-
+ * button icons shrink to the button's content-width and the SVG
+ * effectively disappears. flex-shrink: 0 + max-width: none makes
+ * the icon honor its explicit width/height attributes.
+ */
+.viewButton svg {
+  flex-shrink: 0;
+  max-width: none;
 }
 .viewButtonActive {
-  background: var(--card);
   color: var(--card-foreground);
-  box-shadow: var(--shadow-sm);
+  /* Background + shadow now come from the sliding ::before indicator
+     on the parent .viewToggle — see comments there. */
 }
 .viewButtonIdle {
   color: var(--muted-foreground);
@@ -169,19 +323,6 @@
    * this layout (the list's margin-top is independent).
    */
   --view-toggle-duration: 900ms;
-  /*
-   * Base vertical offset for the sphere's resting position. Using
-   * dvh (not % of the element) so the offset scales with VIEWPORT
-   * height rather than the (fixed) stage size — without this, the
-   * sphere reads as "too high" on shorter screens because the
-   * absolute offset was being computed against a 1400px stage
-   * regardless of how tall the viewport was.
-   *
-   * 25dvh puts the sphere center roughly viewport-half + 25dvh
-   * below the viewport center (i.e., always in the lower portion)
-   * regardless of how short or tall the screen is.
-   */
-  --globe-frame-offset-y: 25dvh;
   position: fixed;
   top: 0;
   left: 0;
@@ -289,7 +430,15 @@
   gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
   padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1))
     calc(var(--space-5) * var(--app-pad, 1) * var(--room-pad, 1));
-  max-width: min(92vw, 40rem);
+  /*
+   * Defined width with viewport-capped fallback. The legend stays
+   * a consistent 40rem wide on roomy viewports so its silhouette
+   * doesn't shrink-wrap to the wrapped content (which would jitter
+   * during font-load and feel less anchored). On narrow viewports
+   * it never exceeds the available width.
+   */
+  width: 40rem;
+  max-width: 100vw;
   user-select: none;
   -webkit-user-select: none;
   /*
@@ -304,9 +453,11 @@
     oklch(from var(--background) l c h / 0) 100%
   );
   border-radius: var(--radius-full);
+  /* 360ms matches FoldingChevron's animation duration so the
+     chevron's fold and the legend's collapse land together. */
   transition:
-    opacity var(--duration-normal) var(--ease-default),
-    transform var(--duration-normal) var(--ease-default);
+    opacity 360ms var(--ease-default),
+    transform 360ms var(--ease-default);
   transform-origin: bottom center;
 }
 .floatingLegend[data-legend-open="false"] .legendBody {

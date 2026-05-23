@@ -82,9 +82,22 @@
   box-shadow: var(--shadow-sm);
   z-index: 21;
   overflow: hidden;
+  /*
+   * top/right transition at 360ms (faster than the morph's 900ms)
+   * because these properties also drive the corner-button
+   * REPOSITIONING when the viewport crosses 480px. We want a brisk
+   * uniform slide across all corner buttons; the morph-only
+   * properties (width, max-height, border-radius, transform) keep
+   * their 900ms timing for the cinematic open/close animation.
+   *
+   * Help stays at the top-right corner on narrow viewports — it's
+   * the most-accessed entry point so it claims the anchor. Theme
+   * drops to row 2 and graphics drops to row 3 instead. See the
+   * other two module.css files for their media queries.
+   */
   transition:
-    top var(--help-morph-duration) var(--help-morph-easing),
-    right var(--help-morph-duration) var(--help-morph-easing),
+    top 360ms var(--help-morph-easing),
+    right 360ms var(--help-morph-easing),
     width var(--help-morph-duration) var(--help-morph-easing),
     max-height var(--help-morph-duration) var(--help-morph-easing),
     transform var(--help-morph-duration) var(--help-morph-easing),
@@ -92,6 +105,13 @@
     box-shadow var(--help-morph-duration) var(--help-morph-easing),
     background var(--duration-normal) var(--ease-default);
 }
+/*
+ * Help stays at the top-right corner on narrow viewports too — it's
+ * the most-accessed entry point so it claims the top-right anchor.
+ * Theme drops to row 2 and graphics drops to row 3 instead. See
+ * ThemeToggle.module.css and GraphicsModal.module.css for their
+ * media queries.
+ */
 
 /*
  * Open geometry. Lifting the max-width/max-height caps lets the
