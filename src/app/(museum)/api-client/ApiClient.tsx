@@ -112,6 +112,59 @@ function ApiClientInner({ initialTier }: { initialTier: Tier }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [sidebarOpen]);
 
+  // PostMessage bridge — lets HTML responses rendered in the iframe
+  // (e.g. the modernized Enhanced sql-demo form's "Browse the trail"
+  // link) drive the request builder above. The iframe posts a
+  // { source: "museum-api-client", kind: "loadEndpoint", api, method,
+  // path } message; we look up the api, switch if needed, then mirror
+  // the same state changes the left-rail endpoint buttons do — so the
+  // path input shows the new route and the visitor is one Send click
+  // from seeing the response in the same client.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const data = e.data as
+        | {
+            source?: unknown;
+            kind?: unknown;
+            api?: unknown;
+            method?: unknown;
+            path?: unknown;
+          }
+        | undefined
+        | null;
+      if (
+        !data ||
+        data.source !== "museum-api-client" ||
+        data.kind !== "loadEndpoint"
+      )
+        return;
+      if (
+        typeof data.api !== "string" ||
+        typeof data.method !== "string" ||
+        typeof data.path !== "string"
+      )
+        return;
+      const targetApi = apis.find((a) => a.id === data.api);
+      if (!targetApi) return;
+      // Switch api if the message names a different one. Mirror
+      // switchApi's URL update so refreshes preserve the selection.
+      if (targetApi.id !== activeApiId) {
+        setActiveApiId(targetApi.id);
+        const url = new URL(window.location.href);
+        url.searchParams.set("api", targetApi.id);
+        window.history.replaceState({}, "", url.toString());
+      }
+      setMethod(data.method as Method);
+      setPath(data.path);
+      setBody("");
+      // Don't clear response/status — the iframe's own navigation
+      // (when the link wasn't preventDefault'd) is showing the new
+      // endpoint's result; clearing would race with that.
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [apis, activeApiId]);
+
   const activeApi = apis.find((a) => a.id === activeApiId) ?? apis[0]!;
 
   const switchApi = (id: string) => {

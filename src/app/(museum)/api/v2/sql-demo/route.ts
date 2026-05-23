@@ -311,7 +311,7 @@ const FORM_HTML = `<!doctype html>
     </form>
 
     <div class="footnote">
-      <strong>You are being audited.</strong> Every signed-in attempt — successful or not — lands a row in <code>sql_demo.audit_log</code> with your GitHub identity, the payload you sent, the chosen mode, and the outcome. Browse the trail: <a href="/api/v2/sql-demo/audit-log">/api/v2/sql-demo/audit-log</a>.
+      <strong>You are being audited.</strong> Every signed-in attempt — successful or not — lands a row in <code>sql_demo.audit_log</code> with your GitHub identity, the payload you sent, the chosen mode, and the outcome. Browse the trail: <a id="audit-log-link" href="/api/v2/sql-demo/audit-log">/api/v2/sql-demo/audit-log</a>.
     </div>
   </div>
 
@@ -332,6 +332,29 @@ const FORM_HTML = `<!doctype html>
         document.getElementById('password').value = btn.dataset.p;
         document.getElementById('username').focus();
       });
+    });
+
+    // Audit-log link → if we're nested in the api-client iframe, ask
+    // the parent api-client to load the /audit-log endpoint into its
+    // request builder (so the path input shows /audit-log and the
+    // visitor can Send / re-Send with one click). The link's default
+    // navigation still fires — that lets the JSON show in the iframe
+    // immediately, and the parent's state is now in sync with what's
+    // displayed. When the form is loaded outside the api-client (e.g.
+    // the project-page iframe) the parent has no listener and the
+    // postMessage is harmlessly ignored.
+    document.getElementById('audit-log-link').addEventListener('click', () => {
+      try {
+        window.parent?.postMessage({
+          source: 'museum-api-client',
+          kind: 'loadEndpoint',
+          api: 'sql-demo',
+          method: 'GET',
+          path: '/audit-log',
+        }, '*');
+      } catch (e) {
+        // Cross-origin or detached parent — ignore; the link still navigates.
+      }
     });
   </script>
 </body>
