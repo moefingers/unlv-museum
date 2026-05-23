@@ -145,16 +145,36 @@ export const recipes: Record<string, Recipe> = {
     from: ".sources/SQL-Music-Tour-API",
   },
 
-  // TEMPORARY backend-only — rest-rant's CRA frontend has a roughed-out
-  // cra-build recipe in sources-conversions.md (🔴 unfinished) but the
-  // museum-side `/api/rest-rant/*` routes are working today, and we want
-  // the GitHub-side meta (banner, description, branches) to land now.
-  // When the CRA frontend build lands, swap this entry to a cra-build
-  // recipe (frontend) — the meta will continue working as long as the
-  // submodule still points at `.sources/rest-rant-monorepo`.
+  // CRA SPA built from the rest-rant-monorepo's frontend/ subdirectory.
+  // Two layers of fix coexist here:
+  //
+  //   1. Source-level hosting fixes live on the museum-ready/original
+  //      branch — HashRouter alias on the BrowserRouter import,
+  //      %PUBLIC_URL% on the stylesheet href, <Link to> in place of
+  //      bare <a href> for the Places Page CTA, plus the asset
+  //      relocations (frontend/public/css/, frontend/public/images/)
+  //      that make CRA bundle them into the iframe-served build.
+  //
+  //   2. Bundle-level URL rewrites live in the postPatch script
+  //      (scripts/patch-rest-rant-spa.mjs) — localhost:5000 → /api/
+  //      rest-rant/* substitutions that webpack inlines into the
+  //      minified main chunk at build time. Keeping these in postPatch
+  //      lets `git diff original..museum-ready/original` on the source
+  //      repo show only true source-level work; the address rewrites
+  //      that adapt the SPA to the museum's API host live museum-side.
+  //
+  // openssl-legacy-provider needed because this is CRA 4 / webpack 4,
+  // which uses the MD4 hash that modern Node's OpenSSL 3 dropped.
   "rest-rant": {
-    type: "backend-only",
-    from: ".sources/rest-rant-monorepo",
+    type: "cra-build",
+    cwd: ".sources/rest-rant-monorepo/frontend",
+    node: "20",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: ".", NODE_OPTIONS: "--openssl-legacy-provider" },
+    buildOutput: "build",
+    to: "public/originals/rest-rant",
+    postPatch: ["scripts/patch-rest-rant-spa.mjs"],
   },
 
   "sql-injection-demo": {
@@ -209,18 +229,6 @@ export const recipes: Record<string, Recipe> = {
   //   type: "static-copy",
   //   from: ".sources/foodTruckUNLV",
   //   to: "public/originals/food-truck",
-  // },
-  //
-  // "rest-rant": {
-  //   type: "cra-build",
-  //   cwd: ".sources/rest-rant-monorepo/frontend",
-  //   node: "20",
-  //   install: "pnpm install --frozen-lockfile",
-  //   build: "pnpm run build",
-  //   buildEnv: { PUBLIC_URL: ".", NODE_OPTIONS: "--openssl-legacy-provider" },
-  //   buildOutput: "build",
-  //   to: "public/originals/rest-rant",
-  //   postPatch: ["scripts/patch-rest-rant-spa.mjs"],
   // },
   //
   // "commerce-array": {

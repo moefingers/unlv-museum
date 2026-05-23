@@ -47,8 +47,8 @@
   "rest-rant": {
     "repo": "moefingers/rest-rant-monorepo",
     "branch": "museum-ready/original",
-    "commit": "63cf992f32c26d9cdbb712cb4d60bd98e368e4b5",
-    "lockHash": "sha256:64c9b143e40a547fb26bb4bcada5f2eddba7fb6c3830b6cc0cd5b8324ec420be",
+    "commit": "0a5ec89cd138076e9ca5e676c149aed582f6dcb1",
+    "lockHash": "sha256:69324f9e58d709feafc7b46b28678333ca9cb57a4756ece29cb12acb8f945171",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-05-04"

@@ -650,6 +650,17 @@ export const PROJECTS: Project[] = [
     original: <OriginalFrame src="/originals/rest-rant/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    // Bidirectional pairing with the api-client lab surface. Value is
+    // the api-data.ts `id` (`?api=rest-rant`), which happens to match
+    // this slug verbatim — both share the project name. The chrome
+    // surfaces a "Try the live API" link in the notes panel; the
+    // tier-aware resolver routes Enhanced visits to v=2 automatically.
+    siblingApiClient: "rest-rant",
+    // The SSR predecessor (Feb 2024) is a distinct museum entry —
+    // same restaurant-review domain, different teaching surface
+    // (server-rendered JSX vs client-rendered SPA). Cross-link via
+    // relatedEntries since they have independent tier journeys.
+    relatedEntries: ["rest-rant-ssr"],
     notes: {
       original:
         "Frontend SPA preserved as-is. Its Express/Postgres backend was reimplemented as /api/rest-rant (Next.js + Drizzle/Neon) so the SPA functions end-to-end — see the Rest-Rant API card in /api-client.",
@@ -674,6 +685,13 @@ export const PROJECTS: Project[] = [
     original: <OriginalFrame src="/originals/rest-rant-ssr" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    // The SPA (May 2024) is a later submission of the same restaurant-
+    // review project — different surface (client-rendered SPA vs
+    // server-rendered JSX), shared `rest_rant.*` Postgres tables. Use
+    // relatedEntries (not siblingApiClient) because this surface
+    // doesn't talk to /api/rest-rant — it uses Server Actions
+    // directly. The api-client cross-link belongs on the SPA, not here.
+    relatedEntries: ["rest-rant"],
     notes: {
       original:
         "The underlying architecture has been vastly altered. The Feb 2024 source ran on Express + express-react-views + MongoDB — none of which is statically hostable. The JSX views and the SSR character (server-rendered per route, form-driven mutations) are preserved verbatim, but the data layer is now Next.js Server Components + Server Actions + Postgres/Neon, sharing storage with the Rest-Rant (SPA) entry. The debug `* { outline: 1px solid black }` rule and the placebear placeholder images are preserved from the original.",
