@@ -539,6 +539,40 @@ function LandingViewInner() {
   // callbacks (onAnchoredChange, onWheelZoom). Single source of
   // truth: the transform applied here matches the state up there.
   const [anchored, setAnchored] = useState(false);
+  // PolyhedronGlobe's stage pointer handlers, lifted to .globeWrap so
+  // drag-rotate AND dismiss-on-click trigger on the FULL viewport
+  // surface — not just the transformed stage bbox. The globe assigns
+  // its handlers into surfaceHandlersRef.current; the .globeWrap div
+  // below binds them as React event listeners. Three bugs fixed by
+  // this one indirection:
+  //
+  //   1. Zoom-out leaves the sphere visually smaller than its stage
+  //      bbox — taps above/below the visible sphere previously fell
+  //      outside the hit region entirely.
+  //   2. Anchored "stage view" translates the stage downward; its
+  //      hit region travels with it, leaving a dead zone above.
+  //   3. Bare taps on the landing-view background never reached any
+  //      drag-rotate or dismiss path.
+  //
+  // The globe's internal logic stays untouched — the handlers are
+  // the same useCallbacks they always were. We're only WIDENING the
+  // surface those handlers fire from. UI siblings (header, legend,
+  // corner buttons) live OUTSIDE .globeWrap in the DOM so their
+  // clicks are unaffected. The hex card lives INSIDE .globeWrap and
+  // stops propagation in bubble phase as before.
+  const surfaceHandlersRef = useRef<{
+    onPointerDown: (e: React.PointerEvent) => void;
+    onPointerMove: (e: React.PointerEvent) => void;
+    onPointerUp: (e: React.PointerEvent) => void;
+    onPointerCancel: (e: React.PointerEvent) => void;
+    onPointerLeave: (e: React.PointerEvent) => void;
+    onClick: (e: React.MouseEvent) => void;
+  } | null>(null);
+  // Direct dismiss escape hatch — still threaded in for completeness
+  // (e.g. the hex-card's X button calls this) but not used by the
+  // background click path anymore; that path now goes through the
+  // lifted onClick handler above.
+  const dismissRef = useRef<(() => void) | null>(null);
   const [userZoom, setUserZoom] = useState(1);
   const handleWheelZoom = (deltaY: number) => {
     const ratio = Math.exp(-deltaY * USER_ZOOM_WHEEL_SENSITIVITY);
@@ -913,7 +947,23 @@ function LandingViewInner() {
         stays live during the close animation — the mesh cutout shrinks
         in lockstep with the globe rather than snapping at unmount.
       */}
-      <div className={styles.globeWrap} data-view-active={view === "globe"}>
+      <div
+        className={styles.globeWrap}
+        data-view-active={view === "globe"}
+        // Lifted pointer + click surface for the globe. The actual
+        // handlers live inside PolyhedronGlobe (drag math, anchor
+        // release, etc.); we just bind them to a viewport-sized
+        // ancestor here so drag-rotate and dismiss-anchor work
+        // anywhere on the landing view, not just inside the
+        // transformed stage bbox. The handlers default to no-op
+        // until the globe mounts and writes them into the ref.
+        onPointerDown={(e) => surfaceHandlersRef.current?.onPointerDown(e)}
+        onPointerMove={(e) => surfaceHandlersRef.current?.onPointerMove(e)}
+        onPointerUp={(e) => surfaceHandlersRef.current?.onPointerUp(e)}
+        onPointerCancel={(e) => surfaceHandlersRef.current?.onPointerCancel(e)}
+        onPointerLeave={(e) => surfaceHandlersRef.current?.onPointerLeave(e)}
+        onClick={(e) => surfaceHandlersRef.current?.onClick(e)}
+      >
         <div
           className={styles.globeScaleHost}
           // The translateY depends on window.innerHeight which is
@@ -955,6 +1005,8 @@ function LandingViewInner() {
               touchMode={touchMode}
               userZoom={userZoom}
               anchorNdcX={anchorNdcX}
+              dismissRef={dismissRef}
+              surfaceHandlersRef={surfaceHandlersRef}
             />
           </div>
         </div>

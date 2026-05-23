@@ -331,12 +331,38 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: none;
+  /*
+   * pointer-events: auto so the WHOLE viewport-sized wrapper is an
+   * active hit surface for drag-rotate + click-to-dismiss. LandingView
+   * binds the lifted PolyhedronGlobe handlers here (see
+   * surfaceHandlersRef). The earlier `none` was a defensive default
+   * paired with `.globeWrap > * { pointer-events: auto }` so only the
+   * inner transformed stage was interactive — but that left dead zones
+   * everywhere outside the stage bbox (visible whenever the user
+   * zoomed out or the sphere translated down for anchored stage view).
+   *
+   * UI siblings (header pill, legend, corner buttons, back link) live
+   * OUTSIDE .globeWrap in DOM order and paint above it via z-index +
+   * position: fixed, so they keep their own click handling unaffected
+   * — the cursor-pointer-hover landing on a corner button hits the
+   * button directly, not .globeWrap underneath.
+   */
+  pointer-events: auto;
+  /*
+   * Grab cursor across the entire wrapper so the drag affordance
+   * extends with the hit surface. Previously cursor: grab lived on
+   * the inner .stage only, leaving everywhere outside the
+   * transformed stage bbox showing a plain arrow even though
+   * dragging would now rotate the globe from there. Active-state
+   * (grabbing) on :active matches PolyhedronGlobe.module.css so the
+   * cursor flips while dragging anywhere.
+   */
+  cursor: grab;
   z-index: 1;
   transition: opacity var(--view-toggle-duration) var(--ease-out);
 }
-.globeWrap > * {
-  pointer-events: auto;
+.globeWrap:active {
+  cursor: grabbing;
 }
 .globeWrap[data-view-active="false"] {
   opacity: 0;

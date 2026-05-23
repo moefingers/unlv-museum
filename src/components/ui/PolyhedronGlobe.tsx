@@ -128,6 +128,47 @@ interface PolyhedronGlobeProps {
    * get the museum's traditional desktop framing.
    */
   anchorNdcX?: number;
+  /**
+   * Imperative escape hatch for the parent to release the anchor
+   * from outside this component. The globe assigns `releaseAnchor`
+   * into `dismissRef.current`; the parent calls `dismissRef.current?.()`
+   * from a UI element outside the stage subtree (e.g. an explicit
+   * close button on the hex card). The background-click dismiss
+   * path doesn't need this — it goes through `surfaceHandlersRef`
+   * below — but having a direct dismiss callable is useful for
+   * deliberate UI close affordances.
+   */
+  dismissRef?: React.MutableRefObject<(() => void) | null>;
+  /**
+   * Imperative bundle of the globe's pointer + click handlers, lifted
+   * to the parent so they can be bound on a LARGER surface than the
+   * internal stage div. The globe assigns its handlers into
+   * `surfaceHandlersRef.current` and stops binding them to its own
+   * stage div when the ref is provided (parent owns the surface).
+   *
+   * Rationale: PolyhedronGlobe's stage div sizes itself to
+   * `radius*2 + 200` and lives inside a transformed wrapper
+   * (.globeScaleHost > .globeZoomLayer). At low userZoom or after
+   * the anchored "stage view" translateY, the stage div's hit
+   * region only covers a fraction of the viewport — taps anywhere
+   * outside that bbox never reach the globe's drag-rotate /
+   * dismiss-anchor handlers. Lifting the bind point to the
+   * fullscreen .globeWrap ancestor makes the ENTIRE landing view
+   * an active surface for those gestures, with no logic changes
+   * inside the globe.
+   *
+   * The handlers themselves are unchanged useCallbacks — only their
+   * attachment point moves. Drag math uses clientX/clientY (surface-
+   * agnostic) so widening the surface is safe.
+   */
+  surfaceHandlersRef?: React.MutableRefObject<{
+    onPointerDown: (e: React.PointerEvent) => void;
+    onPointerMove: (e: React.PointerEvent) => void;
+    onPointerUp: (e: React.PointerEvent) => void;
+    onPointerCancel: (e: React.PointerEvent) => void;
+    onPointerLeave: (e: React.PointerEvent) => void;
+    onClick: (e: React.MouseEvent) => void;
+  } | null>;
 }
 
 // Auto-rotation angular speed in radians/second. Equivalent to the
@@ -392,6 +433,8 @@ export function PolyhedronGlobe({
   touchMode = "tap",
   userZoom = 1,
   anchorNdcX,
+  dismissRef,
+  surfaceHandlersRef,
 }: PolyhedronGlobeProps) {
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
@@ -581,6 +624,25 @@ export function PolyhedronGlobe({
       setEngagedVertexIdx((prev) => (prev === vi ? null : prev)),
     anchorNdcX,
   });
+
+  // Expose a dismiss hook upward: the landing view's outer shell
+  // catches background clicks (outside corner UI / hex card / vertex
+  // dots) and calls this to release the anchor. The stage div's own
+  // onClick still works for clicks inside the sphere's transformed
+  // bbox; this ref covers everywhere else. Effect-mounted so the
+  // ref tracks the current anchor instance — `releaseAnchor` is
+  // re-created on every render of useAnchorPhase, and we want
+  // dismissRef.current to always be the latest callable. The
+  // landing view never reads it during render, only on click.
+  useEffect(() => {
+    if (!dismissRef) return;
+    dismissRef.current = () => {
+      if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
+    };
+    return () => {
+      dismissRef.current = null;
+    };
+  }, [dismissRef, anchor]);
 
   const handleDotEnter = useCallback(
     (vi: number) => {
@@ -1355,6 +1417,59 @@ export function PolyhedronGlobe({
     [findNearestAssignedVertex, anchor],
   );
 
+  // Composite leave handler — pointerleave on the surface means
+  // BOTH "lift the current pointer" (handlePointerUp) AND "stop
+  // any hover-cycle / engagement bookkeeping the stage owns"
+  // (handleStagePointerLeave). Pulled out so the same identity
+  // can be bound to either the internal stage div OR the lifted
+  // .globeWrap surface via surfaceHandlersRef.
+  const handleSurfacePointerLeave = useCallback(
+    (e: React.PointerEvent) => {
+      handlePointerUp(e);
+      handleStagePointerLeave();
+    },
+    [handlePointerUp, handleStagePointerLeave],
+  );
+
+  // Background-click dismissal. Fires on clicks that bubble up
+  // from "bare" surface — dots and the hex card both stop bubble-
+  // phase propagation, so this only runs when the click missed
+  // every interactive child. The didDrag guard suppresses clicks
+  // that were really drag-releases.
+  const handleSurfaceClick = useCallback(() => {
+    if (drag.current.didDrag) return;
+    if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
+  }, [anchor]);
+
+  // Mirror handlers into the parent's surfaceHandlersRef so the
+  // parent can bind them to a larger surface (.globeWrap, which
+  // is fullscreen). Without this, the handlers only fire from
+  // events inside the stage div's transformed bbox — which leaves
+  // dead zones at low zoom and after the anchored translateY.
+  // See PolyhedronGlobeProps.surfaceHandlersRef for the full
+  // rationale.
+  useEffect(() => {
+    if (!surfaceHandlersRef) return;
+    surfaceHandlersRef.current = {
+      onPointerDown: handlePointerDown,
+      onPointerMove: handlePointerMove,
+      onPointerUp: handlePointerUp,
+      onPointerCancel: handlePointerUp,
+      onPointerLeave: handleSurfacePointerLeave,
+      onClick: handleSurfaceClick,
+    };
+    return () => {
+      surfaceHandlersRef.current = null;
+    };
+  }, [
+    surfaceHandlersRef,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleSurfacePointerLeave,
+    handleSurfaceClick,
+  ]);
+
   // ─── per-frame projection ─────────────────────────────────────────
 
   // viewBox is centered on (0, 0). Camera looks down -Z. Perspective is
@@ -1612,32 +1727,29 @@ export function PolyhedronGlobe({
         // on one DOM element means the BreathingMesh cutout tracks
         // the visible sphere without manual multipliers.
       }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onPointerLeave={() => {
-        handlePointerUp();
-        handleStagePointerLeave();
-      }}
-      // Background-click dismissal (Stage 4). Fires only on clicks
-      // that bubble up to the stage from "bare" areas — dots and
-      // the hex card both stop propagation in BUBBLE phase, so
-      // clicks on them never reach here. The `didDrag` guard
-      // suppresses clicks that were really drag-releases (the
-      // pointermove handler flags didDrag when movement >3px).
-      //
-      // No onClickCapture preventDefault here: that was an
-      // over-defensive measure that blocked the React event
-      // delegation chain from reaching the hex card's Link
-      // (capture phase fires top-down, so preventDefault here
-      // would set defaultPrevented BEFORE the click reached the
-      // Link's React onClick, and Next's delegated handler
-      // would bail).
-      onClick={() => {
-        if (drag.current.didDrag) return;
-        if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
-      }}
+      // When the parent provides `surfaceHandlersRef`, it binds these
+      // handlers to a LARGER surface (.globeWrap) — we omit them
+      // here to avoid double-firing on events that originate inside
+      // the stage div. The handlers still fire via bubble-phase on
+      // .globeWrap above. When NO parent surface is provided, fall
+      // back to binding them locally on the stage div (legacy /
+      // standalone usage). The conditional spread keeps the prop
+      // surface clean either way.
+      {...(surfaceHandlersRef
+        ? {}
+        : {
+            onPointerDown: handlePointerDown,
+            onPointerMove: handlePointerMove,
+            onPointerUp: handlePointerUp,
+            onPointerCancel: handlePointerUp,
+            onPointerLeave: handleSurfacePointerLeave,
+            // Background-click dismissal (Stage 4). The `didDrag`
+            // guard suppresses clicks that were really drag-releases
+            // (the pointermove handler flags didDrag when movement
+            // >3px). Dots and the hex card both stop propagation in
+            // bubble phase, so clicks on them never reach here.
+            onClick: handleSurfaceClick,
+          })}
     >
       <svg
         ref={svgRef}
@@ -2101,6 +2213,44 @@ export function PolyhedronGlobe({
                 ? `top ${anchor.coneHeightTransitionMs}ms ease-out`
                 : "none",
             pointerEvents: anchor.hexOpen ? "auto" : "none",
+            // Clip the wrapper's hit region to the actual hex shape.
+            // The wrapper itself is `viewbox × viewbox` = radius*2.4
+            // square (matching UnfoldingBillboard's outer SVG), but
+            // the visible hex only fills roughly the inner radius.
+            // Without this, finger taps in the corners of the SVG box
+            // (visually empty space) still hit the wrapper and got
+            // eaten by its `stopPropagation` onClick — so taps that
+            // looked like "outside the card" did nothing instead of
+            // dismissing. clip-path restricts hit-testing to the
+            // visible polygon, so off-hex taps fall through to the
+            // landing-view shell's dismiss handler.
+            //
+            // POINTY-TOP regular hexagon matching what polygon-vertices.ts
+            // emits (its line 50 starts at angle -π/2 = 12 o'clock), with
+            // the polygon INFLATED past the geometric hex vertices so the
+            // stroke + drop-shadow glow on the visible hex aren't sliced
+            // by the clip. UnfoldingBillboard's path has a
+            // `drop-shadow(0 0 6px ...) drop-shadow(0 2px 12px ...)`
+            // filter that paints visibly beyond the hex's vertex
+            // positions.
+            //
+            // Wrapper size = R * 2.4, hex radius = R, so the geometric
+            // vertices sit at 50% ± 41.67% (vertical) and 50% ± 36.08%
+            // (horizontal). To preserve the hex orientation while
+            // adding margin, scale each offset-from-center uniformly:
+            // multiply by ~1.13 so the vertices land at 50% ± 47.1%
+            // (top/bottom), ±40.78% (horizontal corners), ±23.55%
+            // (intermediate). Result: clip just inside the wrapper's
+            // outer edge with breathing room for the glow.
+            //
+            // Trade-off: dismiss-on-tap area in the wrapper corners
+            // shrinks by a small ring (the inflated-vs-original gap),
+            // but those rings are still empty visual space the user
+            // wouldn't aim at. Inside-the-visible-hex still navigates;
+            // outside-the-visible-hex still falls through to
+            // .globeWrap's dismiss handler.
+            clipPath:
+              "polygon(50% 2.9%, 90.78% 26.45%, 90.78% 73.55%, 50% 97.1%, 9.22% 73.55%, 9.22% 26.45%)",
             // Override the ancestor stage's `touch-action: none`.
             // `none` is required on the sphere (so the browser
             // doesn't pan/zoom natively while we drive rotation +
