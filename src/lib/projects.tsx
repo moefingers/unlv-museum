@@ -1,7 +1,6 @@
 import { type ReactNode } from "react";
 import { OriginalFrame } from "@/components/ui/OriginalFrame";
 import { PythonFundamentalsOriginal } from "@/components/originals/PythonFundamentalsOriginal";
-import { ServerAppOriginal } from "@/components/originals/ServerAppOriginal";
 import { JsDomEventsEnhanced } from "@/components/enhanced/JsDomEventsEnhanced";
 import { AdminPortalEnhanced } from "@/components/enhanced/AdminPortalEnhanced";
 import sourcesGenerated from "./sources.generated.json";
@@ -724,25 +723,6 @@ export const PROJECTS: Project[] = [
     reimaginedExternal: "https://enterprize-pi.vercel.app",
     progression: true,
   },
-  {
-    slug: "nextjs-dashboard",
-    title: "Next.js Dashboard",
-    description: "Next.js app with authentication and database.",
-    year: "Jun 2024",
-    category: "full-stack",
-    techOriginal: ["Next.js 16", "NextAuth v5", "Vercel Postgres"],
-    original: (
-      <ServerAppOriginal
-        title="Next.js Dashboard"
-        tech="Next.js 16 + NextAuth v5 + Vercel Postgres"
-        description="Full-featured dashboard with invoices, authentication, and database integration. Built following the official Next.js tutorial."
-        note="This was a full-stack Next.js app. The original deployment is no longer live."
-      />
-    ),
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-  },
-
   // HTML FUNDAMENTALS (chapter 2.x)
   // Container leaves in curriculum-chapter order.
   {
