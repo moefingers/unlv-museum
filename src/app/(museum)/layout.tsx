@@ -45,6 +45,21 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: "player",
+    title: "UNLV Museum",
+    description:
+      "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
+    images: ["/og/stage-poster.png"],
+    players: [
+      {
+        playerUrl: "https://unlv-museum.infinite-syndicate.com/og/player.html",
+        streamUrl: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+        width: 1920,
+        height: 1080,
+      },
+    ],
+  },
   robots: { index: true, follow: true },
 };
 
