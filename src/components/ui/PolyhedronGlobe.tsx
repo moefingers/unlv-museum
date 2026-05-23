@@ -14,6 +14,7 @@ import {
 } from "@/lib/quaternion";
 import { useLatestRef } from "@/hooks/use-latest-ref";
 import { useAnchorPhase } from "@/hooks/use-anchor-phase";
+import { useGraphics } from "@/hooks/use-graphics";
 import { VertexHover } from "./VertexHover";
 import { UnfoldingBillboard } from "./UnfoldingBillboard";
 import styles from "./PolyhedronGlobe.module.css";
@@ -327,9 +328,11 @@ const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
 // Flip these constants to A/B individual visual effects in isolation
 // without touching the render code. polyhedron-glow branch ships with
 // all three on so you see the maximalist version first.
-const ENABLE_RADIAL_BG = true;
-const ENABLE_EDGE_GLOW = true;
-const ENABLE_VERTEX_GLOW = true;
+// Visual-pass enable flags were file-scope constants here; they're
+// now driven per-render from useGraphics() inside the component
+// (settings.backgroundHalo, settings.edgeGlow, settings.vertexGlows).
+// Kept as defaults for any code path that still wants a static
+// override in the future — currently unused at module scope.
 
 /**
  * Compute the auto-rotation speed multiplier at time `now` given when
@@ -375,6 +378,17 @@ export function PolyhedronGlobe({
   // Mesh is a stable per-frequency constant. Memoize so we don't regenerate
   // 80 vertices + 80 faces on every render.
   const mesh: Mesh = useMemo(() => geodesic(frequency), [frequency]);
+
+  // Graphics settings — read once per render. The hook subscribes
+  // to localStorage changes so cross-tab + same-tab updates flow
+  // through automatically. Individual toggles below gate visual
+  // passes (edge-glow halo, background radial, per-vertex glow);
+  // CSS-only toggles (edgeGlow, backgroundHalo) ALSO have
+  // [data-graphics-*] selectors in globals.css as a redundant
+  // safety net — if a future render branch forgets to gate, the
+  // CSS still hides the layer. The JSX guards prevent the work
+  // from happening at all, which is what we want for perf.
+  const { settings: graphics } = useGraphics();
 
   // Next router for explicit programmatic navigation from the hex
   // card's Link onClick. Avoids relying on Next's native-click
@@ -1760,7 +1774,7 @@ export function PolyhedronGlobe({
           </filter>
         </defs>
 
-        {ENABLE_RADIAL_BG && (
+        {graphics.backgroundHalo && (
           <rect
             x={0}
             y={0}
@@ -1771,36 +1785,48 @@ export function PolyhedronGlobe({
           />
         )}
 
-        {faceRecords.map((face) => (
-          <g key={face.faceIdx}>
-            {/* Edge-glow pass: thick, semi-transparent stroke run through
+        {faceRecords.map((face) => {
+          // Face shading: when ON, each face's fill + stroke alpha
+          // is modulated by `facingCamera` (a per-face dot product
+          // with the view vector — front faces brighter, back-of-
+          // sphere faces darker). When OFF, use a midpoint static
+          // alpha. Visually this is the "flatten the shading" perf
+          // toggle: the sphere reads as a wireframe constellation
+          // rather than a lit volume, but compositing work drops
+          // considerably because every face's alpha is identical
+          // (no per-face oklch resolution work per repaint).
+          const shadingMul = graphics.faceShading ? face.facingCamera : 0.5;
+          return (
+            <g key={face.faceIdx}>
+              {/* Edge-glow pass: thick, semi-transparent stroke run through
                 the gaussian-blur filter sits underneath the crisp
                 stroke. Visible only where the silhouette of the polygon
                 is, since the fill itself is no-fill on the glow pass. */}
-            {ENABLE_EDGE_GLOW && (
+              {graphics.edgeGlow && (
+                <polygon
+                  points={face.points}
+                  fill="none"
+                  stroke={`oklch(from var(--foreground) l c h / ${0.25 + shadingMul * 0.35})`}
+                  strokeWidth={3.2}
+                  strokeLinejoin="round"
+                  filter="url(#ph-edge-glow)"
+                  pointerEvents="none"
+                />
+              )}
+              {/* Crisp face on top: same fill + edge as the bare branch. */}
               <polygon
                 points={face.points}
-                fill="none"
-                stroke={`oklch(from var(--foreground) l c h / ${0.25 + face.facingCamera * 0.35})`}
-                strokeWidth={3.2}
+                fill={`oklch(from var(--foreground) l c h / ${0.04 + shadingMul * 0.1})`}
+                stroke={`oklch(from var(--foreground) l c h / ${0.25 + shadingMul * 0.3})`}
+                strokeWidth={0.8}
                 strokeLinejoin="round"
-                filter="url(#ph-edge-glow)"
                 pointerEvents="none"
               />
-            )}
-            {/* Crisp face on top: same fill + edge as the bare branch. */}
-            <polygon
-              points={face.points}
-              fill={`oklch(from var(--foreground) l c h / ${0.04 + face.facingCamera * 0.1})`}
-              stroke={`oklch(from var(--foreground) l c h / ${0.25 + face.facingCamera * 0.3})`}
-              strokeWidth={0.8}
-              strokeLinejoin="round"
-              pointerEvents="none"
-            />
-          </g>
-        ))}
+            </g>
+          );
+        })}
 
-        {ENABLE_VERTEX_GLOW &&
+        {graphics.vertexGlows !== "off" &&
           visibleVertices.map((v) => {
             const project = assignmentByVertex.get(v.vi);
             // Assigned vertex: render <VertexHover>. Engagement is
@@ -1812,6 +1838,20 @@ export function PolyhedronGlobe({
             // noop here; engagement only releases via SVG-level
             // pointerleave OR a different dot's intent-gated enter.
             if (project) {
+              // In "engaged-only" mode, non-engaged + non-anchored
+              // assigned vertices keep their hit-target + label
+              // typing behavior but lose the category-tinted glow
+              // gradient — they fall back to the neutral default
+              // gradient. This drops one gradient-resolve per
+              // non-focused dot (multiplied across the visible 22-
+              // ish vertices, the perf delta is real) while
+              // preserving the project's identity color on the dot
+              // the user is actually focused on.
+              const isFocused =
+                engagedVertexIdx === v.vi || anchor.anchoredVertexIdx === v.vi;
+              const useCategoryGlow =
+                graphics.vertexGlows === "all" ||
+                (graphics.vertexGlows === "engaged-only" && isFocused);
               return (
                 <VertexHover
                   key={v.vi}
@@ -1829,7 +1869,11 @@ export function PolyhedronGlobe({
                   titleFontSize={HOVER_DOT_FONT_SIZE}
                   showCaret={true}
                   flickerStyle="subtle"
-                  glowGradientId={`hover-dot-glow-${project.category}`}
+                  glowGradientId={
+                    useCategoryGlow
+                      ? `hover-dot-glow-${project.category}`
+                      : "hover-dot-glow"
+                  }
                   category={project.category}
                 />
               );

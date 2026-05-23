@@ -1310,23 +1310,51 @@
 
 /* ─── Reduced Motion ──────────────────────────────── */
 
+/*
+ * Two paths into reduced-motion: the OS preference, and the
+ * museum's graphics settings (reducedMotion = "force-on" sets
+ * data-reduced-motion="force" on <html>). The rules below
+ * intentionally do NOT fire when reducedMotion = "force-off" —
+ * the graphics modal's "Force off" lets a user with the OS pref
+ * set override it for the museum specifically. That override
+ * lives as data-reduced-motion="off" on <html>; the :not()
+ * selector below excludes that case from the @media branch.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-reduced-motion="off"]) *,
+  html:not([data-reduced-motion="off"]) *::before,
+  html:not([data-reduced-motion="off"]) *::after {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
     transition-duration: 0s !important;
   }
 
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
+  html:not([data-reduced-motion="off"]) ::view-transition-old(*),
+  html:not([data-reduced-motion="off"]) ::view-transition-new(*),
+  html:not([data-reduced-motion="off"]) ::view-transition-group(*) {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
 
-  .response-html-shimmer::before {
+  html:not([data-reduced-motion="off"]) .response-html-shimmer::before {
     animation: none;
   }
+}
+
+/* Force-on path — same rules, independent of OS preference. */
+html[data-reduced-motion="force"] *,
+html[data-reduced-motion="force"] *::before,
+html[data-reduced-motion="force"] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+}
+html[data-reduced-motion="force"] ::view-transition-old(*),
+html[data-reduced-motion="force"] ::view-transition-new(*),
+html[data-reduced-motion="force"] ::view-transition-group(*) {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+html[data-reduced-motion="force"] .response-html-shimmer::before {
+  animation: none;
 }

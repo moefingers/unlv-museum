@@ -13,6 +13,7 @@ import { useSearchParams } from "next/navigation";
 import { BreathingMesh } from "@/components/ui/BreathingMesh";
 import { HelpModal } from "@/components/ui/HelpModal";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { GraphicsModal } from "@/components/ui/GraphicsModal";
 import {
   ANCHOR_SWING_MS,
   ANCHOR_ZOOM_EASING,
@@ -44,8 +45,10 @@ import {
   HelpCircle,
   Sun,
   Moon,
+  Settings,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useGraphics } from "@/hooks/use-graphics";
 import styles from "./LandingView.module.css";
 
 type ViewMode = "globe" | "list";
@@ -436,10 +439,21 @@ function LandingViewInner() {
   // scheduling drops the call onto the next tick, which is enough to
   // pass the rule while keeping the behavior identical.
   const [helpOpen, setHelpOpen] = useState(false);
+  // Graphics modal state. Only one of {helpOpen, graphicsOpen} should
+  // be true at a time — opening one closes the other so the corner
+  // cluster never tries to overlap two morphing cards. The corner
+  // buttons themselves stay visible throughout (no `hidden` prop) so
+  // the user can swap directly between modals in one click.
+  const [graphicsOpen, setGraphicsOpen] = useState(false);
   // Theme — the legend gets a redundant toggle alongside the corner
   // ThemeToggle so the feature is discoverable from the inline
   // category-row vocabulary too.
   const { resolvedMode, toggleMode } = useTheme();
+  // Graphics settings — feed individual toggles to the relevant
+  // surfaces (BreathingMesh gate below; PolyhedronGlobe reads its
+  // own values via useGraphics internally). The hook is shared so
+  // every consumer sees the same resolved state.
+  const { settings: graphics } = useGraphics();
   useEffect(() => {
     queueMicrotask(() => {
       if (localStorage.getItem(HELP_DISMISSED_KEY) !== "1") {
@@ -628,7 +642,9 @@ function LandingViewInner() {
         the cutout naturally tracks it down to zero. Going back to Globe,
         the wrapper scales 0 → 1 and the cutout opens in lockstep.
       */}
-      <BreathingMesh cutoutTarget={globeWrapRef} meshZoom={userZoomRef} />
+      {graphics.breathingMesh && (
+        <BreathingMesh cutoutTarget={globeWrapRef} meshZoom={userZoomRef} />
+      )}
 
       {/*
         Top-left fixed back-link. Separated from the floating header
@@ -882,6 +898,24 @@ function LandingViewInner() {
               )}
               {resolvedMode === "dark" ? "light" : "dark"}
             </button>
+            {/*
+              Redundant graphics-settings entry — same chip vocabulary
+              as help + theme so the trio reads as a single
+              navigation row. Mutually exclusive with help via the
+              parent state machine (opening one closes the other).
+            */}
+            <button
+              type="button"
+              className={`text-xs ${styles.legendItem} ${styles.legendHelpButton}`}
+              onClick={() => {
+                setHelpOpen(false);
+                setGraphicsOpen(true);
+              }}
+              aria-label="Graphics settings"
+            >
+              <Settings size={12} className={styles.legendHelpIcon} />
+              graphics
+            </button>
           </div>
         </div>
         <button
@@ -907,7 +941,31 @@ function LandingViewInner() {
         positioning are independent — it never opens into a modal,
         it just flips a class on <html>.
       */}
-      <ThemeToggle variant="landing" hidden={helpOpen} />
+      {/*
+        Theme toggle stays visible whenever a modal is open — same
+        as the corner help and graphics buttons. The corner cluster
+        is intentionally always-present so the user can swap
+        directly between modals without first closing the current
+        one (clicking a different corner button closes the open
+        modal AND opens the new one in one gesture, with a clean
+        morph between).
+      */}
+      <ThemeToggle variant="landing" />
+
+      {/*
+        Graphics-settings modal. Leftmost in the top-right cluster:
+        [gear] [theme] [help]. Mutually exclusive with HelpModal —
+        opening one closes the other so the morphing cards don't
+        try to overlap.
+      */}
+      <GraphicsModal
+        open={graphicsOpen}
+        onOpen={() => {
+          setHelpOpen(false);
+          setGraphicsOpen(true);
+        }}
+        onClose={() => setGraphicsOpen(false)}
+      />
 
       {/*
         Help modal. Auto-opens on first visit (when no
@@ -917,7 +975,10 @@ function LandingViewInner() {
       */}
       <HelpModal
         open={helpOpen}
-        onOpen={() => setHelpOpen(true)}
+        onOpen={() => {
+          setGraphicsOpen(false);
+          setHelpOpen(true);
+        }}
         onClose={closeHelp}
       />
     </div>

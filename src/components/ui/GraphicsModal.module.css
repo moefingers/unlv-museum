@@ -1,0 +1,381 @@
+/*
+ * Graphics-settings modal. Same morph-from-button-to-card pattern
+ * as HelpModal: the closed-state circle and the open-state card
+ * are the same DOM element; only its dimensions, position, and
+ * border-radius change. Content fades in once the morph completes.
+ *
+ * Most of the CSS here is intentionally near-identical to
+ * HelpModal.module.css so the modals feel like siblings. If we
+ * ever add a fourth modal we should extract a MorphPanel
+ * primitive; for now the duplication is the smaller cost.
+ */
+.backdrop,
+.morph {
+  --graphics-morph-duration: 900ms;
+  --graphics-morph-easing: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  border: 0;
+  cursor: pointer;
+  background: oklch(from var(--background) l c h / 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--graphics-morph-duration)
+    var(--graphics-morph-easing);
+}
+.backdrop[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/*
+ * The morphing element. Closed: 2rem circle anchored to the top-
+ * right at the LEFTMOST slot of the corner cluster:
+ *
+ *   [gear] [theme] [help]
+ *   ←──────────────────→  reads as a cluster of related controls
+ *
+ * Slot math: the help button sits at `right: var(--space-4)`, the
+ * theme toggle one button-plus-gap left of it, the gear one
+ * button-plus-gap left of that. Hardcoded here as the same
+ * calc(...) ThemeToggle uses, just extended one more level.
+ */
+.morph {
+  position: fixed;
+  top: calc(var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1));
+  right: calc(
+    var(--space-4) * var(--app-margin, 1) * var(--room-margin, 1) +
+      (2rem + var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)) * 2
+  );
+  width: 2rem;
+  height: auto;
+  max-height: 2rem;
+  border-radius: 50%;
+  transform: none;
+  background: oklch(from var(--card) l c h / 0.92);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+  z-index: 21;
+  overflow: hidden;
+  transition:
+    top var(--graphics-morph-duration) var(--graphics-morph-easing),
+    right var(--graphics-morph-duration) var(--graphics-morph-easing),
+    width var(--graphics-morph-duration) var(--graphics-morph-easing),
+    max-height var(--graphics-morph-duration) var(--graphics-morph-easing),
+    transform var(--graphics-morph-duration) var(--graphics-morph-easing),
+    border-radius var(--graphics-morph-duration) var(--graphics-morph-easing),
+    box-shadow var(--graphics-morph-duration) var(--graphics-morph-easing),
+    background var(--duration-normal) var(--ease-default);
+}
+
+.morph[data-open="true"] {
+  top: 50%;
+  right: 50%;
+  width: min(92vw, 30rem);
+  max-height: 100vh;
+  border-radius: 1rem;
+  transform: translate(50%, -50%);
+  box-shadow: var(--shadow-lg);
+}
+
+.iconButton {
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+  transition:
+    top var(--graphics-morph-duration) var(--graphics-morph-easing),
+    right var(--graphics-morph-duration) var(--graphics-morph-easing),
+    transform var(--graphics-morph-duration) var(--graphics-morph-easing),
+    color var(--duration-normal) var(--ease-default);
+}
+.iconButton:hover {
+  color: var(--foreground);
+}
+.morph[data-open="true"] .iconButton {
+  top: 0.625rem;
+  right: 0.625rem;
+  transform: translate(0, 0);
+}
+
+.content {
+  padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
+  color: var(--card-foreground);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--graphics-morph-duration)
+    var(--graphics-morph-easing);
+  transition-delay: 0s;
+
+  /*
+   * Short-viewport rescue — identical pattern to HelpModal.module.css.
+   * The outer .morph keeps overflow:hidden throughout so the morph
+   * animation isn't affected; this inner panel scrolls when content
+   * exceeds the viewport.
+   */
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+.morph[data-open="true"] .content {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: calc(var(--graphics-morph-duration) * 0.25);
+}
+
+.title {
+  font-size: calc(
+    var(--font-size-3xl) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.lede {
+  color: var(--muted-foreground);
+  margin-bottom: calc(
+    var(--space-5) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+}
+
+/* Preset dropdown row — label + select side-by-side. */
+.presetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+  margin-bottom: calc(
+    var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.fieldLabel {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground);
+}
+
+.presetSelect {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 7rem;
+}
+
+/* Detect row — keeps either the button OR the result chip, never both. */
+.detectRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: calc(
+    var(--space-5) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  min-height: calc(2rem * var(--app-pad, 1) * var(--room-pad, 1));
+}
+
+.detectButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(0.375rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  cursor: pointer;
+  transition:
+    color var(--duration-normal) var(--ease-default),
+    background var(--duration-normal) var(--ease-default);
+}
+.detectButton:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.detectStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1));
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--muted-foreground);
+}
+.detectStatus strong {
+  color: var(--foreground);
+  text-transform: capitalize;
+}
+
+.spinner {
+  animation: graphics-spinner 1s linear infinite;
+}
+@keyframes graphics-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.detectApply {
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-2) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: calc(
+    var(--font-size-xs) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.detectApply:hover {
+  background: oklch(from var(--primary) calc(l * 0.92) c h);
+}
+
+.detectDismiss {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.detectDismiss:hover {
+  color: var(--foreground);
+}
+
+/* Advanced toggle — text-link style with chevron icon. */
+.advancedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.375rem * var(--app-margin, 1) * var(--room-margin, 1));
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--muted-foreground);
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  margin-bottom: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+  transition: color var(--duration-normal) var(--ease-default);
+}
+.advancedToggle:hover {
+  color: var(--foreground);
+}
+
+.advanced {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+  padding: calc(var(--space-3) * var(--app-pad, 1) * var(--room-pad, 1)) 0
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-top: 1px solid var(--border);
+}
+
+/* Individual field row — label + checkbox/select on top, hint below. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.125rem * var(--app-margin, 1) * var(--room-margin, 1));
+  cursor: pointer;
+}
+
+.fieldHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space-3) * var(--app-margin, 1) * var(--room-margin, 1));
+}
+
+.fieldLabelText {
+  font-size: calc(
+    var(--font-size-sm) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground);
+}
+
+.fieldHint {
+  font-size: calc(
+    var(--font-size-xs) * var(--app-size, 1) * var(--room-size, 1)
+  );
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--primary);
+  /* The global input { width: 100% } rule would otherwise stretch
+     this checkbox; explicitly opt out by setting width above and
+     letting display default to inline-block. */
+  display: inline-block;
+}
+
+.fieldSelect {
+  width: auto;
+  min-width: 7rem;
+  flex-shrink: 0;
+}
+
+/* Footer with Got-it button. */
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: calc(
+    var(--space-5) * var(--app-margin, 1) * var(--room-margin, 1)
+  );
+}
+
+.gotIt {
+  flex: 1;
+  padding: calc(0.5rem * var(--app-pad, 1) * var(--room-pad, 1))
+    calc(var(--space-4) * var(--app-pad, 1) * var(--room-pad, 1));
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border: 0;
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.gotIt:hover {
+  background: oklch(from var(--primary) calc(l * 0.92) c h);
+}
