@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { THEME_INIT_INTEGRITY } from "@/lib/theme-script";
 import "../globals.css";
@@ -14,54 +15,80 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://unlv-museum.infinite-syndicate.com"),
-  title: { default: "UNLV Museum", template: "%s | UNLV Museum" },
-  description:
-    "Projects from UNLV's software development course, rebuilt across three toggleable tiers: original, enhanced, and reimagined.",
-  openGraph: {
-    title: "UNLV Museum",
+// LinkedInBot misclassifies any page emitting og:video* as Type=Video, then
+// fails to surface og:image — its renderer expects a LinkedIn-hosted video
+// URN, not an external MP4, and silently drops the poster. We strip og:video
+// (and twitter:player, which can compound the misclassification) from the
+// response shown to LinkedInBot only. Every other crawler keeps the full
+// payload so Discord/iMessage/Telegram still play the video inline.
+export async function generateMetadata(): Promise<Metadata> {
+  const ua = (await headers()).get("user-agent") ?? "";
+  const isLinkedInBot = /LinkedInBot/i.test(ua);
+
+  return {
+    metadataBase: new URL("https://unlv-museum.infinite-syndicate.com"),
+    title: { default: "UNLV Museum", template: "%s | UNLV Museum" },
     description:
-      "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
-    url: "https://unlv-museum.infinite-syndicate.com",
-    siteName: "UNLV Museum",
-    type: "website",
-    images: [
-      {
-        url: "/og/stage-poster.png",
-        width: 1200,
-        height: 630,
-        alt: "UNLV Museum — anchored stage view of the project globe",
-        type: "image/png",
-      },
-    ],
-    videos: [
-      {
-        url: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
-        secureUrl: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
-        type: "video/mp4",
-        width: 1920,
-        height: 1080,
-      },
-    ],
-  },
-  twitter: {
-    card: "player",
-    title: "UNLV Museum",
-    description:
-      "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
-    images: ["/og/stage-poster.png"],
-    players: [
-      {
-        playerUrl: "https://unlv-museum.infinite-syndicate.com/og/player.html",
-        streamUrl: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
-        width: 1920,
-        height: 1080,
-      },
-    ],
-  },
-  robots: { index: true, follow: true },
-};
+      "Projects from UNLV's software development course, rebuilt across three toggleable tiers: original, enhanced, and reimagined.",
+    openGraph: {
+      title: "UNLV Museum",
+      description:
+        "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
+      url: "https://unlv-museum.infinite-syndicate.com",
+      siteName: "UNLV Museum",
+      type: "website",
+      images: [
+        {
+          url: "/og/stage-poster.png",
+          width: 1200,
+          height: 630,
+          alt: "UNLV Museum — anchored stage view of the project globe",
+          type: "image/png",
+        },
+      ],
+      ...(isLinkedInBot
+        ? {}
+        : {
+            videos: [
+              {
+                url: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+                secureUrl:
+                  "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+                type: "video/mp4",
+                width: 1920,
+                height: 1080,
+              },
+            ],
+          }),
+    },
+    twitter: isLinkedInBot
+      ? {
+          card: "summary_large_image",
+          title: "UNLV Museum",
+          description:
+            "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
+          images: ["/og/stage-poster.png"],
+        }
+      : {
+          card: "player",
+          title: "UNLV Museum",
+          description:
+            "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
+          images: ["/og/stage-poster.png"],
+          players: [
+            {
+              playerUrl:
+                "https://unlv-museum.infinite-syndicate.com/og/player.html",
+              streamUrl:
+                "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+              width: 1920,
+              height: 1080,
+            },
+          ],
+        },
+    robots: { index: true, follow: true },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
