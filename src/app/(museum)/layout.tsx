@@ -26,6 +26,24 @@ export const metadata: Metadata = {
     url: "https://unlv-museum.infinite-syndicate.com",
     siteName: "UNLV Museum",
     type: "website",
+    images: [
+      {
+        url: "/og/stage-poster.png",
+        width: 1200,
+        height: 630,
+        alt: "UNLV Museum — anchored stage view of the project globe",
+        type: "image/png",
+      },
+    ],
+    videos: [
+      {
+        url: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+        secureUrl: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+        type: "video/mp4",
+        width: 1920,
+        height: 1080,
+      },
+    ],
   },
   robots: { index: true, follow: true },
 };

@@ -1,11 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    :root { --edge: oklch(0.55 0.22 250); }
+    @media (prefers-color-scheme: dark) { :root { --edge: oklch(0.78 0.20 250); } }
+  </style>
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6"/>
-      <stop offset="100%" stop-color="#22c55e"/>
-    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="35%" stop-color="oklch(0.92 0.10 250)" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="var(--edge)" stop-opacity="0.55"/>
+    </radialGradient>
   </defs>
-  <path stroke="url(#g)" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-  <path stroke="url(#g)" d="M3 3v5h5"/>
-  <path stroke="url(#g)" d="M12 7v5l4 2"/>
+  <!-- Hexagon: pointy-top, inscribed in r=10 from center (12,12) -->
+  <polygon
+    points="12,2 20.66,7 20.66,17 12,22 3.34,17 3.34,7"
+    stroke="url(#core)"
+    stroke-width="1.6"
+    fill="none"/>
+  <!-- Triangle: inscribed touching three alternating hex vertices (top, bottom-right, bottom-left) -->
+  <polygon
+    points="12,2 20.66,17 3.34,17"
+    stroke="url(#core)"
+    stroke-width="1.4"
+    fill="none"/>
 </svg>
