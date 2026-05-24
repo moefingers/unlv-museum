@@ -1,13 +1,19 @@
 /**
  * PostCSS configuration for the museum.
  *
- * Tailwind v4 was introduced specifically for the EnterPrize Historical
- * Enhanced port (src/app/(museum)/quirk-truck-enhanced/), which inherits
- * a Tailwind-styled view layer from the 2024 era source. Other museum
- * routes don't currently use Tailwind — and they don't need to opt out
- * either, because Tailwind v4 only emits utility CSS into stylesheets
- * that contain the `@import "tailwindcss"` directive. The museum's
- * `src/app/globals.css` doesn't, so it's unaffected.
+ * THE MUSEUM DOES NOT USE TAILWIND. Styling is CSS modules + design
+ * tokens (see `src/app/globals.css`). Tailwind is registered here ONLY
+ * to keep one ported sub-tree's view layer rendering verbatim:
+ *
+ *   src/app/(museum)/quirk-truck-enhanced/ui/global.css
+ *
+ * That file (and only that file) contains `@import "tailwindcss"`,
+ * which scopes Tailwind v4's utility emission to its stylesheet. The
+ * rest of the museum is untouched by Tailwind because it never
+ * imports the directive.
+ *
+ * Don't introduce `className="bg-blue-500 ..."` patterns in museum-
+ * side code. Use CSS modules.
  */
 export default {
   plugins: {

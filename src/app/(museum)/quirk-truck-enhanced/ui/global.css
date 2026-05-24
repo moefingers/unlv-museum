@@ -6,6 +6,12 @@
  * sub-tree (instead of the museum's whole `src/`). That keeps the
  * EnterPrize bundle minimal AND prevents Tailwind utilities from
  * leaking into other museum routes' stylesheets.
+ *
+ * THE REST OF THE MUSEUM DOES NOT USE TAILWIND. This file is the only
+ * `@import "tailwindcss"` in the codebase, and it exists solely for
+ * source-fidelity with the 2024 EnterPrize view layer. New museum-
+ * side code should use CSS modules + the design tokens in
+ * `src/app/globals.css`. See `CLAUDE.md` § Key Constraints.
  */
 @import "tailwindcss";
 
