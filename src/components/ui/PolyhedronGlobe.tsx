@@ -14,6 +14,7 @@ import {
 } from "@/lib/quaternion";
 import { useLatestRef } from "@/hooks/use-latest-ref";
 import { useAnchorPhase } from "@/hooks/use-anchor-phase";
+import { useDragMomentum } from "@/hooks/use-drag-momentum";
 import { useGraphics } from "@/hooks/use-graphics";
 import { VertexHover } from "./VertexHover";
 import { UnfoldingBillboard } from "./UnfoldingBillboard";
@@ -196,11 +197,6 @@ const HOVER_DECEL_MS = 350;
 const HOVER_HOLD_MS = 1700;
 const HOVER_RESUME_MS = 550;
 const HOVER_RETRIGGER_THRESHOLD = 0.5;
-const TIME_CONSTANT = 600;
-// Angular-velocity threshold (rad/sec) below which momentum is
-// considered settled. Was 0.5 deg/sec equivalent in the Euler model;
-// keep similar value in radians.
-const VELOCITY_THRESHOLD = 0.01;
 const AXIAL_TILT_DEG = 18;
 // First-paint user rotation: a small pitch around world-X so the
 // sphere shows a bit more of its northern hemisphere on initial
@@ -500,52 +496,25 @@ export function PolyhedronGlobe({
     setQ(next);
   }, []);
 
-  // ─── Drag-momentum bookkeeping ──────────────────────────────
+  // ─── Drag-momentum ──────────────────────────────────────────
   //
-  // Single ref bundling all per-gesture drag state — none of these
-  // fields render, and they all live for the lifetime of one
-  // gesture (pointerdown → pointermove → pointerup → momentum
-  // decay → settled). Bundled (vs. 8 separate refs) so the
-  // gesture's full state is visible at one declaration and the
-  // related fields can't drift out of sync with each other.
-  //
-  // Field roles:
-  //   dragging          — true between pointerdown and pointerup
-  //   didDrag           — set true once pointermove exceeds 3px;
-  //                       distinguishes drag-then-release from
-  //                       click-without-motion in the click handler
-  //   lastMouse         — most recent pointer position (client coords)
-  //   lastTime          — performance.now() of last pointermove
-  //   angularVelocity{Yaw,Pitch} — accumulated angular velocity
-  //                       during drag (radians/sec), EMA-smoothed
-  //                       so a sudden flick doesn't dominate
-  //   releaseTime       — when the user lifted; the rAF loop uses
-  //                       (now - releaseTime) to compute decay
-  //   amplitude{Yaw,Pitch} — initial momentum at release; decays
-  //                       via exp(-elapsed / TIME_CONSTANT) each
-  //                       rAF tick until VELOCITY_THRESHOLD
-  type DragGesture = {
-    dragging: boolean;
-    didDrag: boolean;
-    lastMouse: { x: number; y: number };
-    lastTime: number;
-    angularVelocityYaw: number;
-    angularVelocityPitch: number;
-    releaseTime: number;
-    amplitudeYaw: number;
-    amplitudePitch: number;
-  };
-  const drag = useRef<DragGesture>({
-    dragging: false,
-    didDrag: false,
-    lastMouse: { x: 0, y: 0 },
-    lastTime: 0,
-    angularVelocityYaw: 0,
-    angularVelocityPitch: 0,
-    releaseTime: 0,
-    amplitudeYaw: 0,
-    amplitudePitch: 0,
-  });
+  // Gesture state + post-release exponential-decay physics live in
+  // useDragMomentum. The pointer handlers below call begin/feed/end
+  // to drive the state machine; the main rAF loop calls
+  // dragMomentum.tick() to apply momentum-decay rotations between
+  // gestures. didDrag() is read by the click-vs-drag guard in
+  // handleSurfaceClick. See use-drag-momentum.ts for the full API.
+  const dragMomentum = useDragMomentum({ latestQRef: latestQ, applyQ });
+
+  // Per-move bookkeeping owned by the pointer handlers (NOT the
+  // momentum hook). Holds the prior pointer centroid + the
+  // performance.now() of the most recent move so handlePointerMove
+  // can compute dx/dy + dt for the instantaneous-rate calculation,
+  // and handlePointerUp can apply the stationary-finger guard. The
+  // hook deliberately doesn't track these because they're consumed
+  // by other handler-local concerns (pinch baseline, multi-pointer
+  // rebaselining) that don't belong to drag-momentum's physics.
+  const lastMove = useRef({ x: 0, y: 0, t: 0 });
 
   // ─── Hover engagement model ──────────────────────────────────
   //
@@ -811,40 +780,12 @@ export function PolyhedronGlobe({
         return;
       }
 
-      if (!drag.current.dragging) {
-        const speed =
-          Math.abs(drag.current.amplitudeYaw) +
-          Math.abs(drag.current.amplitudePitch);
-
-        if (speed > VELOCITY_THRESHOLD) {
-          // Drag-release momentum: decay the angular velocity and apply
-          // an incremental rotation each frame.
-          const elapsed = now - drag.current.releaseTime;
-          const decay = Math.exp(-elapsed / TIME_CONSTANT);
-
-          const yawRate = drag.current.amplitudeYaw * decay;
-          const pitchRate = drag.current.amplitudePitch * decay;
-
-          // Compose two world-axis rotations: yaw around world Y,
-          // pitch around world X. Order matches the prior Euler model
-          // (Y applied first, then X) — pitch is multiplied last in
-          // the chain so it ends up on the left of yaw.
-          let next = latestQ.current;
-          const yawAngle = yawRate * dtSec;
-          const pitchAngle = pitchRate * dtSec;
-          if (yawAngle !== 0) {
-            next = quatMultiply(fromAxisAngle(0, 1, 0, yawAngle), next);
-          }
-          if (pitchAngle !== 0) {
-            next = quatMultiply(fromAxisAngle(1, 0, 0, pitchAngle), next);
-          }
-          applyQ(next);
-
-          if (Math.abs(yawRate) < 0.01 && Math.abs(pitchRate) < 0.01) {
-            drag.current.amplitudeYaw = 0;
-            drag.current.amplitudePitch = 0;
-          }
-        } else {
+      if (!dragMomentum.isDragging()) {
+        // Drag-release momentum: if the hook applied a decayed
+        // rotation this frame, skip auto-rotate. Otherwise fall
+        // through to auto-rotate.
+        const momentumApplied = dragMomentum.tick(now, dtSec);
+        if (!momentumApplied) {
           // Auto-rotate around autoRotateAxis. Gated by phase:
           //   idle / unswinging       → full-speed cruise (world-Y)
           //   open                    → anchored 0.6× rotation
@@ -1183,23 +1124,30 @@ export function PolyhedronGlobe({
       // produce a snap-rotation. lastMouse is always the
       // CURRENT centroid; subsequent moves compute delta from
       // here.
-      drag.current.lastMouse = { x: c.x, y: c.y };
+      // Record the prior-centroid baseline for the next pointermove's
+      // dx/dy + dt math. Always overwritten here so the 1→2 (or 2→1)
+      // pointer transition doesn't produce a snap-rotation from a
+      // stale prior centroid.
+      lastMove.current.x = c.x;
+      lastMove.current.y = c.y;
       // If we now have 2+ pointers, capture pinch baseline.
       // Otherwise leave it null — 1-pointer moves never read it.
       lastPinchDistance.current = c.count >= 2 ? c.radius : null;
-      if (!drag.current.dragging) {
-        // Fresh gesture: clear momentum from any prior release.
-        drag.current.dragging = true;
-        drag.current.didDrag = false;
-        drag.current.angularVelocityYaw = 0;
-        drag.current.angularVelocityPitch = 0;
-        drag.current.amplitudeYaw = 0;
-        drag.current.amplitudePitch = 0;
-        drag.current.lastTime = performance.now();
+      if (!dragMomentum.isDragging()) {
+        // Fresh gesture: clear prior momentum + velocity via begin();
+        // seed the move-timestamp baseline for the stationary-finger
+        // guard.
+        dragMomentum.begin();
+        lastMove.current.t = performance.now();
       }
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
-    [anchor, clientToViewBox, findNearestAssignedVertex],
+    [
+      anchor,
+      dragMomentum,
+      clientToViewBox,
+      findNearestAssignedVertex,
+    ],
   );
 
   // Pointermove handles both rotation (centroid-driven yaw/pitch)
@@ -1247,25 +1195,23 @@ export function PolyhedronGlobe({
         }
         return;
       }
-      if (!drag.current.dragging) return;
+      if (!dragMomentum.isDragging()) return;
       const pt = activePointers.current.get(e.pointerId);
       if (!pt) return; // unknown pointer (shouldn't happen)
       pt.x = e.clientX;
       pt.y = e.clientY;
 
       const now = performance.now();
-      const dt = now - drag.current.lastTime;
+      const dt = now - lastMove.current.t;
       if (dt === 0) return;
 
       const c = pointerCentroid();
 
       // Rotation: delta from prior centroid → yaw/pitch around
-      // world axes. Same DRAG_RATE/momentum tracking as before;
-      // the midpoint of multi-touch behaves identically to a
-      // single cursor for the rotation pipeline.
-      const dx = c.x - drag.current.lastMouse.x;
-      const dy = c.y - drag.current.lastMouse.y;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.current.didDrag = true;
+      // world axes. The midpoint of multi-touch behaves identically
+      // to a single cursor for the rotation pipeline.
+      const dx = c.x - lastMove.current.x;
+      const dy = c.y - lastMove.current.y;
 
       // Scale drag rate inversely with userZoom so the perceived
       // rotation per finger-pixel feels constant across zoom
@@ -1277,10 +1223,10 @@ export function PolyhedronGlobe({
       const pitchAngle = dy * dragRate;
       const yawRate = (1000 * yawAngle) / (1 + dt);
       const pitchRate = (1000 * pitchAngle) / (1 + dt);
-      drag.current.angularVelocityYaw =
-        0.8 * yawRate + 0.2 * drag.current.angularVelocityYaw;
-      drag.current.angularVelocityPitch =
-        0.8 * pitchRate + 0.2 * drag.current.angularVelocityPitch;
+      // Feed the hook: it folds yawRate/pitchRate into its EMA-smoothed
+      // velocity (sealed at release as the momentum amplitude) and
+      // flips didDrag if movement passed the click-vs-drag threshold.
+      dragMomentum.feed({ dx, dy, yawRate, pitchRate });
 
       let next = latestQ.current;
       if (yawAngle !== 0) {
@@ -1320,10 +1266,18 @@ export function PolyhedronGlobe({
         }
       }
 
-      drag.current.lastMouse = { x: c.x, y: c.y };
-      drag.current.lastTime = now;
+      lastMove.current.x = c.x;
+      lastMove.current.y = c.y;
+      lastMove.current.t = now;
     },
-    [anchor, applyQ, onWheelZoom, clientToViewBox, findNearestAssignedVertex],
+    [
+      anchor,
+      dragMomentum,
+      applyQ,
+      onWheelZoom,
+      clientToViewBox,
+      findNearestAssignedVertex,
+    ],
   );
 
   const handlePointerUp = useCallback(
@@ -1384,37 +1338,32 @@ export function PolyhedronGlobe({
       const c = pointerCentroid();
 
       if (c.count === 0) {
-        // Gesture ended. Apply release momentum the same way the
-        // single-pointer path used to. Stationary-finger guard
-        // kept identical.
-        if (!drag.current.dragging) return;
-        drag.current.dragging = false;
-        if (performance.now() - drag.current.lastTime > 50) {
-          drag.current.angularVelocityYaw = 0;
-          drag.current.angularVelocityPitch = 0;
-        }
-        drag.current.amplitudeYaw = drag.current.angularVelocityYaw;
-        drag.current.amplitudePitch = drag.current.angularVelocityPitch;
-        drag.current.releaseTime = performance.now();
+        // Gesture ended. Hand off to the momentum hook: it applies
+        // the stationary-finger guard using our lastMove timestamp,
+        // seals EMA velocity → amplitude, and stamps releaseTime so
+        // the rAF tick can decay it.
+        if (!dragMomentum.isDragging()) return;
+        const now = performance.now();
+        dragMomentum.end(now, lastMove.current.t);
         lastPinchDistance.current = null;
         return;
       }
       // Still 1+ pointers on the stage — gesture continues with the
-      // remaining set. Re-anchor the drag origin to the new
+      // remaining set. Re-anchor the move baseline to the new
       // centroid so the next move doesn't jump-rotate.
-      drag.current.lastMouse = { x: c.x, y: c.y };
-      drag.current.lastTime = performance.now();
+      lastMove.current.x = c.x;
+      lastMove.current.y = c.y;
+      lastMove.current.t = performance.now();
       // Re-baseline the pinch reference: if we still have 2+
       // pointers (3→2 case), capture the new radius; if down to 1,
       // null the baseline since pinch is no longer active.
       lastPinchDistance.current = c.count >= 2 ? c.radius : null;
-      // Clear momentum — we want a clean delta-from-here on the
+      // Clear EMA velocity — we want a clean delta-from-here on the
       // next move; otherwise the inherited velocity would feed
       // back through the EMA after a finger-lift.
-      drag.current.angularVelocityYaw = 0;
-      drag.current.angularVelocityPitch = 0;
+      dragMomentum.clearVelocity();
     },
-    [findNearestAssignedVertex, anchor],
+    [dragMomentum, findNearestAssignedVertex, anchor],
   );
 
   // Composite leave handler — pointerleave on the surface means
@@ -1437,9 +1386,9 @@ export function PolyhedronGlobe({
   // every interactive child. The didDrag guard suppresses clicks
   // that were really drag-releases.
   const handleSurfaceClick = useCallback(() => {
-    if (drag.current.didDrag) return;
+    if (dragMomentum.didDrag()) return;
     if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
-  }, [anchor]);
+  }, [dragMomentum, anchor]);
 
   // Mirror handlers into the parent's surfaceHandlersRef so the
   // parent can bind them to a larger surface (.globeWrap, which
