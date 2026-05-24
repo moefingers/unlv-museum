@@ -51,15 +51,24 @@
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--muted);
-  /* No padding-top spacer here — instead, SiblingRail.tsx renders an
-     in-flow spacer div (`height: var(--chrome-h)`) as the first child
-     of this <aside>. Using flow content rather than padding means rail
-     items CAN scroll UP under the chrome as the user scrolls, instead
-     of hitting a dead padding boundary at the chrome's bottom edge. */
+  /* No padding-top spacer here — instead, SiblingRail.tsx renders a
+     `.chromeSpacer` div as the first child of this <aside>. Flow
+     content (not padding) means rail items CAN scroll UP under the
+     chrome as the user scrolls, instead of hitting a dead padding
+     boundary at the chrome's bottom edge. */
   /* Idle transform; only used at the narrow breakpoint where the rail
      becomes absolutely positioned and slides on data-rail-open. */
   transform: translateX(0);
   transition: transform var(--duration-slow) var(--ease-snap);
+}
+
+/* See the comment block in .rail for why this is a flow child rather
+   than padding-top on .rail itself. Height tracks --chrome-h from the
+   shell root; flex-shrink: 0 keeps it from being squeezed by flex
+   siblings (the actual rail list under it). */
+.chromeSpacer {
+  flex-shrink: 0;
+  height: var(--chrome-h, 0px);
 }
 
 .railHeader {
