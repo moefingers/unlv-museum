@@ -1,76 +1,124 @@
 /*
- * Shared layout shell for every museum project route. Used by:
- *   - per-container layouts: app/(museum)/<container>/layout.tsx
- *     (rail = the container's SiblingRail)
- *   - the catch-all layout: app/(museum)/[...path]/layout.tsx
- *     (rail = none — flat slugs have no siblings)
+ * Shared layout shell for every museum project route.
  *
- * The shell is a CSS grid with named areas:
+ * Architecture — three painting layers, one scroll container:
  *
- *   ┌────────────────────────────────────────┐
- *   │              chrome (row 1)            │  ← spans full width
- *   ├──────────────┬─────────────────────────┤
- *   │ rail (col 1) │  body (col 2 / row 2)   │
- *   └──────────────┴─────────────────────────┘
+ *   ┌─────────────────────────────────────────────────────┐
+ *   │ chrome (position: fixed, top:0, full width)         │ ← overlay
+ *   ├──────────┬──────────────────────────────────────────┤
+ *   │          │ notes (position: fixed, glassy band      │ ← overlay
+ *   │  rail    │   below chrome, right of rail)           │
+ *   │ (fixed,  │──────────────────────────────────────────│
+ *   │  below   │                                          │
+ *   │  chrome) │  leafBody (the ONLY scroll container)    │ ← flow
+ *   │          │   - height: 100dvh, starts at viewport   │
+ *   │          │     y=0, slides UNDER chrome+notes       │
+ *   │          │   - overflow-y: auto                     │
+ *   │          │   - first child: spacer of chrome-h +    │
+ *   │          │     notes-h (so initial content sits     │
+ *   │          │     below the overlays)                  │
+ *   │          │   - second child: tier body (unrestricted│
+ *   │          │     height, no internal scroll)          │
+ *   └──────────┴──────────────────────────────────────────┘
  *
- * The chrome MUST be the visually leftmost element in the top strip so
- * the back button is the leftmost interactive element on the page.
+ * Why all three top-row pieces are overlays (position: fixed):
+ *   - The chrome floats above content so content can scroll UNDER it
+ *     via the chrome's glass blur.
+ *   - The rail is full-height (top of chrome to bottom of viewport)
+ *     and reserves its own scroll-region; it doesn't participate in
+ *     the body column's scroll.
+ *   - The notes panel sits between rail and viewport-right, below the
+ *     chrome. It overlays the body column so content scrolls under
+ *     IT too via its own glass blur.
  *
- * The leaf's <header> (from MuseumChrome) and <main> (the body
- * wrapper) are direct children of the shell — no intermediate
- * wrapper — so view transitions on the <header> don't briefly empty
- * out a grid row and cause the body to jump.
+ * Why a single scroll container in the body:
+ *   - The tier body (text, iframe, React component) just emits content
+ *     at its natural height. It has no `height: 100%` or `overflow`
+ *     contortions to do.
+ *   - leafBody's scrollbar is full-viewport-tall regardless of tier
+ *     body type — it scrolls the spacer + content as a unit.
+ *
+ * `--chrome-h` and `--notes-h` are measured by MuseumPageShell.tsx
+ * and ProjectNotes via ResizeObserver and written to the shell root.
+ * Fallbacks to 0px before first measurement frame.
  */
 
 .shell {
-  display: grid;
-  height: 100vh;
-  /* No rail: a single body column. Container layouts override to a
-     two-column grid via `.withRail`. */
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "chrome"
-    "body";
-  min-height: 0;
+  /* Positioning context for the fixed-position chrome/rail/notes,
+     and for the leafBody flow child. min-height 100dvh so the page
+     always fills the viewport even when the tier body is short. */
+  position: relative;
+  min-height: 100dvh;
+  /*
+   * Single source of truth for the rail's open width. Falls back to
+   * 0px when no rail is rendered. SiblingRail and ProjectNotes both
+   * read this off the shell root.
+   */
+  --rail-w: 0px;
 }
 
 .withRail {
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "chrome chrome"
-    "rail   body";
+  --rail-w: 16rem;
 }
 
-/* Rail slot (row 2, col 1). The SiblingRail component owns its own
-   width via `--rail-w`; the grid track uses `auto` so the cell is
-   sized by the rail. */
-.rail {
-  grid-area: rail;
-  min-height: 0;
-  /* Position context for SiblingRail's narrow-viewport drawer overlay. */
-  position: relative;
-}
-
-/* Chrome slot — the <header> emitted by MuseumChrome. Lands in the
-   top row and spans full width regardless of the rail's presence.
-   Element selector + global grid-area is sufficient because the
-   chrome is always a real <header> element and there is at most one
-   per leaf. */
+/* Chrome cell — the leaf's <header>. Full-width band pinned to the
+   top of the viewport. */
 .shell > header {
-  grid-area: chrome;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
 }
 
-/* Body slot — the leaf wraps its tier output in <main class="leafBody">
-   so this rule is intentional rather than catch-all. */
+/* Rail slot. When the shell renders one (container layouts only), it's
+   a full-viewport-height left band, fixed positioned so it doesn't
+   share scroll with the body column. Sits BENEATH the chrome (top: 0)
+   so rail content can slide UP behind the chrome's blur as the user
+   scrolls the rail. The SiblingRail component inside owns the actual
+   scroll region and renders its own chrome-h spacer at the top so
+   its first item isn't trapped behind the chrome on initial paint. */
+.rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--rail-w);
+  z-index: 30;
+}
+
+/* Body slot — the leaf wraps its tier output in <main class="leafBody">.
+   This is the page's ONLY scroll container. Full viewport height, full
+   viewport width minus the rail. Sits BENEATH the chrome+notes overlays
+   (extends behind them via position: relative + the overlays' fixed
+   positioning), so content scrolls under them through their glass blur.
+
+   The leaf emits two flow children inside:
+     1. A spacer of height chrome-h + notes-h (so initial visible
+        content lands below the overlays).
+     2. The tier body itself, at its natural unrestricted height. */
 .leafBody {
-  grid-area: body;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  /* Hide overflow at the body level so the chrome and rail (which
-     are pinned by grid) don't get pushed off-screen by a long
-     scrollable tier body. Individual tier bodies own their own
-     overflow strategy below this. */
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: var(--rail-w, 0px);
+  right: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  /* Reserve a permanent gutter so the scrollbar is a real layout
+     dimension, not an overlay riding on top of content. */
+  scrollbar-gutter: stable;
+  /* Stack flow children vertically without flex shrinking — the
+     spacer + tier body must both keep their full heights so the
+     total exceeds 100dvh and scrolling actually engages. */
+  display: block;
+}
+
+/* Initial spacer rendered as the first child of <main className=leafBody>.
+   Reserves space at the top equal to the chrome's height plus the
+   notes panel's height, so initial visible content (the tier body)
+   lands below both overlays. As the user scrolls, the spacer moves
+   up — its area becomes visible behind the chrome + notes overlays
+   through their backdrop blur. */
+.chromeSpacer {
+  height: calc(var(--chrome-h, 0px) + var(--notes-h, 0px));
 }

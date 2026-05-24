@@ -15,6 +15,13 @@
      glued together regardless of state. */
   --rail-w: 16rem;
   width: var(--rail-w);
+  /* Fill the grid cell vertically. Without this, .host's intrinsic
+     height is its content height; the inner .rail's `height: 100%`
+     then resolves against an unconstrained ancestor and the rail
+     grows to fit its content (defeating overflow-y: auto). The grid
+     cell itself sizes correctly via the parent's row track; .host
+     has to opt into filling it. */
+  height: 100%;
   /* Persists the rail across sibling-leaf navigations inside a container.
      Only one SiblingRail renders per route (containerized projects only),
      so this name is unique on any page that has it. */
@@ -44,6 +51,11 @@
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--muted);
+  /* No padding-top spacer here — instead, SiblingRail.tsx renders an
+     in-flow spacer div (`height: var(--chrome-h)`) as the first child
+     of this <aside>. Using flow content rather than padding means rail
+     items CAN scroll UP under the chrome as the user scrolls, instead
+     of hitting a dead padding boundary at the chrome's bottom edge. */
   /* Idle transform; only used at the narrow breakpoint where the rail
      becomes absolutely positioned and slides on data-rail-open. */
   transform: translateX(0);

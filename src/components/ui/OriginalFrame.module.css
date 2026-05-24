@@ -1,7 +1,30 @@
 .frame {
   display: block;
   width: 100%;
-  height: 100%;
+  /*
+   * Fixed 100dvh height. `flex-shrink: 0` is load-bearing: the parent
+   * (leafBody) is `display: flex; flex-direction: column`, and a flex
+   * item with an explicit height gets shrunk by flex-shrink unless
+   * pinned. Without shrink:0 the iframe collapses to fit the leftover
+   * space below the spacer + notes, undoing the "let leafBody scroll
+   * over a fixed-tall iframe" plan.
+   *
+   * Why 100dvh: the museum's leafBody scroll container should be the
+   * source of truth for scroll (not the iframe's own internal scroll),
+   * so the iframe slides up behind the chrome + notes overlays as the
+   * user scrolls leafBody. Iframes can't auto-size to their content
+   * (cross-origin), so a fixed 100dvh is a generous default that
+   * covers the visible-on-load area; the iframe's internal scrollbar
+   * handles taller content within itself.
+   *
+   *   leafBody  = 100dvh, overflow-y: auto, scrollbar-gutter: stable
+   *   1st child = chromeSpacer (height: var(--chrome-h))
+   *   2nd child = ProjectNotes sticky panel (its own natural height)
+   *   3rd child = iframe (100dvh, flex-shrink: 0)
+   *   → total flow content > leafBody → leafBody scrolls
+   */
+  height: 100dvh;
+  flex-shrink: 0;
   border: 0;
 }
 

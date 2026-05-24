@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { ProjectChrome } from "@/components/ui/ProjectChrome";
-import { museumPageShellStyles } from "@/components/ui/MuseumPageShell";
+import {
+  NotesProvider,
+  ProjectNotes,
+} from "@/components/ui/ProjectChromeNotes";
+import museumPageShellStyles from "@/components/ui/MuseumPageShell.module.css";
 import { findProject, renderProjectBody } from "@/lib/project-route";
 import type { ViewMode } from "@/lib/projects";
 
@@ -49,11 +53,17 @@ export default async function FlatProjectPage({
   if (!project) notFound();
 
   return (
-    <>
+    <NotesProvider>
       <ProjectChrome project={project} />
+      {/* ProjectNotes is a fixed-position overlay; it lives outside
+          <main> so leafBody's width and scroll are unconstrained by
+          notes' presence. The chromeSpacer inside <main> reserves
+          flow space matching both chrome-h and notes-h. */}
+      <ProjectNotes project={project} tier={tier} />
       <main className={museumPageShellStyles.leafBody}>
+        <div className={museumPageShellStyles.chromeSpacer} aria-hidden="true" />
         {renderProjectBody({ project, tier, page })}
       </main>
-    </>
+    </NotesProvider>
   );
 }

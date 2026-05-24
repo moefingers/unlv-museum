@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRightLeft, ChevronDown, Link2 } from "lucide-react";
-import { siGithub } from "simple-icons";
-import { Collapsible } from "@/components/ui/Collapsible";
+import { ChevronDown } from "lucide-react";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
+import { useNotes } from "@/components/ui/ProjectChromeNotes";
 import {
   projectLandingUrl,
   projectPath,
@@ -18,22 +15,6 @@ import {
 } from "@/lib/projects";
 import styles from "./ProjectChrome.module.css";
 
-// Inline GitHub mark via simple-icons' CC0 path — same approach as
-// SignInChip, since lucide-react 1.x doesn't ship brand glyphs.
-function GithubMark({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d={siGithub.path} />
-    </svg>
-  );
-}
-
 const TIERS: { mode: ViewMode; label: string }[] = [
   { mode: "original", label: "Original" },
   { mode: "enhanced", label: "Enhanced" },
@@ -41,20 +22,29 @@ const TIERS: { mode: ViewMode; label: string }[] = [
 ];
 
 /**
- * Persistent chrome rendered by [project]/layout.tsx — survives tier
- * navigation so the header stays put while only the body content swaps.
- * Tier picker is `<Link>`-based rather than client state; the active tier
- * is derived from the URL via usePathname.
+ * Persistent chrome rendered by container layouts and the catch-all
+ * page — survives tier navigation so the header stays put while only
+ * the body content swaps. Tier picker is `<Link>`-based rather than
+ * client state; the active tier is derived from the URL via
+ * usePathname.
  *
- * This component is now a thin wrapper around the shared <MuseumChrome>
- * primitive (which it also shares with /api-client). The project-specific
- * pieces — per-tier note panel + its toggle button, year/tech subtitle —
- * live here; MuseumChrome handles the generic layout, tier picker, and
- * view-transition wiring.
+ * This component is a thin wrapper around the shared <MuseumChrome>
+ * primitive (which it also shares with /api-client). The project-
+ * specific pieces — year/tech subtitle and the notes-toggle button —
+ * live here; MuseumChrome handles the generic layout, tier picker,
+ * and view-transition wiring.
+ *
+ * **Notes are no longer rendered inside the chrome.** The panel
+ * itself lives inside the leaf's <main>, rendered by <ProjectNotes/>,
+ * so it can be `position: sticky` to the body column's scroll
+ * container and content scrolls UNDER it via glass blur. The toggle
+ * button still lives in the chrome (so it stays accessible across
+ * scroll); the two pieces share state via <NotesProvider> wrapped
+ * around the leaf.
  */
 export function ProjectChrome({ project }: { project: Project }) {
   const pathname = usePathname();
-  const [notesOpen, setNotesOpen] = useState(true);
+  const { open, setOpen } = useNotes();
 
   const path = projectPath(project);
   const currentTier = deriveTier(pathname, path);
@@ -62,9 +52,6 @@ export function ProjectChrome({ project }: { project: Project }) {
   const available: Record<ViewMode, boolean> = {
     // `pages` is also a valid original source — [...path]/page.tsx
     // auto-wraps it with <MultiPageOriginal> when `original` is unset.
-    // Without this, multi-page projects (admin-portal, js-dom-events)
-    // would render the Original tier toggle as disabled even though
-    // the route serves it correctly.
     original:
       project.original != null ||
       (project.pages != null && project.pages.length > 0),
@@ -72,8 +59,6 @@ export function ProjectChrome({ project }: { project: Project }) {
     reimagined:
       project.reimagined != null || project.reimaginedExternal != null,
   };
-
-  const note = project.notes?.[currentTier];
 
   const tierTech =
     currentTier === "original"
@@ -84,20 +69,12 @@ export function ProjectChrome({ project }: { project: Project }) {
 
   // Projects can opt out of tiers entirely via `plannedTiers` — the
   // tier picker hides those altogether rather than showing a dead
-  // disabled pill. (Coming-soon placeholders remain visible for
-  // tiers that ARE in the plan but not yet built — the picker still
-  // renders a disabled pill there to set expectations.)
+  // disabled pill.
   const planned = project.plannedTiers ?? [
     "original",
     "enhanced",
     "reimagined",
   ];
-  // Every tier link goes through projectLandingUrl — the single
-  // resolver that knows about multi-page redirect targets, external-
-  // tier escape URLs, and tier path composition. Bypassing it (e.g.
-  // typing `/${path}/enhanced` here) re-introduces the class of bug
-  // where a link lands on a URL that immediately redirects, firing
-  // the view transition twice.
   const tiers: TierSpec[] = TIERS.filter(({ mode }) =>
     planned.includes(mode),
   ).map(({ mode, label }) => ({
@@ -106,13 +83,13 @@ export function ProjectChrome({ project }: { project: Project }) {
     current: currentTier === mode,
   }));
 
+  // Show the notes-toggle only when there's something to show in the
+  // panel — same predicate ProjectNotes uses to decide whether to
+  // render the aside at all.
+  const note = project.notes?.[currentTier];
   const tierSources = resolveTierSources(project, currentTier);
   const siblingLink = resolveSiblingLink(project, currentTier);
   const relatedEntries = resolveRelatedEntries(project);
-  // The notes panel hosts the per-tier note, the GitHub source links,
-  // the api+client cross-link when paired, and a "see also" list when
-  // `relatedEntries` is set. Show the toggle (and the panel) when ANY
-  // piece of content exists for this tier.
   const hasPanelContent =
     Boolean(note) ||
     tierSources.length > 0 ||
@@ -131,78 +108,20 @@ export function ProjectChrome({ project }: { project: Project }) {
       titleExtra={
         hasPanelContent && (
           <button
-            onClick={() => setNotesOpen(!notesOpen)}
+            onClick={() => setOpen(!open)}
             className={styles.notesToggle}
+            aria-expanded={open}
+            aria-controls="project-notes-panel"
           >
             <ChevronDown
               size={12}
-              className={`${styles.notesChevron} ${notesOpen ? styles.notesChevronOpen : ""}`}
+              className={`${styles.notesChevron} ${open ? styles.notesChevronOpen : ""}`}
             />
             Notes
           </button>
         )
       }
       tiers={tiers}
-      belowRow={
-        hasPanelContent && (
-          <Collapsible open={notesOpen} duration={200}>
-            <div className={`text-sm ${styles.notesPanel}`}>
-              {note && <p className={styles.notesText}>{note}</p>}
-              {(tierSources.length > 0 ||
-                siblingLink ||
-                relatedEntries.length > 0) && (
-                <ul className={styles.repoLinkList}>
-                  {tierSources.map((source) => (
-                    <li key={source.url}>
-                      <a
-                        href={source.url}
-                        className={styles.repoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <GithubMark size={14} />
-                        <span>{source.label} on GitHub</span>
-                      </a>
-                    </li>
-                  ))}
-                  {siblingLink && (
-                    <li>
-                      {/*
-                        Internal navigation — use next/link so the
-                        cross-link participates in the view-transition
-                        pipeline rather than triggering a full reload,
-                        and so the api-client's own client-side state
-                        (sidebar, history) initializes cleanly.
-                      */}
-                      <Link href={siblingLink.url} className={styles.repoLink}>
-                        <ArrowRightLeft size={14} aria-hidden="true" />
-                        <span>{siblingLink.label}</span>
-                      </Link>
-                    </li>
-                  )}
-                  {relatedEntries.map((related) => (
-                    <li key={related.url}>
-                      <Link href={related.url} className={styles.repoLink}>
-                        <Link2 size={14} aria-hidden="true" />
-                        <span>
-                          See also:{" "}
-                          {related.crossesTo ? (
-                            <>
-                              {related.crossesTo} / {related.label}
-                            </>
-                          ) : (
-                            related.label
-                          )}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </Collapsible>
-        )
-      }
     />
   );
 }
@@ -214,8 +133,6 @@ function deriveTier(pathname: string, path: string): ViewMode {
   // <path> may be "<slug>" (flat) or "<container>/<slug>" (containerized).
   const segments = pathname.split("/").filter(Boolean);
   const pathSegments = path.split("/").filter(Boolean);
-  // The URL must start with the project's path segments; anything else means
-  // we're on an unrelated route and the chrome is being rendered for nothing.
   for (let i = 0; i < pathSegments.length; i++) {
     if (segments[i] !== pathSegments[i]) return "original";
   }
@@ -224,3 +141,5 @@ function deriveTier(pathname: string, path: string): ViewMode {
   if (tier === "reimagined") return "reimagined";
   return "original";
 }
+
+export { deriveTier };

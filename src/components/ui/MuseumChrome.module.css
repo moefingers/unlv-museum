@@ -15,14 +15,24 @@
  */
 
 .header {
-  position: sticky;
-  top: 0;
+  /*
+   * Positioning is managed by the parent shell. MuseumPageShell sets
+   * `position: fixed` on this header so it floats over the rail and
+   * leafBody columns; ApiClient.tsx wraps its own chrome in a different
+   * shell that may apply `position: sticky` instead. Either way, the
+   * styling below (translucent surface, blur, border) describes the
+   * visual treatment only — never the position.
+   */
   z-index: 50;
   border-bottom: 1px solid var(--border);
-  /* Translucent surface so content scrolls behind. The 80% alpha keeps
-     things readable while still signalling "this floats". */
-  background: oklch(from var(--background) l c h / 0.8);
-  backdrop-filter: blur(8px);
+  /* Translucent surface so tier-body content reading underneath stays
+     visible through the blur as it scrolls past. 60% alpha hits the
+     glass band — opaque enough that title/back arrow/tier picker stay
+     legible against arbitrary content, transparent enough that the
+     "this is floating glass over content" reading is unambiguous. */
+  background: oklch(from var(--background) l c h / 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   /* view-transition-name applied via inline style in MuseumChrome.tsx
      because CSS Modules treats this property's identifier value as a
      locally-scoped name, prefixing it with a hash — which means the

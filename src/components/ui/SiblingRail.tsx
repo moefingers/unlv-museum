@@ -104,6 +104,20 @@ function SiblingRailInner({
         aria-label={`${containerTitle} — siblings`}
         aria-hidden={!open}
       >
+        {/*
+          Initial spacer so the rail's first item sits below the chrome
+          at scroll position 0. The rail's scroll container is itself
+          100dvh and extends behind the fixed chrome; we need a flow
+          child (not padding) reserving the chrome's footprint so
+          rail content CAN scroll up under the chrome's blur as the
+          user scrolls. Height tracks --chrome-h via inline style
+          rather than a CSS rule on .rail because flex-shrink:0 needs
+          to apply here and CSS-module conflicts otherwise.
+        */}
+        <div
+          aria-hidden="true"
+          style={{ height: "var(--chrome-h, 0px)", flexShrink: 0 }}
+        />
         <div className={styles.railHeader}>
           <p className={`text-xs ${styles.containerLabel}`}>Series</p>
           <p className={`text-sm ${styles.containerTitle}`}>{containerTitle}</p>

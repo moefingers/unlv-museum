@@ -88,7 +88,17 @@ export function MuseumChrome({
       // sibling-rail-host, sibling-current — those don't have custom
       // animation rules but still need the literal name so the
       // browser can pair their snapshots across routes.
-      style={{ viewTransitionName: "site-header" }}
+      style={{
+        viewTransitionName: "site-header",
+        // PostCSS / Lightning CSS strips the unprefixed
+        // `backdrop-filter` when an adjacent `-webkit-backdrop-filter`
+        // exists, leaving only the WebKit-prefixed property. Modern
+        // Chrome/Firefox want the UNPREFIXED form, so the blur was
+        // silently dropped on every non-Safari browser. Inline style
+        // bypasses the CSS pipeline and reaches the DOM unmodified.
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
     >
       <div className={styles.row}>
         <div className={styles.leadGroup}>
