@@ -2,26 +2,17 @@
   display: block;
   width: 100%;
   /*
-   * Fixed 100dvh height. `flex-shrink: 0` is load-bearing: the parent
-   * (leafBody) is `display: flex; flex-direction: column`, and a flex
-   * item with an explicit height gets shrunk by flex-shrink unless
-   * pinned. Without shrink:0 the iframe collapses to fit the leftover
-   * space below the spacer + notes, undoing the "let leafBody scroll
-   * over a fixed-tall iframe" plan.
+   * Height defaults to 100dvh. OriginalFrame.tsx's useAutoSizeIframe
+   * hook overrides this inline at runtime once the iframe's document
+   * has loaded — it sets height to the inner documentElement's
+   * scrollHeight so the iframe is exactly as tall as its content. The
+   * leafBody parent then handles scrolling with its custom scrollbar
+   * (one scroll surface, not two — without auto-sizing, the iframe's
+   * internal 100dvh-cropped content would force its own native
+   * scrollbar to appear alongside the leafBody's custom one).
    *
-   * Why 100dvh: the museum's leafBody scroll container should be the
-   * source of truth for scroll (not the iframe's own internal scroll),
-   * so the iframe slides up behind the chrome + notes overlays as the
-   * user scrolls leafBody. Iframes can't auto-size to their content
-   * (cross-origin), so a fixed 100dvh is a generous default that
-   * covers the visible-on-load area; the iframe's internal scrollbar
-   * handles taller content within itself.
-   *
-   *   leafBody  = 100dvh, overflow-y: auto, scrollbar-gutter: stable
-   *   1st child = chromeSpacer (height: var(--chrome-h))
-   *   2nd child = ProjectNotes sticky panel (its own natural height)
-   *   3rd child = iframe (100dvh, flex-shrink: 0)
-   *   → total flow content > leafBody → leafBody scrolls
+   * The CSS fallback only takes effect for cross-origin iframes where
+   * contentDocument access throws and the hook bails out.
    */
   height: 100dvh;
   flex-shrink: 0;

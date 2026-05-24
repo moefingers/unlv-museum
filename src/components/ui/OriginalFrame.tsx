@@ -5,6 +5,100 @@ import { useSearchParams } from "next/navigation";
 import styles from "./OriginalFrame.module.css";
 
 /**
+ * Auto-size a same-origin iframe to its content height so the museum's
+ * outer leafBody is the single scroll surface (with its custom
+ * scrollbar). Without this, the iframe's CSS `height: 100dvh` makes
+ * the iframe an internally-scrolling box and we get TWO scrollbars:
+ *   1. the iframe's own native bar (because content > 100dvh)
+ *   2. the leafBody's custom bar (because iframe + spacers > 100dvh)
+ *
+ * Strategy: after the iframe's document is ready, read the inner
+ * documentElement.scrollHeight and write it back to the iframe's
+ * inline height. Re-measure on:
+ *   - the inner window's `resize` (font load, image load, etc.)
+ *   - a MutationObserver on the inner body (form expands, lazy
+ *     content swaps in)
+ *   - a ResizeObserver on the inner documentElement (covers cases
+ *     mutation observer misses, e.g. flex reflow on outer resize)
+ *
+ * Cross-origin iframes throw on contentDocument access — guard with
+ * a try/catch and fall back to the CSS `height: 100dvh`.
+ */
+function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    let ro: ResizeObserver | null = null;
+    let mo: MutationObserver | null = null;
+    let detachResize: (() => void) | null = null;
+
+    const measure = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (!doc) return;
+        // Use documentElement (html element) — scrollHeight on the
+        // doc element covers both flow content and absolutely-
+        // positioned content. body.scrollHeight sometimes misses
+        // tall absolutely-positioned children.
+        const h = doc.documentElement.scrollHeight;
+        if (h > 0) iframe.style.height = `${h}px`;
+      } catch {
+        // Cross-origin or detached document — leave CSS height alone.
+      }
+    };
+
+    const wire = () => {
+      try {
+        const doc = iframe.contentDocument;
+        const win = iframe.contentWindow;
+        if (!doc || !win) return;
+        measure();
+        // Same-origin: addEventListener / observers all work directly.
+        const onResize = () => measure();
+        win.addEventListener("resize", onResize);
+        detachResize = () => win.removeEventListener("resize", onResize);
+        mo = new MutationObserver(measure);
+        mo.observe(doc.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true,
+        });
+        ro = new ResizeObserver(measure);
+        ro.observe(doc.documentElement);
+      } catch {
+        // Cross-origin; CSS fallback applies.
+      }
+    };
+
+    // Iframes may already be loaded by the time the effect fires.
+    if (iframe.contentDocument?.readyState === "complete") {
+      wire();
+    }
+    const onLoad = () => {
+      // Re-wire on each navigation inside the iframe. Old observers
+      // attached to the previous document are detached by load.
+      detachResize?.();
+      mo?.disconnect();
+      ro?.disconnect();
+      detachResize = null;
+      mo = null;
+      ro = null;
+      wire();
+    };
+    iframe.addEventListener("load", onLoad);
+
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      detachResize?.();
+      mo?.disconnect();
+      ro?.disconnect();
+    };
+  }, [iframeRef]);
+}
+
+/**
  * Iframe wrapper for an Original-tier static asset (HTML, CRA build,
  * Vite build, etc). Sandboxed; same-origin so React can read the
  * iframe's contentWindow when `syncHash` is on.
@@ -54,8 +148,11 @@ export function OriginalFrame(props: OriginalFrameProps) {
 }
 
 function PlainFrame({ src }: { src: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  useAutoSizeIframe(iframeRef);
   return (
     <iframe
+      ref={iframeRef}
       src={src}
       className={`${styles.frame} ${styles.frameOriginal}`}
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
@@ -66,6 +163,7 @@ function PlainFrame({ src }: { src: string }) {
 
 function SyncingFrame({ src }: { src: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  useAutoSizeIframe(iframeRef);
   const searchParams = useSearchParams();
   // The initial `?route=` value at mount — used to compose the initial
   // iframe src. Reads from the URL *once* on render so the iframe's
