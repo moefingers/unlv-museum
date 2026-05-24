@@ -131,7 +131,12 @@ export function ProjectNotes({
     if (!main) return;
     const apply = () => {
       const h = el.getBoundingClientRect().height;
-      main.style.setProperty("--notes-h", `${Math.round(h)}px`);
+      const px = `${Math.round(h)}px`;
+      main.style.setProperty("--notes-h", px);
+      // Mirror to :root so portaled UI outside the shell (e.g. the
+      // rail's toggle chevron on document.body) reads the same value
+      // via inheritance. Same pattern as MuseumPageShell's --chrome-h.
+      document.documentElement.style.setProperty("--notes-h", px);
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -139,6 +144,7 @@ export function ProjectNotes({
     return () => {
       ro.disconnect();
       main.style.removeProperty("--notes-h");
+      document.documentElement.style.removeProperty("--notes-h");
     };
   }, [open]);
 

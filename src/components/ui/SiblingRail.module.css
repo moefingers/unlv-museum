@@ -8,27 +8,29 @@
    absolute so the viewport reclaims its space. */
 
 .host {
-  position: relative;
-  flex-shrink: 0;
-  /* --rail-w is declared on the shell root (see MuseumPageShell.module.css)
-     so the chrome's fixed-overlay siblings (notes) can read the same
-     value. .host inherits it via the CSS cascade. */
-  width: var(--rail-w);
-  /* Fill the parent (the shell's .rail slot, which is `position: fixed`
-     with bottom: 0). Without this, .host's intrinsic height is its
-     content height; the inner .rail's `height: 100%` then resolves
-     against an unconstrained ancestor and the rail grows to fit its
-     content (defeating overflow-y: auto). */
-  height: 100%;
-  /* Persists the rail across sibling-leaf navigations inside a container.
-     Only one SiblingRail renders per route (containerized projects only),
-     so this name is unique on any page that has it. */
-  view-transition-name: sibling-rail-host;
+  /* display: contents so the host wrapper disappears from layout AND
+     stacking — the inner aside (with position: fixed; z-index: 45;
+     backdrop-filter) ends up as a true direct child of .shell at the
+     root stacking level, matching how the chrome <header> and notes
+     <aside> participate. Nesting the aside inside a regular block
+     wrapper made the aside's z-index lose to the iframe (which
+     composites as its own layer).
+
+     Trade-off: the host can no longer carry view-transition-name —
+     `display: contents` strips view-transition participation. We move
+     the name to the aside itself; only one rail renders per route, so
+     the literal stays unique on any page that has it. */
+  display: contents;
 }
 
-/* Backdrop — visible only when drawer is open on narrow viewports. */
+/* Backdrop — visible only when drawer is open on narrow viewports.
+   `position: fixed` (not absolute) because the .host parent is now
+   `display: contents` and no longer provides a positioned ancestor.
+   Fixed/inset:0 covers the viewport, which is correct anyway: the
+   backdrop catches outside taps over the whole viewport in drawer
+   mode, not just over the rail's area. */
 .backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 39;
   display: none;
@@ -42,33 +44,41 @@
 }
 
 .rail {
-  display: flex;
-  height: 100%;
+  /* Mirrors the chrome's pattern (see MuseumChrome.tsx + module): one
+     fixed-position element with inline backdrop-filter, content
+     painting on top. The blur samples document-level content
+     (leafBody + iframe) painted behind. */
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: var(--rail-w);
+  /* Sits above notes panel (z-40), below chrome (z-50). */
+  z-index: 45;
+  /* Persists the rail across sibling-leaf navigations inside a container.
+     Only one SiblingRail renders per route, so this literal is unique on
+     any page that has it. Moved here from .host once the host went
+     `display: contents` (view-transition participation requires a real
+     box). */
+  view-transition-name: sibling-rail-host;
+  display: flex;
   flex-direction: column;
   overflow-y: auto;
   /* Hide native bar; <CustomScrollbar/> in the leaf renders a thumb
      bound to this scroller and positioned below the chrome only. */
   scrollbar-width: none;
   border-right: 1px solid var(--border);
-  /* Glassy translucent surface, matching the chrome and notes overlays.
-     In drawer mode (narrow viewport) the rail slides over leaf content,
-     so the blur keeps content readable through the rail while still
-     reading as a distinct surface. The muted-token alpha gives slightly
-     more opacity than chrome's 0.6 because the rail hosts smaller text
-     that needs more contrast at narrow widths. */
+  /* Glassy translucent surface. Alpha tuned so the inline blur
+     (applied via SiblingRail.tsx) softens the iframe/leafBody pixels
+     behind without compromising rail-text legibility. */
   background: oklch(from var(--muted) l c h / 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  /* No padding-top spacer here — instead, SiblingRail.tsx renders a
-     `.chromeSpacer` div as the first child of this <aside>. Flow
-     content (not padding) means rail items CAN scroll UP under the
-     chrome as the user scrolls, instead of hitting a dead padding
-     boundary at the chrome's bottom edge. */
-  /* Idle transform; only used at the narrow breakpoint where the rail
-     becomes absolutely positioned and slides on data-rail-open. */
+  /* Default state: rail in view at left edge. Drawer-mode rules below
+     translate it off-screen when closed. */
   transform: translateX(0);
   transition: transform var(--duration-slow) var(--ease-snap);
+  /* No padding-top spacer — SiblingRail.tsx renders a `.chromeSpacer`
+     div as the first child of this aside so rail content CAN scroll
+     UP under the chrome instead of hitting a dead padding boundary. */
 }
 .rail::-webkit-scrollbar {
   display: none;
@@ -304,28 +314,28 @@
  *       behavior, drawer slides over content because there isn't room
  *       for a permanent in-flow rail.
  *   (b) tier is reimagined — drawer mode regardless of viewport width
- *       so the polished surface gets the full viewport. The rail is
- *       still recoverable via the toggle button (chevron); it's
- *       collapsed-by-default rather than locked-shut.
+ *       so the polished surface gets the full viewport.
  *
- * Selectors duplicated rather than factored — CSS has no "OR" between
- * media query and attribute selector that compiles cleanly across the
- * Lightning CSS / browser matrix, and the duplication is mechanical
- * (every block has paired @media and [data-tier] forms).
+ * The actual drawer SLIDE is owned by the shell's .rail slot (see
+ * MuseumPageShell.module.css): the slot is `position: fixed; width:
+ * var(--rail-w)` always, and translates off-screen via
+ * `transform: translateX(-100%)` when data-rail-open !== true. That
+ * keeps the slot's stacking context populated so its backdrop-filter
+ * can sample the leafBody (and the iframe inside it) painted behind.
+ *
+ * What remains here: showing the toggle button and the backdrop (the
+ * click-outside catcher) in drawer mode. Both are mechanical paired
+ * @media + [data-tier] forms — CSS has no clean OR between media
+ * query and attribute selector.
  */
 
-/* (a) narrow viewport */
+/* (a) narrow viewport — rail slides over content when toggled. The
+   toggle is portaled to document.body (see SiblingRail.tsx), so it
+   carries its OWN data-rail-open / data-tier attributes. */
 @media (max-width: 768px) {
-  .host {
-    /* Reclaim the row width — rail becomes absolutely positioned. */
-    width: 0;
-  }
   .rail {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 40;
+    /* Closed: slide off-screen. The fixed-position .toggle (portaled
+       to body) stays on-screen since it isn't a descendant of .rail. */
     transform: translateX(-100%);
   }
   .host[data-rail-open="true"] .rail {
@@ -335,10 +345,12 @@
   .toggle {
     display: inline-flex;
   }
-  .host[data-rail-open="true"] .toggle {
+  .toggle[data-rail-open="true"] {
     /* Slide to the rail's right edge so the chevron rides the seam
-       between the open drawer and the content. */
-    left: var(--rail-w);
+       between the open drawer and the content. Fall back to 16rem —
+       --rail-w lives on the shell root and the portaled toggle is
+       outside the shell, so it doesn't inherit. */
+    left: var(--rail-w, 16rem);
   }
 
   .backdrop {
@@ -351,25 +363,17 @@
 }
 
 /* (b) reimagined tier — same drawer-mode rules, scoped via data-tier. */
-.host[data-tier="reimagined"] {
-  width: 0;
-}
 .host[data-tier="reimagined"] .rail {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 40;
   transform: translateX(-100%);
 }
 .host[data-tier="reimagined"][data-rail-open="true"] .rail {
   transform: translateX(0);
 }
-.host[data-tier="reimagined"] .toggle {
+.toggle[data-tier="reimagined"] {
   display: inline-flex;
 }
-.host[data-tier="reimagined"][data-rail-open="true"] .toggle {
-  left: var(--rail-w);
+.toggle[data-tier="reimagined"][data-rail-open="true"] {
+  left: var(--rail-w, 16rem);
 }
 .host[data-tier="reimagined"] .backdrop {
   display: block;

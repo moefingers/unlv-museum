@@ -65,29 +65,24 @@
   z-index: 50;
 }
 
+/*
+ * Rail slot — purely a JSX boundary; carries no layout itself. The
+ * actual visible rail lives INSIDE this slot as a fixed-position
+ * aside (see SiblingRail.module.css), styled exactly like the chrome
+ * header: one positioned element with inline backdrop-filter,
+ * content painting inside. Why the slot is passive (no position/
+ * z-index/transform): making it a stacking-context root would trap
+ * the aside's backdrop-filter inside that context — where nothing
+ * paints — and the blur would be a no-op. The chrome works because
+ * it IS a direct child of .shell with the backdrop-filter on the
+ * positioned element itself; the rail now follows the same pattern.
+ *
+ * Row reservation (so leafBody's left edge knows where to start) is
+ * handled entirely by --rail-reserved-w on .leafBody's left offset.
+ * The slot doesn't need width.
+ */
 .rail {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  /* Use --rail-reserved-w (NOT --rail-w) so the slot collapses to 0 in
-     drawer mode while the inner SiblingRail keeps its intrinsic
-     --rail-w when sliding in. Overflow visible so the chevron toggle
-     (sibling of the rail aside, position: fixed) stays clickable when
-     the slot width is 0. */
-  width: var(--rail-reserved-w);
-  /* z-index: 45 sits the rail slot ABOVE the notes panel (z-40) but
-     BELOW the chrome (z-50). Because `.rail` is a positioned fixed
-     element with z-index, it creates a stacking context — its
-     descendants' z-indices (including the toggle chevron) are bounded
-     by THIS context's z-index in the root order. Without raising past
-     40, the chevron would paint behind the notes panel when the rail
-     is in drawer mode and notes spans full width. */
-  z-index: 45;
-  /* Smooth the reserved-width collapse at the breakpoint. Both .rail
-     and .leafBody read --rail-reserved-w; transitioning width here +
-     left on .leafBody keeps the two halves in lockstep. */
-  transition: width var(--duration-slow) var(--ease-snap);
+  display: contents;
 }
 
 .leafBody {
@@ -96,6 +91,11 @@
   left: var(--rail-reserved-w, 0px);
   right: 0;
   height: 100dvh;
+  /* Explicit low z-index so the SiblingRail aside (z-45) and notes
+     panel (z-40) reliably paint above. Without this, the iframe
+     inside leafBody can composite as its own layer and end up ABOVE
+     sibling stacking contexts in some rendering paths. */
+  z-index: 1;
   overflow-y: auto;
   display: block;
   /* Native scrollbar hidden; <CustomScrollbar/> paints a thumb confined

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Collapsible } from "@/components/ui/Collapsible";
@@ -61,6 +62,10 @@ function SiblingRailInner({
   siblings: Project[];
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  // Portal target only exists client-side. Defer reading document.body
+  // until after first mount so SSR and hydration stay consistent.
+  useEffect(() => setMounted(true), []);
   const railRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -107,15 +112,14 @@ function SiblingRailInner({
         aria-label={`${containerTitle} — siblings`}
         aria-hidden={!open}
         /*
-         * backdrop-filter applied inline because PostCSS / Lightning CSS
-         * strips the unprefixed property from compiled CSS modules in
-         * this project (same issue MuseumChrome.tsx works around).
-         *
-         * Caveat: Chromium does NOT sample iframe pixels for backdrop-
-         * filter — when the rail covers a leaf's <iframe> (most
-         * Original-tier leaves), the blur is a no-op. The rule still
-         * runs for the non-iframe regions (notes panel, dark page
-         * background) and degrades cleanly when iframes are behind.
+         * backdrop-filter applied inline because PostCSS strips the
+         * unprefixed property when adjacent to -webkit- (same
+         * workaround MuseumChrome.tsx uses). Without inline, the
+         * compiled CSS keeps only the WebKit form and Chrome/Firefox
+         * silently drop the blur. The aside is the actual fixed-
+         * position element here (its parent slot is `display:
+         * contents`, so this aside paints as a direct child of .shell
+         * — same painting context as the chrome <header>).
          */
         style={{
           backdropFilter: "blur(12px)",
@@ -218,32 +222,49 @@ function SiblingRailInner({
         </nav>
       </aside>
 
-      <button
-        type="button"
-        className={styles.toggle}
-        aria-controls="sibling-rail"
-        aria-expanded={open}
-        aria-label={open ? "Close sibling rail" : "Open sibling rail"}
-        onClick={() => setOpen((v) => !v)}
-      >
-        {/*
-          FoldingChevron natively animates between ^ and v. Wrap in
-          a -90deg rotation so the same fold becomes a horizontal
-          gesture (← / →). Mirrors the pattern in zcanon's
-          DashboardSidebar. `open=true` (rail visible) → chevron
-          points ← (the action: collapse). `open=false` (rail
-          hidden) → chevron points → (the action: expand).
-        */}
-        <span className={styles.toggleIconWrap} aria-hidden="true">
-          <FoldingChevron open={open} size={16} strokeWidth={2} />
-        </span>
-      </button>
-
       {/* Custom scrollbar for the rail. Native bar is hidden via
           `scrollbar-width: none` on .rail; this paints a thumb in the
           rail's visible region (top: var(--chrome-h)) so the bar
           doesn't slide under the chrome's blur. */}
       <CustomScrollbar scrollerRef={railRef} topOffsetVar="--chrome-h" />
+
+      {/*
+        Toggle portaled to document.body so it ALWAYS lives at the
+        viewport's root stacking + transform context — NOT inside the
+        shell's .rail slot which translates off-screen when the drawer
+        is closed (translate would carry a nested fixed-position toggle
+        along with it). With the portal, `position: fixed` truly
+        anchors to the viewport. `data-rail-open` mirrors the host's
+        state so the toggle's drawer-mode styles (display, left
+        offset) work via the existing :is(...) selector at the
+        document level.
+      */}
+      {mounted &&
+        createPortal(
+          <button
+            type="button"
+            className={styles.toggle}
+            data-rail-open={open}
+            data-tier={tier}
+            aria-controls="sibling-rail"
+            aria-expanded={open}
+            aria-label={open ? "Close sibling rail" : "Open sibling rail"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {/*
+              FoldingChevron natively animates between ^ and v. Wrap in
+              a -90deg rotation so the same fold becomes a horizontal
+              gesture (← / →). Mirrors the pattern in zcanon's
+              DashboardSidebar. `open=true` (rail visible) → chevron
+              points ← (the action: collapse). `open=false` (rail
+              hidden) → chevron points → (the action: expand).
+            */}
+            <span className={styles.toggleIconWrap} aria-hidden="true">
+              <FoldingChevron open={open} size={16} strokeWidth={2} />
+            </span>
+          </button>,
+          document.body,
+        )}
     </div>
   );
 }

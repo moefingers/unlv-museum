@@ -67,7 +67,12 @@ export function MuseumPageShell({
       attachedHeader = header;
       const apply = () => {
         const h = header.getBoundingClientRect().height;
-        shell.style.setProperty("--chrome-h", `${Math.round(h)}px`);
+        const px = `${Math.round(h)}px`;
+        shell.style.setProperty("--chrome-h", px);
+        // Mirror to :root so portaled UI outside the shell (toggle
+        // chevron lives on document.body to escape the rail slot's
+        // transform) can still read the same value via inheritance.
+        document.documentElement.style.setProperty("--chrome-h", px);
       };
       apply();
       ro = new ResizeObserver(apply);
@@ -89,6 +94,7 @@ export function MuseumPageShell({
     return () => {
       mo.disconnect();
       ro?.disconnect();
+      document.documentElement.style.removeProperty("--chrome-h");
     };
   }, []);
 
@@ -98,7 +104,16 @@ export function MuseumPageShell({
       data-museum-shell=""
       className={`${styles.shell} ${rail ? styles.withRail : ""}`}
     >
-      {rail && <div className={styles.rail}>{rail}</div>}
+      {/*
+        Rail rendered as a direct child of the shell — NO wrapping
+        div. Same shape as <header> (chrome) and the notes <aside>:
+        they all sit as immediate children of .shell at the document's
+        root stacking level, each with their own position: fixed +
+        z-index + backdrop-filter. Wrapping the rail in a slot div
+        broke this — the slot stacked at the shell level while the
+        inner aside's z-index couldn't out-paint the leafBody iframe.
+       */}
+      {rail}
       {children}
     </div>
   );
