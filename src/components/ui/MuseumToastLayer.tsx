@@ -100,6 +100,13 @@ function hueForKind(kind: "auth" | "server" | "other"): number {
 const TOAST_TTL_MS = 8000;
 const DEDUP_WINDOW_MS = 1500;
 const MAX_VISIBLE = 5;
+/**
+ * Duration the toast spends in the "leaving" state — applying the
+ * slide-out animation class — before being unmounted from state.
+ * Keep in lockstep with .toastLeaving's animation duration in the
+ * module CSS, otherwise the unmount can race the animation.
+ */
+const TOAST_EXIT_MS = 220;
 
 interface Toast {
   id: string;
@@ -109,6 +116,9 @@ interface Toast {
   hint?: string;
   /** Timestamp the toast was created; used for dedup + auto-dismiss. */
   createdAt: number;
+  /** True while the exit animation is running; the React node stays
+   *  mounted for TOAST_EXIT_MS so the CSS animation can complete. */
+  leaving?: boolean;
 }
 
 interface SwMessage {
@@ -141,6 +151,21 @@ function toastKind(status: number): "auth" | "server" | "other" {
 export function MuseumToastLayer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  // Two-phase dismissal: mark `leaving` so CSS runs the exit
+  // animation, then unmount after TOAST_EXIT_MS. Idempotent — calling
+  // dismiss on an already-leaving toast is a no-op.
+  const dismiss = (id: string) => {
+    setToasts((prev) => {
+      // Already leaving? Don't restart the timer.
+      const target = prev.find((t) => t.id === id);
+      if (!target || target.leaving) return prev;
+      return prev.map((t) => (t.id === id ? { ...t, leaving: true } : t));
+    });
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, TOAST_EXIT_MS);
+  };
+
   useEffect(() => {
     // Register the SW once on mount. No-op if already registered.
     // Errors are intentionally swallowed — toasts are a UX nicety,
@@ -162,9 +187,11 @@ export function MuseumToastLayer() {
 
       setToasts((prev) => {
         // Dedup: drop incoming if there's an identical {url, status}
-        // toast from within the dedup window.
+        // toast from within the dedup window AND not already leaving
+        // (so a stale-leaving toast doesn't suppress a fresh fire).
         const recentDuplicate = prev.find(
           (t) =>
+            !t.leaving &&
             t.url === url &&
             t.status === status &&
             now - t.createdAt < DEDUP_WINDOW_MS,
@@ -180,14 +207,24 @@ export function MuseumToastLayer() {
         };
         // Cap the stack — drop the oldest if we'd exceed MAX_VISIBLE.
         const trimmed =
-          prev.length >= MAX_VISIBLE ? prev.slice(prev.length - MAX_VISIBLE + 1) : prev;
+          prev.length >= MAX_VISIBLE
+            ? prev.slice(prev.length - MAX_VISIBLE + 1)
+            : prev;
         return [...trimmed, next];
       });
 
-      // Auto-dismiss
+      // Auto-dismiss via the same two-phase path so the slide-out
+      // animation runs regardless of whether the user clicked close
+      // or the TTL fired. Schedule the leaving flip at TTL, and the
+      // unmount at TTL + EXIT.
+      setTimeout(() => {
+        setToasts((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)),
+        );
+      }, TOAST_TTL_MS);
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, TOAST_TTL_MS);
+      }, TOAST_TTL_MS + TOAST_EXIT_MS);
     };
 
     navigator.serviceWorker?.addEventListener("message", onMessage);
@@ -195,10 +232,6 @@ export function MuseumToastLayer() {
       navigator.serviceWorker?.removeEventListener("message", onMessage);
     };
   }, []);
-
-  const dismiss = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
 
   if (toasts.length === 0) return null;
 
@@ -224,7 +257,10 @@ export function MuseumToastLayer() {
           endpoint = t.url;
         }
         return (
-          <div key={t.id} className={`${styles.toast} ${kindClass}`}>
+          <div
+            key={t.id}
+            className={`${styles.toast} ${kindClass} ${t.leaving ? styles.toastLeaving : ""}`}
+          >
             <span className={styles.icon}>
               <MuseumMark
                 size={18}

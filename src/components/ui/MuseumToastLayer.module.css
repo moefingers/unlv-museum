@@ -33,6 +33,15 @@
   animation: toast-slide-in 0.18s ease-out;
 }
 
+/* Leaving state — applied by the component a few hundred ms BEFORE
+ * the toast is actually unmounted, so the animation runs to
+ * completion. forwards keeps the toast at its final keyframe
+ * (opacity 0, slid out) until React removes the node. */
+.toastLeaving {
+  animation: toast-slide-out 0.22s ease-in forwards;
+  pointer-events: none;
+}
+
 @keyframes toast-slide-in {
   from {
     transform: translateX(0.5rem);
@@ -41,6 +50,17 @@
   to {
     transform: none;
     opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(1rem);
+    opacity: 0;
   }
 }
 
