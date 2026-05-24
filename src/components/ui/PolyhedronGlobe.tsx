@@ -13,7 +13,10 @@ import {
   type Quat,
 } from "@/lib/quaternion";
 import { useLatestRef } from "@/hooks/use-latest-ref";
-import { useAnchorPhase } from "@/hooks/use-anchor-phase";
+import {
+  ANCHOR_SWING_MS,
+  useAnchorPhase,
+} from "@/hooks/use-anchor-phase";
 import { useDragMomentum } from "@/hooks/use-drag-momentum";
 import { useGraphics } from "@/hooks/use-graphics";
 import { useHoverCrosshair } from "@/hooks/use-hover-crosshair";
@@ -231,9 +234,8 @@ const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
 // ANCHOR_NDC_X / ANCHOR_NDC_Y. It's part of the state machine's
 // projection-reverse math and belongs with that machine.
 //
-// Duration of the swing-in slerp from the user's current orientation
-// to the anchor pose. Slow enough to read as a deliberate gesture.
-export const ANCHOR_SWING_MS = 900;
+// (ANCHOR_SWING_MS lives in use-anchor-phase.ts now — see exports.)
+//
 // Auto-rotation speed multiplier once anchored. The sphere keeps
 // spinning, but slower — so the anchored vertex feels still while
 // surrounding geometry drifts behind it.

@@ -17,7 +17,6 @@ import { GraphicsModal } from "@/components/ui/GraphicsModal";
 import { FoldingChevron } from "@/components/ui/FoldingChevron";
 import { SlidingToggle } from "@/components/ui/SlidingToggle";
 import {
-  ANCHOR_SWING_MS,
   ANCHOR_ZOOM_EASING,
   ANCHOR_ZOOM_SCALE,
   ANCHOR_ZOOM_TRANSLATE_Y_PCT,
@@ -28,6 +27,7 @@ import {
   USER_ZOOM_WHEEL_SENSITIVITY,
   type VertexAssignment,
 } from "@/components/ui/PolyhedronGlobe";
+import { ANCHOR_SWING_MS } from "@/hooks/use-anchor-phase";
 import { geodesic } from "@/lib/polyhedra";
 import {
   PROJECTS,

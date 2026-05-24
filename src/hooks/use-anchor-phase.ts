@@ -55,6 +55,7 @@ import { useLatestRef } from "./use-latest-ref";
 // PolyhedronGlobe) because they describe the state machine's
 // pacing — they belong with the machine.
 
+export const ANCHOR_SWING_MS = 900;
 export const CONE_RISE_MS = 280;
 export const WIDENING_MS = 600; // hex cascade + cone widen, run together
 export const CONE_WIDEN_FRACTION = 0.4; // cone reaches full width at 40% of the widening phase
