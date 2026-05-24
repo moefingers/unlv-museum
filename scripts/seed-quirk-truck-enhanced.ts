@@ -87,6 +87,7 @@ async function main() {
     { id: "seed-quirktruck-pagemgr", name: "Page Manager", email: "pagemgr@quirktruck.seed" },
     { id: "seed-quirktruck-credmgr", name: "Credential Manager", email: "credmgr@quirktruck.seed" },
     { id: "seed-quirktruck-auditor", name: "Audit Reader", email: "auditor@quirktruck.seed" },
+    { id: "seed-quirktruck-workordermgr", name: "Work Order Manager", email: "workorder@quirktruck.seed" },
     { id: "seed-quirktruck-worker", name: "Regular User", email: "worker@quirktruck.seed" },
   ];
 
@@ -101,9 +102,14 @@ async function main() {
   console.log("[seed] quirk-truck-enhanced: inserting users");
   const pwHash = await bcrypt.hash("demo-password", 10);
 
+  // Column is `role` (singular text[]) per CustomSession.user.role and
+  // the view-layer's `session.user.role.includes(...)` calls. The five
+  // canonical non-admin roles are defined in the source's
+  // app/lib/definitions.ts `roleLookUp`: page-manager,
+  // credential-manager, change-name, audit-logs, work-orders.
   const adminRes = await db.execute(sql`
     INSERT INTO quirk_truck_enhanced.users
-      (museum_user_id, name, email, password, admin, roles)
+      (museum_user_id, name, email, password, admin, role)
     VALUES
       ('seed-quirktruck-admin', 'Quirk Truck Admin', 'admin@quirktruck.seed', ${pwHash}, true, ARRAY[]::text[])
     RETURNING id
@@ -112,7 +118,7 @@ async function main() {
 
   const pagemgrRes = await db.execute(sql`
     INSERT INTO quirk_truck_enhanced.users
-      (museum_user_id, name, email, password, admin, roles)
+      (museum_user_id, name, email, password, admin, role)
     VALUES
       ('seed-quirktruck-pagemgr', 'Page Manager', 'pagemgr@quirktruck.seed', ${pwHash}, false, ARRAY['page-manager','change-name'])
     RETURNING id
@@ -121,19 +127,25 @@ async function main() {
 
   await db.execute(sql`
     INSERT INTO quirk_truck_enhanced.users
-      (museum_user_id, name, email, password, admin, roles)
+      (museum_user_id, name, email, password, admin, role)
     VALUES
       ('seed-quirktruck-credmgr', 'Credential Manager', 'credmgr@quirktruck.seed', ${pwHash}, false, ARRAY['credential-manager','change-name'])
   `);
   await db.execute(sql`
     INSERT INTO quirk_truck_enhanced.users
-      (museum_user_id, name, email, password, admin, roles)
+      (museum_user_id, name, email, password, admin, role)
     VALUES
       ('seed-quirktruck-auditor', 'Audit Reader', 'auditor@quirktruck.seed', ${pwHash}, false, ARRAY['audit-logs'])
   `);
   await db.execute(sql`
     INSERT INTO quirk_truck_enhanced.users
-      (museum_user_id, name, email, password, admin, roles)
+      (museum_user_id, name, email, password, admin, role)
+    VALUES
+      ('seed-quirktruck-workordermgr', 'Work Order Manager', 'workorder@quirktruck.seed', ${pwHash}, false, ARRAY['work-orders'])
+  `);
+  await db.execute(sql`
+    INSERT INTO quirk_truck_enhanced.users
+      (museum_user_id, name, email, password, admin, role)
     VALUES
       ('seed-quirktruck-worker', 'Regular User', 'worker@quirktruck.seed', ${pwHash}, false, ARRAY[]::text[])
   `);
@@ -149,6 +161,12 @@ async function main() {
   const imgId = (imgRes.rows[0] as { id: string }).id;
 
   console.log("[seed] quirk-truck-enhanced: inserting pages tree (single jsonb doc)");
+  // Pages use `id` + `title` (source's actions.ts mutates by `title`,
+  // routes by id-slug). Sections use `name` per the source's `section`
+  // type in definitions.ts — the lineage walker keys off `section.name`.
+  // We add `id` to sections as a soft improvement so future code can
+  // reference sections by stable id without breaking the name-keyed
+  // walker.
   const pagesTree = {
     "trucks-overview": {
       id: "trucks-overview",
@@ -158,7 +176,7 @@ async function main() {
       sections: [
         {
           id: "fleet-status",
-          title: "Fleet Status",
+          name: "Fleet Status",
           content: "Eight trucks in active service.",
           images: [imgId],
           sections: [],
@@ -173,13 +191,13 @@ async function main() {
       sections: [
         {
           id: "march-2024",
-          title: "March 2024",
+          name: "March 2024",
           content: "Two oil changes, one transmission service.",
           images: [],
           sections: [
             {
               id: "truck-801",
-              title: "Truck 801",
+              name: "Truck 801",
               content: "Oil change on 2024-03-12. Synthetic 5W-30.",
               images: [],
               sections: [],
@@ -188,7 +206,7 @@ async function main() {
         },
         {
           id: "april-2024",
-          title: "April 2024",
+          name: "April 2024",
           content: "Quiet month — one tire rotation.",
           images: [],
           sections: [],

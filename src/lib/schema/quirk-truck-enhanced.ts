@@ -1,7 +1,23 @@
 /**
- * Drizzle schema for the quirk-truck Enhanced tier (EnterPrize era,
- * museum-ready/enhanced on moefingers/h-data — pinned `enterprize`
- * branch at commit ad752374, 2024-07-06).
+ * Drizzle schema for the quirk-truck Enhanced tier — Historical Enhanced
+ * variant. This is a faithful port of the EnterPrize-era app
+ * (June–July 2024, pinned `enterprize` branch on moefingers/h-data at
+ * commit ad752374, 2024-07-06), NOT a museum-invented enhancement on
+ * top of the Original. The visible UI matches the era exactly; only
+ * the data layer was rewritten because the era's stack (canary
+ * Next.js 15 + Prisma + Vercel Postgres + Vercel KV + Vercel Blob) is
+ * no longer practical to host.
+ *
+ * Contrast with rest-rant / admin-portal / music-tour Enhanced, where
+ * the museum DID invent era-impossible features. Here we merely revive
+ * what was already shipped, and the audit log + museum-session gating
+ * come "for free" via the museum's uniform contracts on this schema —
+ * not as deliberate additions.
+ *
+ * See CONTEXT/temp/enterprize-revival-punchlist.md (surgery sequence),
+ * project_tier_definitions.md memory (Historical Enhanced sub-category),
+ * and CONTEXT/internal_docs/identity-and-signup.md (museum_user_id FK
+ * contract).
  *
  * The original EnterPrize ran a hybrid storage model:
  *   • Postgres (Prisma) — `users`, `work_orders`, `audit_logs`
@@ -80,12 +96,13 @@ export const users = quirkTruckEnhancedSchema.table("users", {
   password: text("password").notNull(),
   admin: boolean("admin").notNull().default(false),
   /**
-   * Multi-role array — EnterPrize defined 5 non-admin roles:
-   * page-manager, credential-manager, change-name, audit-logs,
-   * work-orders. Stored as a text[] so the original role-membership
-   * checks (`role.includes('page-manager')`) port cleanly.
+   * Multi-role array — EnterPrize defined 5 non-admin roles per
+   * `definitions.ts` `roleLookUp`: page-manager, credential-manager,
+   * change-name, audit-logs, work-orders. Stored as a text[]; named
+   * `role` (singular) to match the source's `CustomSession.user.role`
+   * shape and the view-layer's `session.user.role.includes(...)` calls.
    */
-  roles: text("roles").array().notNull().default([]),
+  role: text("role").array().notNull().default([]),
   imageId: uuid("image_id").references((): any => images.id, {
     onDelete: "set null",
   }),

@@ -222,6 +222,57 @@ first migration; backfilling is harder than starting right.
 - **Reimagined tier**: no project has shipped Reimagined yet. When
   the first one does, the museum-OAuth UX should land alongside.
 
+## The login-button UI pattern
+
+When a port's source repo has its own third-party login button (Google,
+Facebook, Discord, Apple, etc.), the museum-ready conversion replaces
+that button with a single **"Login with UNLV Museum"** button that
+triggers the museum's GitHub-OAuth flow. The pattern:
+
+- **One button per third-party provider on the source** collapses into
+  **one button total** (the museum-OAuth button). If the source had
+  Google + Facebook, both go away; the museum button replaces both.
+- **Label**: literally "Login with UNLV Museum". Not "Sign in with
+  GitHub" — the visitor's mental model is the museum session, not the
+  GitHub session underneath. The fact that GitHub is the backing
+  provider is implementation detail.
+- **Icon**: the museum's own SVG mark (NOT the GitHub octocat). The
+  museum mark visually signals "this is the museum's auth, the same
+  one that gates every other exhibit you've visited."
+- **Email/password form, if the source had one, stays.** The
+  three-factor predicate above means museum-OAuth is the security
+  boundary even when the email/password form remains. Sources that ship
+  email/password (rest-rant, h-data) keep the form for source-faithful
+  reasons; sources that don't (most static SPAs) get just the museum
+  button.
+
+Why this matters as a reusable pattern: every Enhanced/Reimagined port
+that inherits a third-party login from its source will face this
+choice. Codifying it here means the answer is mechanical, not a
+per-project deliberation:
+
+| Source's login UI | Museum-ready UI |
+|---|---|
+| email + password + "Sign in with Google" | email + password + "Login with UNLV Museum" |
+| email + password only | email + password + "Login with UNLV Museum" |
+| "Sign in with Google" only | "Login with UNLV Museum" only |
+| "Sign in with Google" + "Sign in with Facebook" | "Login with UNLV Museum" only |
+| email + password + "Sign in with Apple" + "Continue with Microsoft" | email + password + "Login with UNLV Museum" |
+
+The museum-OAuth button always lands at the bottom of the form
+(below email/password if present), styled identically to the
+"primary action" button it sits next to so it reads as "another way
+in," not as a downgrade or upsell.
+
+### Where to put the SVG
+
+The museum mark lives at [public/og/icon.svg](../../public/og/icon.svg) (or
+the closest existing equivalent). For Enhanced ports running inside a
+submodule whose dev server is separate, copy the SVG to the
+submodule's `public/` on first wiring and document the copy in the
+port's sources-conversions row — the submodule can't `import` from
+museum-side paths.
+
 ## Related
 
 - `project_enhanced_api_conventions.md` (memory): the broader

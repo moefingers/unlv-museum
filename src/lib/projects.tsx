@@ -606,11 +606,12 @@ export const PROJECTS: Project[] = [
   {
     slug: "milestown",
     repo: "moefingers/UNLV-MilestO-W-N",
+    repoEnhanced: "moefingers/milestown2",
     title: "MilestO-W-N",
     description:
       "1-4 player territory game. Three generations: original, multiplayer remake, and OWN3.",
     synopsis:
-      "1-4 player territory game built in vanilla JS — the seed of a three-generation chain: the original, a multiplayer WebSocket remake, and the OWN3 rebuild.",
+      "1-4 player territory game built in vanilla JS — the seed of a three-generation chain: the original (Jan 2024), the milestown2 multiplayer remake (May 2024, a Historical Enhanced artifact that actually shipped), and the OWN3 rebuild (Reimagined).",
     year: "Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "CSS"],
@@ -622,6 +623,10 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
     reimaginedExternal: "https://own3.vercel.app",
     progression: true,
+    notes: {
+      enhanced:
+        "milestown2 (May 2024) — a historical port, not a fresh museum enhancement. The era-Enhanced artifact that actually shipped: a multiplayer remake of the original with WebSocket signaling and a P2P mesh, deployed at moefingers.github.io/milestown2. The museum doesn't reinvent the Enhanced surface here; it just preserves the link. See project_tier_definitions.md memory: only two lineages in the museum get the Historical-Enhanced framing (quirk-truck + milestown).",
+    },
   },
   {
     slug: "gwhac-a-mole",
@@ -1054,17 +1059,19 @@ export const PROJECTS: Project[] = [
     year: "Feb 2024",
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
-    // Enhanced tech reflects the SURGERY TARGET (museum-ready/enhanced),
-    // not the pinned `enterprize` source — that one rode Next.js 15
-    // canary + @vercel/postgres + @vercel/kv + @vercel/blob, all of
-    // which are either canary-unstable or discontinued. The revival
-    // collapses everything onto Neon: Vercel Postgres → Neon serverless
-    // via Drizzle, KV obliterated (rate limits via @vercel/firewall,
-    // session/lease state in Postgres), Blob obliterated (joined
-    // `images` table with client-side webp compression to bytea —
-    // see CONTEXT/temp/enterprize-revival-punchlist.md).
-    techEnhanced: ["Next.js", "Drizzle", "Neon", "NextAuth v5"],
-    techReimagined: ["Next.js 16", "Drizzle", "Neon", "NextAuth v5"],
+    // Historical Enhanced — this is NOT a museum-invented enhancement;
+    // it is a faithful port of the EnterPrize-era app (Jun–Jul 2024)
+    // onto current infrastructure. The era's stack (Next.js 15 canary
+    // + Prisma + Vercel Postgres + KV + Blob + NextAuth v5 + Google
+    // OAuth) is no longer practical to host, so the data layer was
+    // rewritten: Postgres → Neon serverless via Drizzle, KV → jsonb
+    // documents, Blob → joined `images` table with client-side webp
+    // compression. The visible UI matches the 2024 tip (commit
+    // ad75237). See project_tier_definitions.md memory for the
+    // Historical-Enhanced sub-category — only two project lineages
+    // in the museum get this framing (quirk-truck + milestown).
+    techEnhanced: ["Next.js 16", "Drizzle", "Neon", "Museum OAuth"],
+    techReimagined: ["Next.js 16", "Drizzle", "Neon"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
@@ -1072,9 +1079,9 @@ export const PROJECTS: Project[] = [
     progression: true,
     notes: {
       original:
-        "The original Quirk Truck — React/CRA catalog of trucks with a search bar and product cards. The starting point of a multi-generation chain: see the Enhanced tier for the EnterPrize era (June–July 2024 generalization into an enterprise dashboard) and Reimagined for Hierarchical Data (late-2025 from-scratch rebuild).",
+        "The original Quirk Truck — React/CRA catalog of trucks with a search bar and product cards. The starting point of a multi-generation chain: see the Enhanced tier for the EnterPrize era (Jun–Jul 2024 generalization into an enterprise dashboard) and Reimagined for Hierarchical Data (late-2025 from-scratch rebuild).",
       enhanced:
-        "EnterPrize — June–July 2024 generalization of the catalog pattern into an enterprise asset-management dashboard. 154 commits on Next.js 15 canary + Prisma + Vercel Postgres/Blob/KV + NextAuth v5 implementing pages/sections/items hierarchies, role-based access (admin + 5 user roles: page-manager, credential-manager, change-name, audit-logs, work-orders), Google OAuth, audit logs, and work-order workflows for sensitive admin actions. Pinned on the `enterprize` branch of moefingers/h-data; museum-ready/enhanced simplifies the stack to Neon-all-the-way (Drizzle over Vercel Postgres, KV obliterated, blob storage TBD) and is pending surgery.",
+        "EnterPrize (Jun–Jul 2024) — a historical port, not a fresh museum enhancement. This is the era-Enhanced app itself: 154 commits on Next.js 15 canary + Prisma + Vercel Postgres/Blob/KV + NextAuth v5, generalizing the catalog pattern into an enterprise asset-management dashboard with pages/sections/items hierarchies, role-based access (admin + 5 user roles), audit logs, and work-order workflows for sensitive admin actions. The museum revival hosts the same UI in-museum on modernized infrastructure (Drizzle over Neon; KV obliterated to jsonb; Blob obliterated to a joined images table with client-webp compression; Google OAuth swapped for the museum's GitHub session). Source pinned on `enterprize` branch of moefingers/h-data at commit ad75237.",
     },
   },
   {
