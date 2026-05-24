@@ -19,6 +19,15 @@
   </head>
   <body>
     <redoc spec-url='./api.schema.json'></redoc>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
+    <!--
+      Hosting fix (museum-ready/original): the original script src was
+      `https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js`.
+      The `@next` dist-tag was deprecated upstream and now 404s, AND
+      cross-origin fetches were CORB-blocked when the page was iframed.
+      Vendoring the bundle to ./vendor/redoc.standalone.js (pinned to
+      redoc@2.5.2 — current latest as of 2026-05-24) keeps the page
+      working forever without any CDN dependency.
+    -->
+    <script src="./vendor/redoc.standalone.js"> </script>
   </body>
 </html>

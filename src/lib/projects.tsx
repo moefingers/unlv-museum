@@ -975,8 +975,9 @@ export const PROJECTS: Project[] = [
     techOriginal: ["JavaScript", "Express", "Fetch API"],
     // Three-page original: the Admin CRUD UI was the entry point, the
     // Books list was the customer-facing view, and the API Docs page
-    // documented the underlying Express endpoints. Rail order puts the
-    // admin UI first since that's the project's headline feature.
+    // documented the underlying Express endpoints via Redoc. Rail
+    // order puts the admin UI first since that's the project's
+    // headline feature.
     pages: [
       {
         label: "Admin",
@@ -987,7 +988,7 @@ export const PROJECTS: Project[] = [
         src: "/originals/js-exercises/admin-portal/index.html",
       },
       {
-        label: "API Docs (blank)",
+        label: "API Docs",
         src: "/originals/js-exercises/admin-portal/api-docs.html",
       },
     ],

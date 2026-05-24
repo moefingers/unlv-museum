@@ -11,8 +11,8 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "cdc3711f8db237f024cf2501aaf764e5259e3b38",
-    "lockHash": "sha256:92fa3c0148a074e3443d05b6e9322cdd0f2905e4bf2b5c150a55bdde93940845",
+    "commit": "0dcedc6fc2ce5dc56929fa7e4636d1d6548c9a1a",
+    "lockHash": "sha256:4c12dcf7c87f9ad9f7e67f743a4499bed86cdf191fd25f44582b980caed653f2",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-12-30"
