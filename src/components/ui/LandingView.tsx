@@ -46,7 +46,7 @@ import {
   HelpCircle,
   Sun,
   Moon,
-  Settings,
+  Gauge,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useGraphics } from "@/hooks/use-graphics";
@@ -1104,7 +1104,7 @@ function LandingViewInner() {
               }}
               aria-label="Graphics settings"
             >
-              <Settings size={12} className={styles.legendHelpIcon} />
+              <Gauge size={12} className={styles.legendHelpIcon} />
               graphics
             </button>
           </div>

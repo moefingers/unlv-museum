@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, ChevronDown, ChevronUp, Loader2, Wand } from "lucide-react";
+import { Gauge, ChevronDown, ChevronUp, Loader2, Wand } from "lucide-react";
 import {
   useGraphics,
   type GraphicsPreset,
@@ -129,7 +129,7 @@ export function GraphicsModal({
             open ? "Close graphics settings" : "Show graphics settings"
           }
         >
-          <Settings size={16} />
+          <Gauge size={16} />
         </button>
 
         <div className={styles.content} aria-hidden={!open}>

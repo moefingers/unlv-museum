@@ -12,7 +12,7 @@ import {
   Hand,
   Pointer,
   Smartphone,
-  Settings,
+  Gauge,
   Sun,
   Moon,
 } from "lucide-react";
@@ -323,7 +323,7 @@ export function HelpModal({
                 onClick={onOpenGraphics}
                 aria-label={`Open graphics settings (detected: ${graphics.preset})`}
               >
-                <Settings size={14} />
+                <Gauge size={14} />
               </button>{" "}
               <button
                 type="button"
