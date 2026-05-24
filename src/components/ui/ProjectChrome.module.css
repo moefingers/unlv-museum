@@ -1,15 +1,8 @@
 /*
- * Project-specific chrome extensions: the per-tier notes toggle
- * button (rendered inline next to the year/tech meta line) and the
- * notes panel itself (now rendered INSIDE <main className=leafBody>
- * by <ProjectNotes/>, sticky to the body column's scroll container).
- *
- * All generic header / row / tier-picker / back-link rules moved to
- * MuseumChrome.module.css when the chrome shape was extracted into
- * the shared primitive. The notes-toggle styling lives here (it's
- * rendered inside the chrome via `titleExtra`); the notes panel
- * styling lives here too because the chrome and panel share their
- * warning-tinted surface vocabulary.
+ * Per-tier notes — the toggle button (rendered inside MuseumChrome's
+ * titleExtra slot) and the panel itself (rendered as a fixed overlay
+ * outside <main> by <ProjectNotes/>). Generic chrome/tier-picker
+ * styling lives in MuseumChrome.module.css.
  */
 
 .notesToggle {
@@ -19,9 +12,8 @@
   padding: calc(0.125rem * var(--app-pad, 1) * var(--chrome-pad, 1))
     calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
   border-radius: var(--radius-md);
-  /* Same warning-tinted surface as the expanded notes panel below,
-     so the button visually previews the panel it controls. The two
-     surfaces share `--warning @ 8% alpha`. */
+  /* Same warning tint as the panel itself — the button previews its
+     surface. */
   background: oklch(from var(--warning) l c h / 0.08);
   font-size: calc(
     var(--font-size-xs) * var(--app-size, 1) * var(--chrome-size, 1)
@@ -43,44 +35,24 @@
   rotate: 180deg;
 }
 
-/*
- * Notes panel — the sticky <aside> rendered by <ProjectNotes/> inside
- * <main className=leafBody>. Pins just below the chrome via
- * `top: 0` relative to its scroll container (leafBody itself has
- * `padding-top: var(--chrome-h)`, so the scroll container's content
- * area starts below the chrome).
- *
- * Glassy backdrop-filter so the tier body content scrolling beneath
- * stays partially visible. Z-index keeps notes above tier content
- * but below the chrome (z: 50 on the <header>).
- */
+/* Glassy fixed band below the chrome, right of the rail. Lives outside
+   <main> so leafBody's scroll/width are unconstrained by notes' size.
+   The leaf renders a flow spacer of `chrome-h + notes-h` as leafBody's
+   first child so initial visible content starts below this overlay. */
 .notesArea {
-  /*
-   * Fixed viewport overlay — a glassy band below the chrome and right
-   * of the rail. Doesn't take flow space inside leafBody, so leafBody's
-   * scroll is the only scroll and its scrollbar runs the full window
-   * height. The leaf renders a flow spacer of `height: chrome-h +
-   * notes-h` as leafBody's first child so initial visible content
-   * starts below this overlay; as the user scrolls, content slides
-   * UP behind the overlay via backdrop-blur.
-   *
-   * The notes lives OUTSIDE leafBody in the DOM (sibling, not child)
-   * so its `right: 0` resolves against the viewport correctly and
-   * its presence doesn't constrain leafBody's width or scroll
-   * geometry.
-   */
   position: fixed;
   top: var(--chrome-h, 0px);
-  left: var(--rail-w, 0px);
+  /* Inset by the rail's reserved width — when the rail is in drawer
+     mode, --rail-reserved-w is 0 and the notes panel spans the full
+     viewport row (matching what leafBody does). */
+  left: var(--rail-reserved-w, 0px);
   right: 0;
   z-index: 40;
-  /* Glassy: 55% alpha + 12px blur so content scrolling beneath
-     stays visible through the surface. Notes is below the chrome
-     in z-index (chrome is 50). */
   background: oklch(from var(--background) l c h / 0.55);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+  transition: left var(--duration-slow) var(--ease-snap);
 }
 
 .notesPanel {
@@ -90,9 +62,7 @@
   padding: calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1))
     calc(var(--space-6) * var(--app-pad, 1) * var(--chrome-pad, 1));
   color: var(--foreground);
-  /* Faint warning tint without screaming: 8% alpha of the warning token.
-     Reads as "annotation" in both light and dark mode. Layered on top
-     of the glassy outer aside background. */
+  /* 8% warning-token tint reads as "annotation" in both modes. */
   background: oklch(from var(--warning) l c h / 0.08);
 }
 
@@ -100,12 +70,6 @@
   margin: 0;
 }
 
-/*
- * Source-link list rendered inside the notes panel. Today there's at
- * most one entry per tier; the list shape is forward-compatible with
- * multiple sources (museum-ready vs. main branch, monorepo
- * subdirectories, etc.).
- */
 .repoLinkList {
   list-style: none;
   margin: 0;
@@ -115,18 +79,9 @@
   gap: calc(0.125rem * var(--app-margin, 1) * var(--chrome-margin, 1));
 }
 
-/*
- * Individual link. Co-located with the per-tier note so a tier's
- * annotations and its source pointers live on the same surface.
- * Visually keyed to .notesToggle's muted-on-muted, accent-fill-on-
- * hover vocabulary.
- *
- * Inline-flex with `align-self: flex-start` so the hover background
- * hugs the link's content rather than spanning the panel's full
- * width (which would look like a button bar, not a footer link).
- * Negative margin-left pulls the link's hover surface back to the
- * panel's text edge while leaving room for the icon's internal pad.
- */
+/* Inline-flex + align-self: flex-start + negative margin-left so the
+   hover background hugs the link's content (not the panel's full
+   width) while staying flush with the text edge. */
 .repoLink {
   display: inline-flex;
   align-items: center;

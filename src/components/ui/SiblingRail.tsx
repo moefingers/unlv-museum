@@ -3,9 +3,9 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { CustomScrollbar } from "@/components/ui/CustomScrollbar";
+import { FoldingChevron } from "@/components/ui/FoldingChevron";
 import {
   CONTAINERS,
   pageSlug,
@@ -106,6 +106,21 @@ function SiblingRailInner({
         className={styles.rail}
         aria-label={`${containerTitle} — siblings`}
         aria-hidden={!open}
+        /*
+         * backdrop-filter applied inline because PostCSS / Lightning CSS
+         * strips the unprefixed property from compiled CSS modules in
+         * this project (same issue MuseumChrome.tsx works around).
+         *
+         * Caveat: Chromium does NOT sample iframe pixels for backdrop-
+         * filter — when the rail covers a leaf's <iframe> (most
+         * Original-tier leaves), the blur is a no-op. The rule still
+         * runs for the non-iframe regions (notes panel, dark page
+         * background) and degrades cleanly when iframes are behind.
+         */
+        style={{
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
       >
         {/*
           Initial spacer so the rail's first item sits below the chrome
@@ -211,11 +226,17 @@ function SiblingRailInner({
         aria-label={open ? "Close sibling rail" : "Open sibling rail"}
         onClick={() => setOpen((v) => !v)}
       >
-        <ChevronLeft
-          size={18}
-          className={styles.toggleIcon}
-          aria-hidden="true"
-        />
+        {/*
+          FoldingChevron natively animates between ^ and v. Wrap in
+          a -90deg rotation so the same fold becomes a horizontal
+          gesture (← / →). Mirrors the pattern in zcanon's
+          DashboardSidebar. `open=true` (rail visible) → chevron
+          points ← (the action: collapse). `open=false` (rail
+          hidden) → chevron points → (the action: expand).
+        */}
+        <span className={styles.toggleIconWrap} aria-hidden="true">
+          <FoldingChevron open={open} size={16} strokeWidth={2} />
+        </span>
       </button>
 
       {/* Custom scrollbar for the rail. Native bar is hidden via

@@ -51,7 +51,15 @@
      bound to this scroller and positioned below the chrome only. */
   scrollbar-width: none;
   border-right: 1px solid var(--border);
-  background: var(--muted);
+  /* Glassy translucent surface, matching the chrome and notes overlays.
+     In drawer mode (narrow viewport) the rail slides over leaf content,
+     so the blur keeps content readable through the rail while still
+     reading as a distinct surface. The muted-token alpha gives slightly
+     more opacity than chrome's 0.6 because the rail hosts smaller text
+     that needs more contrast at narrow widths. */
+  background: oklch(from var(--muted) l c h / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   /* No padding-top spacer here — instead, SiblingRail.tsx renders a
      `.chromeSpacer` div as the first child of this <aside>. Flow
      content (not padding) means rail items CAN scroll UP under the
@@ -232,19 +240,31 @@
   white-space: nowrap;
 }
 
-/* Toggle button — pinned to the right edge of the rail's open position.
+/* Toggle button — pinned to the right edge of the rail's open position
+   (so it rides the seam between rail and content), or fully on-screen
+   at the viewport's left edge when the rail is closed. The two states
+   transition smoothly via `left` so the chevron slides with the rail.
    Hidden above the breakpoint. */
 .toggle {
-  position: absolute;
-  top: var(--space-3);
-  left: var(--rail-w);
+  /* Fixed (not absolute) so the button anchors to the viewport rather
+     than .host (which collapses to width: 0 in drawer mode and clips
+     half the chevron via its zero-width parent box's margin math). */
+  position: fixed;
+  /* Sit below BOTH chrome and notes overlays. Both vars are written
+     to the shell root by ResizeObservers; fall back to 0 before first
+     measurement. */
+  top: calc(var(--chrome-h, 0px) + var(--notes-h, 0px) + var(--space-3));
+  /* Closed default: sit at the viewport's left edge with a small inset
+     so the chevron reads as a discoverable affordance, not pinned-flush
+     trim. When open, the .host[data-rail-open=true] rules below shift
+     `left` to `--rail-w` so the button rides the rail's right edge. */
+  left: var(--space-2);
   z-index: 41;
   display: none;
   align-items: center;
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  margin-left: -1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: var(--card);
@@ -253,6 +273,7 @@
   cursor: pointer;
   transition:
     left var(--duration-slow) var(--ease-snap),
+    top var(--duration-slow) var(--ease-snap),
     background var(--duration-normal) var(--ease-default),
     color var(--duration-normal) var(--ease-default);
 }
@@ -261,13 +282,20 @@
   color: var(--accent-foreground);
 }
 
-.toggleIcon {
-  /* Chevron points → when closed (pull rail out), ← when open (tuck back). */
-  transform: rotate(180deg);
-  transition: transform var(--duration-slow) var(--ease-snap);
-}
-.host[data-rail-open="true"] .toggleIcon {
-  transform: rotate(0deg);
+/*
+ * Static -90deg wrapper around the FoldingChevron so its native ^/v
+ * fold becomes a horizontal ←/→. The fold itself is animated by
+ * FoldingChevron (rAF interpolation between the two orientations);
+ * this wrapper just rotates the rendered SVG. Pattern adapted from
+ * zcanon/DashboardSidebar's .toggleIconWrap.
+ */
+.toggleIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  transform: rotate(-90deg);
 }
 
 /*
@@ -306,11 +334,10 @@
 
   .toggle {
     display: inline-flex;
-    /* Closed: button sits at the viewport's left edge so it's reachable.
-       Open: button rides the rail's right edge. */
-    left: 0;
   }
   .host[data-rail-open="true"] .toggle {
+    /* Slide to the rail's right edge so the chevron rides the seam
+       between the open drawer and the content. */
     left: var(--rail-w);
   }
 
@@ -340,7 +367,6 @@
 }
 .host[data-tier="reimagined"] .toggle {
   display: inline-flex;
-  left: 0;
 }
 .host[data-tier="reimagined"][data-rail-open="true"] .toggle {
   left: var(--rail-w);

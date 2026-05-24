@@ -48,24 +48,48 @@ export function MuseumPageShell({
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
 
-  // ResizeObserver on the <header> that the leaf emits inside this
-  // shell. The header is a direct grandchild (via display: contents
-  // on the inner wrapper) so querying by tag inside our root is
-  // unambiguous — each shell instance has exactly one <header>.
+  // Measure the leaf's <header> so other parts of the shell can use
+  // its height as a top spacer (chromeSpacer, sticky notes, custom
+  // scrollbar offsets). The header may not exist on first mount — it
+  // gets rendered by the leaf page, which may stream in later. We watch
+  // for it via MutationObserver and switch to ResizeObserver once it
+  // appears. Both observers disconnect on unmount.
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell) return;
-    const header = shell.querySelector("header");
-    if (!header) return;
 
-    const apply = () => {
-      const h = header.getBoundingClientRect().height;
-      shell.style.setProperty("--chrome-h", `${Math.round(h)}px`);
+    let ro: ResizeObserver | null = null;
+    let attachedHeader: HTMLElement | null = null;
+
+    const attachTo = (header: HTMLElement) => {
+      if (attachedHeader === header) return;
+      ro?.disconnect();
+      attachedHeader = header;
+      const apply = () => {
+        const h = header.getBoundingClientRect().height;
+        shell.style.setProperty("--chrome-h", `${Math.round(h)}px`);
+      };
+      apply();
+      ro = new ResizeObserver(apply);
+      ro.observe(header);
     };
-    apply();
-    const ro = new ResizeObserver(apply);
-    ro.observe(header);
-    return () => ro.disconnect();
+
+    const tryAttach = () => {
+      const header = shell.querySelector("header") as HTMLElement | null;
+      if (header) attachTo(header);
+    };
+
+    tryAttach();
+    // Re-scan whenever a node is added/removed under the shell — covers
+    // the header arriving after first paint (Suspense, streaming, view
+    // transitions) and tier swaps that remount the chrome.
+    const mo = new MutationObserver(tryAttach);
+    mo.observe(shell, { childList: true, subtree: true });
+
+    return () => {
+      mo.disconnect();
+      ro?.disconnect();
+    };
   }, []);
 
   return (

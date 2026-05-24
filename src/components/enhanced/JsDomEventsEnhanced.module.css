@@ -12,9 +12,14 @@
 
 .shell {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  min-height: 0;
+  /* Cap to the visible body region so internal scrollers (the event
+     log) can flex against a real constraint. Without a fixed height,
+     `.log { flex: 1; overflow-y: auto }` never engages — the log just
+     grows the whole page. --chrome-h and --notes-h come from the
+     museum shell's ResizeObservers; fall back to 0 before first
+     measurement. */
+  height: calc(100dvh - var(--chrome-h, 0px) - var(--notes-h, 0px));
   padding: calc(var(--space-6) * var(--app-pad, 1) * var(--room-pad, 1));
   background: var(--background);
   color: var(--foreground);
@@ -68,6 +73,12 @@
  */
 .ring {
   position: absolute;
+  /* Nested rings center on their PARENT ring (real DOM nesting drives
+     event capture/bubble traversal). Each ring's center sits at the
+     parent's 50%/50% via the translate(-50%, -50%) below. The shell
+     is height-capped to the visible body region (see .shell), so
+     vertical centering is stable across viewport sizes — no fixed
+     offset needed. */
   top: 50%;
   left: 50%;
   border-radius: var(--radius-full);

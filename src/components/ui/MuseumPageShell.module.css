@@ -25,12 +25,36 @@
 .shell {
   position: relative;
   min-height: 100dvh;
-  /* Default for routes with no rail. .withRail overrides. */
+  /* Two distinct rail measurements:
+       --rail-w:           the rail's intrinsic visual width when shown.
+                           Used to size the rail itself.
+       --rail-reserved-w:  how much horizontal space the row reserves
+                           for the rail. Used to inset leafBody's left
+                           edge AND to size the rail's fixed-position
+                           slot. Equal to --rail-w when the rail is
+                           in-flow (wide viewport); collapses to 0
+                           when the rail switches to drawer mode
+                           (narrow viewport) so the body reclaims that
+                           horizontal space.
+     Default (no rail at all): both are 0. .withRail overrides. */
   --rail-w: 0px;
+  --rail-reserved-w: 0px;
 }
 
 .withRail {
   --rail-w: 16rem;
+  --rail-reserved-w: 16rem;
+}
+
+/* Narrow viewport: SiblingRail switches to drawer mode (slides over
+   content from off-screen). Reserved row width collapses to 0 so the
+   body reclaims that space; --rail-w stays at 16rem so the drawer
+   itself still renders at its intrinsic width when slid in. Matches
+   SiblingRail.module.css's (a) drawer-mode breakpoint. */
+@media (max-width: 768px) {
+  .withRail {
+    --rail-reserved-w: 0px;
+  }
 }
 
 .shell > header {
@@ -46,14 +70,30 @@
   top: 0;
   left: 0;
   bottom: 0;
-  width: var(--rail-w);
-  z-index: 30;
+  /* Use --rail-reserved-w (NOT --rail-w) so the slot collapses to 0 in
+     drawer mode while the inner SiblingRail keeps its intrinsic
+     --rail-w when sliding in. Overflow visible so the chevron toggle
+     (sibling of the rail aside, position: fixed) stays clickable when
+     the slot width is 0. */
+  width: var(--rail-reserved-w);
+  /* z-index: 45 sits the rail slot ABOVE the notes panel (z-40) but
+     BELOW the chrome (z-50). Because `.rail` is a positioned fixed
+     element with z-index, it creates a stacking context — its
+     descendants' z-indices (including the toggle chevron) are bounded
+     by THIS context's z-index in the root order. Without raising past
+     40, the chevron would paint behind the notes panel when the rail
+     is in drawer mode and notes spans full width. */
+  z-index: 45;
+  /* Smooth the reserved-width collapse at the breakpoint. Both .rail
+     and .leafBody read --rail-reserved-w; transitioning width here +
+     left on .leafBody keeps the two halves in lockstep. */
+  transition: width var(--duration-slow) var(--ease-snap);
 }
 
 .leafBody {
   position: absolute;
   top: 0;
-  left: var(--rail-w, 0px);
+  left: var(--rail-reserved-w, 0px);
   right: 0;
   height: 100dvh;
   overflow-y: auto;
@@ -61,6 +101,7 @@
   /* Native scrollbar hidden; <CustomScrollbar/> paints a thumb confined
      to the visible region (below chrome + notes). */
   scrollbar-width: none;
+  transition: left var(--duration-slow) var(--ease-snap);
 }
 .leafBody::-webkit-scrollbar {
   display: none;
