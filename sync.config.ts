@@ -222,6 +222,41 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/react-exercises/declarative-counter",
   },
 
+  // Monty's Mineral SPA — chapter 7.x React Router exercise. The source
+  // repo carries two CRA apps side-by-side: `react-router/` is the broken
+  // assignment starter (literally has `<a href={<Home />}>...`), and
+  // `moe-not-broken-react-router/` is the student-completed working
+  // version. Museum builds the completed one — that's the artifact.
+  //
+  // BrowserRouter → HashRouter alias on museum-ready/original so client-
+  // side routing works under iframe hosting without server rewrites.
+  // PUBLIC_URL=. makes asset paths relative; react-scripts 5.0.1 + React
+  // 18 means no `--openssl-legacy-provider` needed.
+  "montys-mineral-spa": {
+    type: "cra-build",
+    cwd: ".sources/RR-React-Router-Montys-Mineral-Spa/moe-not-broken-react-router",
+    node: "20",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/react-exercises/montys-mineral-spa",
+  },
+
+  // My Values — static HTML/CSS artifact (no build step). Source-level
+  // hosting fix on museum-ready/original: two responsive breakpoints
+  // (900px wrap, 600px stack) so the four-column desktop layout doesn't
+  // clip cards inside the iframe at narrow viewports. The original
+  // breaks at <900px by design — the assignment was a CSS sampler that
+  // only targeted desktop. The fix preserves the desktop look at
+  // >=900px and adds graceful fallbacks below.
+  "my-values": {
+    type: "static-copy",
+    from: ".sources/My-Values",
+    to: "public/originals/my-values",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

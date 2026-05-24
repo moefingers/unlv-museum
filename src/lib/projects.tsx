@@ -646,7 +646,14 @@ export const PROJECTS: Project[] = [
     year: "May 2024",
     category: "full-stack",
     techOriginal: ["React (CRA)", "React Router", "Express", "PostgreSQL"],
-    original: <OriginalFrame src="/originals/rest-rant/index.html" />,
+    // syncHash: the CRA SPA uses HashRouter, so the iframe's hash
+    // changes as visitors navigate inside. With syncHash on, the
+    // outer museum URL carries a `?route=` query param that mirrors
+    // the iframe's hash — refresh/share/back all work. Mirrors the
+    // `?page=` pattern used by multi-page Originals.
+    original: (
+      <OriginalFrame src="/originals/rest-rant/index.html" syncHash />
+    ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     // Bidirectional pairing with the api-client lab surface. Value is
@@ -708,20 +715,6 @@ export const PROJECTS: Project[] = [
     original: <OriginalFrame src="/originals/commerce-array/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
-  },
-  {
-    slug: "enterprize",
-    title: "EnterPrize",
-    description:
-      "Enterprise asset management. Evolved from QuirkTruck through multiple iterations.",
-    year: "Jun 2024",
-    category: "full-stack",
-    techOriginal: ["Next.js 15", "Prisma", "NeonDB"],
-    original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-    reimaginedExternal: "https://enterprize-pi.vercel.app",
-    progression: true,
   },
   // HTML FUNDAMENTALS (chapter 2.x)
   // Container leaves in curriculum-chapter order.
@@ -803,6 +796,10 @@ export const PROJECTS: Project[] = [
     ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The iframe is intentionally blank — this is what was submitted. The source repo's index.html has an empty `<body>` and the linked style1.css is a zero-line file. The museum preserves it faithfully rather than backfilling content; the artifact is the empty sketch itself, a placeholder for a CSS exercise that never got past scaffolding. Kept in the museum to honor the chronology, not the content.",
+    },
   },
   {
     slug: "hacker-times",
@@ -1040,16 +1037,45 @@ export const PROJECTS: Project[] = [
   {
     slug: "quirk-truck",
     repo: "moefingers/quirkTruck",
+    // Both Enhanced and Reimagined live in the same `moefingers/h-data`
+    // repo on different branches. Enhanced points at the EnterPrize era
+    // (June–July 2024, pinned as the `enterprize` branch — 154 commits
+    // before a 15-month gap and a complete repo wipe-and-rebuild). The
+    // surgery branch `museum-ready/enhanced` derives from `enterprize`
+    // once the revival lands. Reimagined points at the current
+    // h-data tip (the late-2025 rebuild on `shepherd`).
+    repoEnhanced: "moefingers/h-data",
+    repoReimagined: "moefingers/h-data",
     title: "Quirk Truck",
-    description: "Dynamic truck catalog. Precursor to EnterPrize.",
+    description:
+      "Dynamic truck catalog. Evolved into EnterPrize, then Hierarchical Data.",
     synopsis:
-      "Dynamic truck catalog built in React on Create React App — the precursor to the EnterPrize enterprise rewrite.",
+      "Dynamic truck catalog built in React on Create React App — the seed of a multi-generation chain. The Enhanced tier (EnterPrize, June–July 2024) generalized the catalog into an enterprise asset-management dashboard built on Next.js 15 canary + Prisma + Vercel Postgres/Blob/KV + NextAuth v5. The Reimagined tier (Hierarchical Data, late-2025) rebuilt that idea from scratch on stable Next.js 16 + Drizzle + Neon, generalizing the catalog pattern into a configurable hierarchy.",
     year: "Feb 2024",
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
+    // Enhanced tech reflects the SURGERY TARGET (museum-ready/enhanced),
+    // not the pinned `enterprize` source — that one rode Next.js 15
+    // canary + @vercel/postgres + @vercel/kv + @vercel/blob, all of
+    // which are either canary-unstable or discontinued. The revival
+    // collapses everything onto Neon: Vercel Postgres → Neon serverless
+    // via Drizzle, KV obliterated (rate limits via @vercel/firewall,
+    // session/lease state in Postgres), Blob obliterated (joined
+    // `images` table with client-side webp compression to bytea —
+    // see CONTEXT/temp/enterprize-revival-punchlist.md).
+    techEnhanced: ["Next.js", "Drizzle", "Neon", "NextAuth v5"],
+    techReimagined: ["Next.js 16", "Drizzle", "Neon", "NextAuth v5"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    reimaginedExternal: "https://h-data.vercel.app",
+    progression: true,
+    notes: {
+      original:
+        "The original Quirk Truck — React/CRA catalog of trucks with a search bar and product cards. The starting point of a multi-generation chain: see the Enhanced tier for the EnterPrize era (June–July 2024 generalization into an enterprise dashboard) and Reimagined for Hierarchical Data (late-2025 from-scratch rebuild).",
+      enhanced:
+        "EnterPrize — June–July 2024 generalization of the catalog pattern into an enterprise asset-management dashboard. 154 commits on Next.js 15 canary + Prisma + Vercel Postgres/Blob/KV + NextAuth v5 implementing pages/sections/items hierarchies, role-based access (admin + 5 user roles: page-manager, credential-manager, change-name, audit-logs, work-orders), Google OAuth, audit logs, and work-order workflows for sensitive admin actions. Pinned on the `enterprize` branch of moefingers/h-data; museum-ready/enhanced simplifies the stack to Neon-all-the-way (Drizzle over Vercel Postgres, KV obliterated, blob storage TBD) and is pending surgery.",
+    },
   },
   {
     slug: "timer-stopwatch",
@@ -1097,14 +1123,21 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "my-values",
+    repo: "moefingers/My-Values",
     title: "My Values",
     description: "Personal values visualization.",
+    synopsis:
+      "Four-card CSS sampler laying out four personal values (Honesty, Commitment, Optimism, Humility) with their nurturing principles — a chapter-3-era exercise in flexbox layout, Google Fonts, and card composition.",
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS", "JavaScript"],
     original: <OriginalFrame src="/originals/my-values/index.html" />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "The original four-column desktop layout clipped its card titles when the iframe-served viewport was narrower than the cards' minimum readable width. Museum-ready/original adds two responsive breakpoints — at <900px the cards wrap two-per-row, at <600px they stack one-per-row with slightly smaller body text. The desktop appearance at >=900px is preserved exactly.",
+    },
   },
 
   // APIs & BACKEND
@@ -1283,7 +1316,7 @@ export const PROJECTS: Project[] = [
     relatedEntries: ["shared-counter"],
     notes: {
       original:
-        "Chapter 7.1.3 of the React Router series — the first exercise that introduces React's declarative rendering model. The same counter UI as js-exercises/shared-counter, but React owns the DOM updates: the button handler mutates state, and React re-renders the affected element automatically. The contrast is the lesson.",
+        "Chapter 7.1.3 of the React Router series — the first exercise that introduces React's declarative rendering model. The same counter UI as js-exercises/shared-counter, but with a twist: there's no button. The source exposes `window.changeCounter` so the visitor mutates state from the DevTools console (`changeCounter(42)`) and watches React re-render. The contrast — React owning the DOM update — is the lesson.",
     },
   },
   {
@@ -1307,11 +1340,20 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/RR-React-Router-Montys-Mineral-Spa",
     title: "Monty's Mineral Spa",
     description: "Multi-page React Router exercise.",
+    synopsis:
+      "Three-route React Router SPA for a fictional spa — Home, About Us, Our Packages. Source repo carries two CRA apps side-by-side: a deliberately-broken starter (`react-router/`) and the student-completed working version (`moe-not-broken-react-router/`). The museum builds the completed one.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "React Router", "CRA"],
+    original: (
+      <OriginalFrame src="/originals/react-exercises/montys-mineral-spa/index.html" />
+    ),
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
+    notes: {
+      original:
+        "Three routes — Home (/), About Us (/about), Our Packages (/packages) — wired with React Router 6. Source repo ships two CRA apps: the museum builds `moe-not-broken-react-router/`, the student's completed version (the sibling `react-router/` is the deliberately-broken starter the assignment provided). BrowserRouter aliased as HashRouter on museum-ready/original so iframe-served navigation works without server route rewrites.",
+    },
   },
   {
     slug: "bootstrap",

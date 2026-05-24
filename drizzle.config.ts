@@ -23,13 +23,14 @@ export default defineConfig({
   schemaFilter: [
     "commerce",
     "divvy",
-    "enterprize",
     "github_commits",
     "gwhac_a_mole",
     "jaskis",
     "music_tour",
     "petfax",
+    "quirk_truck_enhanced",
     "rest_rant",
+    "sql_demo",
     "stock_charts",
   ],
 });

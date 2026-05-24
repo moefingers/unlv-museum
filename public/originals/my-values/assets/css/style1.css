@@ -1,50 +1,84 @@
 * {
-  /* outline:black solid 1px; */
-  text-align: center;
+    /* outline:black solid 1px; */
+    text-align: center;
 }
 body {
-  background-color: aliceblue;
-  height: 100%;
+    background-color: aliceblue;
+    height:100%;
 }
 
-.valueCards {
-  display: flex;
-  height: 400px;
-
-  /* background: pink; */
+.valueCards{
+    display:flex;
+    height:400px;
+    
+    /* background: pink; */
 }
-.valueCard {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  margin: 2%;
-  padding: 4px;
-  width: 25%;
-  height: 100%;
-  background: rgba(200, 200, 200, 0.404);
-  border-radius: 10px;
-  box-shadow: 3px 3px 3px black;
+.valueCard{
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin:2%;
+    padding:4px;
+    width:25%;
+    height:100%;
+    background: rgba(200, 200, 200, 0.404);
+    border-radius: 10px;
+    box-shadow: 3px 3px 3px black;
 }
 
 h1 {
-  font-family: "Inter", sans-serif;
-  font-weight: 900;
-  text-align: center;
-  text-shadow: 3px 3px 3px gray;
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    text-align: center;
+    text-shadow: 3px 3px 3px gray;
 }
 h2 {
-  font-family: "Inter", sans-serif;
-  font-weight: 600;
-  font-size: 36px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 36px;
 }
 .valueBody {
-  font-family: "Inter", sans-serif;
-  font-weight: 300;
-  font-size: 24px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 24px;
 }
 
 .valueNurture {
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-  font-size: 20px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 20px;
+}
+
+/* museum-ready/original: responsive fallback for narrow viewports.
+   The original used a fixed four-column layout (each card at width:25%),
+   which clipped the card titles when the viewport was narrower than the
+   four cards' minimum readable width. The museum embeds this artifact
+   inside an iframe whose width tracks the visitor's browser, so the
+   clipping was the default experience on phones and side-by-side panes.
+   At narrower than 900px the cards now wrap; at narrower than 600px they
+   stack one-per-row. The desktop appearance at >=900px is unchanged. */
+@media (max-width: 900px) {
+    .valueCards {
+        flex-wrap: wrap;
+        height: auto;
+    }
+    .valueCard {
+        width: 46%;
+        height: auto;
+        min-height: 180px;
+    }
+}
+@media (max-width: 600px) {
+    .valueCard {
+        width: 92%;
+    }
+    h2 {
+        font-size: 28px;
+    }
+    .valueBody {
+        font-size: 18px;
+    }
+    .valueNurture {
+        font-size: 16px;
+    }
 }

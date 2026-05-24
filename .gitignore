@@ -53,6 +53,9 @@ next-env.d.ts
 !.sources/iam-2-sql-injection-demo
 !.sources/UNLV-rest-rant
 !.sources/rr-1-react-and-front-end-libraries
+!.sources/RR-React-Router-Montys-Mineral-Spa
+!.sources/My-Values
+!.sources/h-data
 
 dev.log
 .dev.log

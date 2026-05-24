@@ -37,3 +37,15 @@
 [submodule ".sources/rr-1-react-and-front-end-libraries"]
 	path = .sources/rr-1-react-and-front-end-libraries
 	url = git@github.com:moefingers/rr-1-react-and-front-end-libraries.git
+[submodule ".sources/RR-React-Router-Montys-Mineral-Spa"]
+	path = .sources/RR-React-Router-Montys-Mineral-Spa
+	url = https://github.com/moefingers/RR-React-Router-Montys-Mineral-Spa.git
+	branch = museum-ready/original
+[submodule ".sources/My-Values"]
+	path = .sources/My-Values
+	url = https://github.com/moefingers/My-Values.git
+	branch = museum-ready/original
+[submodule ".sources/h-data"]
+	path = .sources/h-data
+	url = https://github.com/moefingers/h-data.git
+	branch = museum-ready/enhanced
