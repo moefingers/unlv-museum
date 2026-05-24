@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { FoldingChevron } from "@/components/ui/FoldingChevron";
 import { MuseumChrome, type TierSpec } from "@/components/ui/MuseumChrome";
 import { useNotes } from "@/components/ui/ProjectChromeNotes";
 import {
@@ -105,7 +105,8 @@ export function ProjectChrome({ project }: { project: Project }) {
           {tierTech && tierTech.length > 0 ? ` · ${tierTech.join(", ")}` : ""}
         </>
       }
-      titleExtra={
+      tiers={tiers}
+      trailExtra={
         hasPanelContent && (
           <button
             onClick={() => setOpen(!open)}
@@ -113,15 +114,11 @@ export function ProjectChrome({ project }: { project: Project }) {
             aria-expanded={open}
             aria-controls="project-notes-panel"
           >
-            <ChevronDown
-              size={12}
-              className={`${styles.notesChevron} ${open ? styles.notesChevronOpen : ""}`}
-            />
+            <FoldingChevron open={open} size={14} strokeWidth={2} />
             Notes
           </button>
         )
       }
-      tiers={tiers}
     />
   );
 }

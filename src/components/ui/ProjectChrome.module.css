@@ -1,38 +1,46 @@
 /*
  * Per-tier notes — the toggle button (rendered inside MuseumChrome's
- * titleExtra slot) and the panel itself (rendered as a fixed overlay
- * outside <main> by <ProjectNotes/>). Generic chrome/tier-picker
- * styling lives in MuseumChrome.module.css.
+ * trailExtra slot, rightmost in the trail group) and the panel itself
+ * (rendered as a fixed overlay outside <main> by <ProjectNotes/>).
+ * Generic chrome/tier-picker styling lives in MuseumChrome.module.css.
  */
 
+/*
+ * Trail-group chip — matches the visual vocabulary of the other
+ * right-edge affordances (theme toggle, sign-in chip) in SHAPE
+ * (2rem height, 1px border, --shadow-sm, --radius-lg) but carries
+ * the same 8% warning-token TINT as the notes panel itself. That
+ * cue is load-bearing: it tells the visitor "click this and a
+ * surface with this color will reveal." A neutral chip would read
+ * as one more nav control. Uses the <FoldingChevron> component
+ * (16-by-2 lines that fold through a vertical midpoint) instead of
+ * a rotated lucide ChevronDown.
+ */
 .notesToggle {
   display: inline-flex;
   align-items: center;
-  gap: calc(0.125rem * var(--app-margin, 1) * var(--chrome-margin, 1));
-  padding: calc(0.125rem * var(--app-pad, 1) * var(--chrome-pad, 1))
-    calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
-  border-radius: var(--radius-md);
-  /* Same warning tint as the panel itself — the button previews its
-     surface. */
+  gap: calc(0.25rem * var(--app-margin, 1) * var(--chrome-margin, 1));
+  height: 2rem;
+  padding: 0 calc(0.625rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-lg);
+  /* 8% warning-token tint — identical to the .notesPanel surface
+     below. Border uses the same token at higher alpha so it reads
+     as a defined chip, not a fuzzy fill, against the chrome glass. */
   background: oklch(from var(--warning) l c h / 0.08);
+  border: 1px solid oklch(from var(--warning) l c h / 0.3);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
   font-size: calc(
-    var(--font-size-xs) * var(--app-size, 1) * var(--chrome-size, 1)
+    var(--font-size-sm) * var(--app-size, 1) * var(--chrome-size, 1)
   );
   font-weight: var(--font-weight-medium);
+  cursor: pointer;
   transition:
     background var(--duration-normal) var(--ease-default),
     color var(--duration-normal) var(--ease-default);
 }
 .notesToggle:hover {
-  background: var(--accent);
-  color: var(--accent-foreground);
-}
-
-.notesChevron {
-  transition: rotate var(--duration-normal) var(--ease-default);
-}
-.notesChevronOpen {
-  rotate: 180deg;
+  background: oklch(from var(--warning) l c h / 0.16);
 }
 
 /* Glassy fixed band below the chrome, right of the rail. Lives outside

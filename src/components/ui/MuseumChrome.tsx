@@ -45,6 +45,14 @@ interface MuseumChromeProps {
    */
   tiers?: TierSpec[];
   /**
+   * Optional content rendered in the trail group AFTER the sign-in
+   * chip — i.e. the rightmost slot in the chrome. ProjectChrome
+   * uses this for the per-tier notes toggle so it sits with the
+   * other right-edge affordances (tier picker, theme toggle, sign-in)
+   * rather than next to the subtitle.
+   */
+  trailExtra?: ReactNode;
+  /**
    * Optional content rendered INSIDE the sticky <header> but BELOW
    * the main row. ProjectChrome uses this for the per-tier notes
    * collapsible panel.
@@ -92,6 +100,7 @@ export function MuseumChrome({
   subtitle,
   titleExtra,
   tiers,
+  trailExtra,
   belowRow,
 }: MuseumChromeProps) {
   return (
@@ -176,6 +185,7 @@ export function MuseumChrome({
           )}
           <ThemeToggle variant="chrome" />
           <SignInChip />
+          {trailExtra}
         </div>
       </div>
       {belowRow}
