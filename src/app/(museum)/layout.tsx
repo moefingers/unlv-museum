@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { THEME_INIT_INTEGRITY } from "@/lib/theme-script";
+import { MuseumToastLayer } from "@/components/ui/MuseumToastLayer";
 import "../globals.css";
 import styles from "./layout.module.css";
 
@@ -131,6 +132,14 @@ export default function RootLayout({
       </head>
       <body>
         <main className={styles.main}>{children}</main>
+        {/* Museum-level toast layer — registers the Service Worker
+            (public/museum-toast-sw.js) and renders a top-right toast
+            stack when intercepted /api/** or /originals/** responses
+            cross the 4xx/5xx filter. Headline use case: a visitor
+            triggers a 401 from an iframed Original's mutation
+            button and sees a "Sign in to continue" toast without the
+            project needing per-project UX code. */}
+        <MuseumToastLayer />
       </body>
     </html>
   );

@@ -1,0 +1,109 @@
+/* MuseumToastLayer — fixed stack pinned to the top-right of the museum
+ * viewport. Stays out of the way of the chrome (top), the rail (left),
+ * and any per-project bottom-right toasts (e.g. AdminPortalEnhanced).
+ *
+ * The container itself is pointer-events: none so it doesn't trap
+ * clicks meant for whatever's beneath it; individual toasts opt back
+ * in via pointer-events: auto.
+ */
+
+.layer {
+  position: fixed;
+  top: calc(var(--chrome-height, 4rem) + 1rem);
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  z-index: 60;
+  pointer-events: none;
+  max-width: min(24rem, calc(100vw - 2rem));
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.875rem;
+  box-shadow: 0 12px 32px -16px
+    color-mix(in oklab, var(--foreground), transparent 50%);
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  animation: toast-slide-in 0.18s ease-out;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Auth (401/403) — yellow accent. Server (5xx) — red. Other 4xx — neutral. */
+.toastAuth {
+  border-color: color-mix(in oklab, var(--warning), transparent 50%);
+  background: color-mix(in oklab, var(--warning), var(--card) 88%);
+}
+.toastServer {
+  border-color: color-mix(in oklab, var(--destructive), transparent 50%);
+  background: color-mix(in oklab, var(--destructive), var(--card) 88%);
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.title {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground);
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.endpoint {
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  background: color-mix(in oklab, var(--foreground), transparent 92%);
+  padding: 0.05em 0.3em;
+  border-radius: var(--radius-sm);
+}
+
+.close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted-foreground);
+  padding: 0.125rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-fast) var(--ease-default);
+}
+.close:hover {
+  background: color-mix(in oklab, var(--foreground), transparent 90%);
+  color: var(--foreground);
+}
