@@ -1044,6 +1044,13 @@ export function PolyhedronGlobe({
       // onClick from firing — breaking tap-to-open.
       void surface;
     },
+    // Deps list ONLY identities whose change should rebuild this
+    // callback. Refs (touchModeRef, lastMove, activePointers,
+    // lastPinchDistance) and stable callbacks (pointerCentroid) are
+    // intentionally omitted — they're read fresh on each call, so
+    // listing them would force unnecessary callback churn. Same
+    // convention used by the other pointer handlers below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [anchor, dragMomentum],
   );
 
@@ -1060,6 +1067,9 @@ export function PolyhedronGlobe({
       }
       handleTapPointerDown(e, surface);
     },
+    // Stable refs (touchModeRef) intentionally omitted; see the
+    // handleTapPointerDown deps comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleHoverPointerDown, handleTapPointerDown],
   );
 
@@ -1112,6 +1122,9 @@ export function PolyhedronGlobe({
       lastMove.current.y = c.y;
       lastMove.current.t = now;
     },
+    // Stable refs (userZoomRef, lastMove, activePointers) +
+    // pointerCentroid (useCallback-stable) intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [dragMomentum, applyQ, tryEmitPinchZoom],
   );
 
@@ -1120,6 +1133,8 @@ export function PolyhedronGlobe({
       if (touchModeRef.current === "hover") return handleHoverPointerMove(e);
       handleTapPointerMove(e);
     },
+    // Stable refs (touchModeRef) intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleHoverPointerMove, handleTapPointerMove],
   );
 
@@ -1159,6 +1174,9 @@ export function PolyhedronGlobe({
       // the EMA after a finger-lift.
       dragMomentum.clearVelocity();
     },
+    // Stable refs (activePointers, lastMove, lastPinchDistance) +
+    // pointerCentroid (useCallback-stable) intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [dragMomentum],
   );
 
@@ -1167,6 +1185,8 @@ export function PolyhedronGlobe({
       if (touchModeRef.current === "hover") return handleHoverPointerUp(e);
       handleTapPointerUp(e);
     },
+    // Stable refs (touchModeRef) intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleHoverPointerUp, handleTapPointerUp],
   );
 
