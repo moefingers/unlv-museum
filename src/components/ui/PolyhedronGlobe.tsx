@@ -377,6 +377,23 @@ const CROSSHAIR_LINGER_MS = 1000;
 const TAP_MAX_MS = 400;
 const TAP_MAX_PX = 20;
 const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
+// Pointerup hesitation window. When a pointerup arrives while OTHER
+// pointers are still down, we don't act on it immediately — we wait
+// this many ms to see if more pointerups arrive (suggesting a
+// "simultaneous lift" the OS happened to serialize). If they do, the
+// stale pointerup is folded into the eventual full-lift handling. If
+// the timer expires with fingers still down, we commit the original
+// pointerup's "one finger lifted, X-1 remain" transition normally.
+//
+// During the hesitation, both pointermove AND further pointerup
+// processing for the crosshair are suspended. This prevents the snap
+// the old grace-timer model couldn't catch — race writes from
+// pointermoves arriving in any order between the lift signals get
+// swallowed too, because all pointermoves during hesitation skip
+// writeCrosshair.
+//
+// 60ms tuned for human "simultaneous" two-finger lifts.
+const POINTERUP_HESITATION_MS = 60;
 
 // ─── Glow toggles ─────────────────────────────────────────────
 // Flip these constants to A/B individual visual effects in isolation
@@ -927,21 +944,52 @@ export function PolyhedronGlobe({
      *  pointerup handler to find the nearest vertex). null while
      *  no gesture is active. */
     pos: { x: number; y: number } | null;
+    /** Crosshair position from BEFORE the most recent writeCrosshair.
+     *  Used by handlePointerUp's hover-mode branch to undo the most
+     *  recent pointermove write IF that write was likely corrupted
+     *  by a finger that was physically lifting but hadn't yet sent
+     *  its pointerup. The OS can fire a pointermove using the
+     *  lift-in-progress finger's stale coordinates as part of the
+     *  centroid, dragging the crosshair toward the remaining finger.
+     *  Restoring prevPos on pointerup with wasMultiFinger=true (i.e.
+     *  we were in pinch mode just before this lift) puts the
+     *  crosshair back where it was BEFORE that suspect move. */
+    prevPos: { x: number; y: number } | null;
     /** performance.now() at pointerdown — for tap-vs-drag timing. */
     startedAt: number;
     /** Client-coord position at pointerdown — for movement delta. */
     startPos: { x: number; y: number } | null;
     /** Max movement distance during the current gesture (px). */
     maxMovement: number;
-    /** Post-release linger timer. */
+    /** Post-release linger timer (the fade-out). */
     lingerTimer: ReturnType<typeof setTimeout> | null;
+    /**
+     * Pending pointerup: when a pointerup arrives while OTHER
+     * pointers are still down, we don't act on it immediately. We
+     * stash its info here and start a timer. If another pointerup
+     * arrives during the window, we treat both as simultaneous (full
+     * lift). If the timer expires with pointers still down, we
+     * commit the lift — the original meaning of "one finger lifted,
+     * X-1 fingers remain" — at which point the crosshair starts
+     * tracking the remaining finger(s) again.
+     *
+     * Critically, while this is set, BOTH pointermove and pointerup
+     * are gated: pointermoves don't update the crosshair (so the
+     * frozen centroid stays put no matter which finger jitters),
+     * and a subsequent pointerup either short-circuits to "both
+     * lifted simultaneously" or commits whatever transition both
+     * lifts represent.
+     */
+    pendingLift: ReturnType<typeof setTimeout> | null;
   };
   const crosshairGesture = useRef<CrosshairGesture>({
     pos: null,
+    prevPos: null,
     startedAt: 0,
     startPos: null,
     maxMovement: 0,
     lingerTimer: null,
+    pendingLift: null,
   });
   const [crosshairView, setCrosshairView] = useState<{
     /** Mount/unmount gate for the <g>. */
@@ -960,12 +1008,69 @@ export function PolyhedronGlobe({
   // re-render) and mirrors the position into the gesture ref so
   // pointerup's tap-target calc can read it back.
   const writeCrosshair = (pos: { x: number; y: number } | null) => {
+    crosshairGesture.current.prevPos = crosshairGesture.current.pos;
     crosshairGesture.current.pos = pos;
     const g = crosshairGroupRef.current;
     if (g && pos) {
-      g.setAttribute("transform", `translate(${pos.x} ${pos.y})`);
+      // Write via the CSS `transform` PROPERTY (not the SVG
+      // `transform` ATTRIBUTE). CSS transitions only animate CSS
+      // property changes — attribute changes jump instantly. We
+      // don't rely on a transition right now, but consistency keeps
+      // the door open for one without flipping back and forth
+      // between the two coordinate systems.
+      //
+      // CSS transforms on SVG elements use the local viewBox
+      // coordinate system per CSS Transforms Level 2 — `px` units
+      // resolve to viewBox user units when the target is inside an
+      // <svg>, so our viewBox-space pos values translate cleanly.
+      g.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
     }
   };
+  // Imperative opacity writer. Replaces the previous React-driven
+  // `crosshairView.releasing` flag: the <g>'s style is fully
+  // imperative now (see the ref callback in JSX), so this is the
+  // sole authority on its opacity. `false` (the initial state on
+  // gesture start) holds at 1; `true` flips to 0, triggering the
+  // CROSSHAIR_LINGER_MS opacity transition that fades the crosshair
+  // out before the linger timer unmounts it.
+  const writeCrosshairOpacity = (releasing: boolean) => {
+    const g = crosshairGroupRef.current;
+    if (g) g.style.opacity = releasing ? "0" : "1";
+  };
+  // Stable ref callback for the crosshair <g>. Memoized via
+  // useCallback so React only invokes it on mount (with the element)
+  // and unmount (with null) — NOT on every render. The latter would
+  // reset opacity + transition back to baseline on every re-render,
+  // clobbering writeCrosshairOpacity.
+  //
+  // Reads `crosshairView` at call time via the ref (latest value
+  // captured by the latest-ref pattern). The closure-captured
+  // initialX/Y in this callback is only used at the moment of
+  // mount, which is when crosshairView was just set to make the
+  // element visible — so it's always up-to-date relative to the
+  // current gesture.
+  const crosshairViewRef = useLatestRef(crosshairView);
+  const crosshairGroupRefCallback = useCallback(
+    (el: SVGGElement | null) => {
+      crosshairGroupRef.current = el;
+      if (el) {
+        const v = crosshairViewRef.current;
+        // Initial transform via CSS property (not SVG attribute) so
+        // subsequent writeCrosshair calls (which also write the CSS
+        // property) replace this baseline cleanly. The CSS
+        // `transform` property takes precedence over the SVG
+        // `transform` attribute when both are set, but using the
+        // property here avoids confusion and matches the model
+        // `transition: transform` expects.
+        el.style.transform = `translate(${v.initialX}px, ${v.initialY}px)`;
+        el.style.opacity = "1";
+        el.style.transitionProperty = "opacity";
+        el.style.transitionDuration = `${CROSSHAIR_LINGER_MS}ms`;
+        el.style.transitionTimingFunction = "ease-out";
+      }
+    },
+    [crosshairViewRef],
+  );
   // Touch-mode ref so handlers can read the current mode without
   // recreating on every prop change. The crosshair render is
   // gated on (touchMode === "hover" && crosshairPos) in the JSX,
@@ -1071,13 +1176,39 @@ export function PolyhedronGlobe({
     (e: React.PointerEvent) => {
       // ── Touch hover mode ─────────────────────────────────
       // Pointerdown in hover mode places the crosshair at the
-      // touch point and engages the nearest assigned vertex.
-      // Drag/pinch logic is suppressed — the finger is a
-      // hover-cursor, not a sphere-grabber.
+      // centroid of all active fingers and engages the nearest
+      // assigned vertex. Drag-rotate is suppressed — fingers are
+      // hover-cursors, not sphere-grabbers — but pinch zoom IS
+      // honored once 2+ fingers are down (see handlePointerMove's
+      // shared pinch branch).
+      //
+      // activePointers is populated even in hover mode so
+      // pointerCentroid() can compute a multi-finger midpoint for
+      // both the crosshair location AND the pinch radius. The map
+      // was previously untouched by hover-mode handlers; nothing
+      // outside the hover-mode + pinch paths reads it, so adding
+      // writes here is safe.
       if (touchModeRef.current === "hover") {
-        const vbPoint = clientToViewBox(e.clientX, e.clientY);
+        activePointers.current.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY,
+        });
+        const c = pointerCentroid();
+        const g = crosshairGesture.current;
+        // A new finger landing cancels any pending pointerup
+        // hesitation — the user is re-engaging the gesture, not
+        // completing it. (E.g. a quick lift+land of the same finger
+        // during a pinch.)
+        if (g.pendingLift) {
+          clearTimeout(g.pendingLift);
+          g.pendingLift = null;
+        }
+        // If a second finger just landed, seed the pinch baseline
+        // so the next pointermove can compute a real radius ratio.
+        // Otherwise leave it null (1-finger moves never read it).
+        lastPinchDistance.current = c.count >= 2 ? c.radius : null;
+        const vbPoint = clientToViewBox(c.x, c.y);
         if (vbPoint) {
-          const g = crosshairGesture.current;
           // Cancel any in-flight linger from a prior release so a
           // new tap doesn't fade out partway through.
           if (g.lingerTimer) {
@@ -1085,12 +1216,23 @@ export function PolyhedronGlobe({
             g.lingerTimer = null;
           }
           writeCrosshair(vbPoint);
+          // Reset opacity to full — needed when the previous gesture
+          // was mid-fade and the user re-touched before unmount.
+          // Without this the <g> would already be at opacity:0 and
+          // the new gesture would appear invisible. (When visibility
+          // was false and the <g> mounts fresh, the ref callback
+          // sets opacity:1 anyway, so this is a no-op then.)
+          writeCrosshairOpacity(false);
           setCrosshairView({
             visible: true,
             releasing: false,
             initialX: vbPoint.x,
             initialY: vbPoint.y,
           });
+          // Engagement runs from the centroid regardless of finger
+          // count — multi-finger centroid is still a meaningful
+          // hover target. See the parallel comment in
+          // handlePointerMove for the full rationale.
           const vi = findNearestAssignedVertex(
             vbPoint,
             CROSSHAIR_ENGAGEMENT_RADIUS,
@@ -1098,9 +1240,18 @@ export function PolyhedronGlobe({
           if (vi !== null && anchor.getAnchoredVi() !== vi) {
             setEngagedVertexIdx(vi);
           }
-          g.startedAt = performance.now();
-          g.startPos = { x: e.clientX, y: e.clientY };
-          g.maxMovement = 0;
+          // Tap-vs-drag bookkeeping: seed startPos from the centroid
+          // (not the raw finger position) so the second finger
+          // landing doesn't reset the "tap origin" to a different
+          // point. maxMovement is reset on the first pointerdown
+          // only — subsequent pointerdowns (additional fingers)
+          // keep accumulating against the original start so a quick
+          // pinch + lift doesn't accidentally count as a tap.
+          if (c.count === 1) {
+            g.startedAt = performance.now();
+            g.startPos = { x: c.x, y: c.y };
+            g.maxMovement = 0;
+          }
         }
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
         return;
@@ -1157,41 +1308,96 @@ export function PolyhedronGlobe({
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       // ── Touch hover mode ─────────────────────────────────
-      // Finger movement updates the crosshair + re-engages the
+      // Finger movement updates the crosshair (placed at the
+      // centroid of all active fingers) and re-engages the
       // nearest vertex. We also track total movement distance
       // (via crosshairGesture.maxMovement) so the up handler
       // can decide whether the gesture was a "tap" (movement
       // < TAP_MAX_PX, open the card) or a "drag" (just a
-      // preview).
+      // preview). When 2+ fingers are down, the same centroid
+      // doubles as the pinch midpoint and the radius drives a
+      // synthetic wheel-zoom call.
       if (touchModeRef.current === "hover") {
-        const vbPoint = clientToViewBox(e.clientX, e.clientY);
+        // Update this pointer's entry in the active map. Unknown
+        // pointers (no matching pointerdown) get ignored — same
+        // guard as the tap-mode branch.
+        const pt = activePointers.current.get(e.pointerId);
+        if (!pt) return;
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+
+        const c = pointerCentroid();
+        const g = crosshairGesture.current;
+        // Pending-lift suppression: an earlier pointerup is waiting
+        // out the hesitation window. While that's in flight, ALL
+        // pointermove activity for the crosshair is frozen — neither
+        // the crosshair position nor pinch zoom should respond to
+        // moves on the remaining finger(s). This is the single rule
+        // that kills the snap regardless of which order the OS fires
+        // pointerup A / pointerup B / pointermove B. We still
+        // accumulate maxMovement so an accidental jitter doesn't
+        // turn into a "tap" on commit.
+        if (g.pendingLift !== null) {
+          if (g.startPos) {
+            const dx = c.x - g.startPos.x;
+            const dy = c.y - g.startPos.y;
+            const movement = Math.hypot(dx, dy);
+            if (movement > g.maxMovement) g.maxMovement = movement;
+          }
+          return;
+        }
+        const vbPoint = clientToViewBox(c.x, c.y);
         if (!vbPoint) return;
         // Imperative DOM write — bypasses React reconciliation
-        // so the crosshair tracks the finger at the pointermove
+        // so the crosshair tracks the centroid at the pointermove
         // event rate without per-frame state updates.
         writeCrosshair(vbPoint);
-        const g = crosshairGesture.current;
         if (g.startPos) {
-          const dx = e.clientX - g.startPos.x;
-          const dy = e.clientY - g.startPos.y;
+          const dx = c.x - g.startPos.x;
+          const dy = c.y - g.startPos.y;
           const movement = Math.hypot(dx, dy);
           if (movement > g.maxMovement) {
             g.maxMovement = movement;
           }
         }
+        // Engagement updates always run from the centroid — a
+        // multi-finger gesture's midpoint is still a meaningful
+        // hover target. Pinching naturally moves the centroid; if
+        // it passes over a vertex, that vertex engaging is correct
+        // behavior (the user can still see what they're hovering
+        // toward). Previously gated by count < 2 to avoid flicker
+        // during pinch, but the flicker is mild and the missing
+        // engagement feedback is worse.
         const vi = findNearestAssignedVertex(
           vbPoint,
           CROSSHAIR_ENGAGEMENT_RADIUS,
         );
-        // Only re-engage if it's a different vertex AND it isn't
-        // the anchored one. Anchored vi is already presented as
-        // a card; re-engaging would type the label on top of it.
         const anchoredVi = anchor.getAnchoredVi();
         if (vi !== null && vi !== anchoredVi) {
           setEngagedVertexIdx((prev) => (prev === vi ? prev : vi));
         } else if (vi === null) {
-          // Crosshair left the engagement radius of all vertices.
           setEngagedVertexIdx((prev) => (prev === null ? prev : null));
+        }
+
+        // Pinch: when 2+ fingers are down AND we have a baseline
+        // radius, emit a synthetic wheel-deltaY so the parent's
+        // existing onWheelZoom math handles the zoom. Identical
+        // pattern to tap-mode pinch — the math doesn't care which
+        // mode we're in.
+        if (
+          c.count >= 2 &&
+          lastPinchDistance.current !== null &&
+          lastPinchDistance.current > 0 &&
+          c.radius > 0 &&
+          onWheelZoom
+        ) {
+          const ratio = c.radius / lastPinchDistance.current;
+          const syntheticDeltaY =
+            -Math.log(ratio) / USER_ZOOM_WHEEL_SENSITIVITY;
+          if (Math.abs(syntheticDeltaY) > 0.5) {
+            onWheelZoom(syntheticDeltaY);
+            lastPinchDistance.current = c.radius;
+          }
         }
         return;
       }
@@ -1283,47 +1489,144 @@ export function PolyhedronGlobe({
   const handlePointerUp = useCallback(
     (e?: React.PointerEvent) => {
       // ── Touch hover mode ─────────────────────────────────────
-      // Pointerup in hover mode: if the gesture was a tap (short
-      // duration + low movement), open whichever vertex the
-      // crosshair was currently near. Then dismiss the crosshair +
-      // any active label engagement so the user gets a clean
-      // visual handoff.
+      // Pointerup in hover mode: remove the lifted pointer from
+      // activePointers, then branch on how many remain. Three cases:
+      //   1. count > 0 AND previous count was ≥2 AND new count is 1
+      //      → 2→1 transition. Start the grace window (don't update
+      //      the crosshair). If a second finger doesn't return in
+      //      MULTI_FINGER_EXIT_GRACE_MS, transit smoothly from the
+      //      frozen centroid to the remaining finger.
+      //   2. count > 0 otherwise (3→2, intermediate lifts)
+      //      → snap-rebaseline to the new centroid as before.
+      //   3. count == 0
+      //      → tap/linger/dismiss flow (full lift).
       if (touchModeRef.current === "hover") {
         const g = crosshairGesture.current;
-        const duration = performance.now() - g.startedAt;
-        const wasTap = duration < TAP_MAX_MS && g.maxMovement < TAP_MAX_PX;
-        if (wasTap && g.pos) {
-          const vi = findNearestAssignedVertex(
-            g.pos,
-            CROSSHAIR_ENGAGEMENT_RADIUS,
-          );
-          if (vi !== null) {
-            anchor.handleDotClick(vi);
-          }
+        // Duplicate-event guard: pointerup can be delivered twice for
+        // the same pointerId via React's synthetic event delegation
+        // when handlers are bound on both the inner stage and the
+        // lifted .globeWrap surface, or by pointerup bubbling through
+        // two listening ancestors. If this pointerId isn't in
+        // activePointers anymore, we've already processed its lift —
+        // re-processing would incorrectly hit CASE A's
+        // doRebaseline (snapping the crosshair to the live single-
+        // finger position).
+        if (e && !activePointers.current.has(e.pointerId)) {
+          return;
         }
-        // Linger: keep the crosshair rendered for an additional
-        // CROSSHAIR_LINGER_MS after lift, fading out via CSS
-        // opacity transition (releasing → true triggers the fade).
-        // Gives the user a moment of visual confirmation that
-        // their gesture registered before the crosshair
-        // disappears entirely.
-        setCrosshairView((v) => ({ ...v, releasing: true }));
-        if (g.lingerTimer) clearTimeout(g.lingerTimer);
-        g.lingerTimer = setTimeout(() => {
-          setCrosshairView({
-            visible: false,
-            releasing: false,
-            initialX: 0,
-            initialY: 0,
-          });
-          crosshairGesture.current.pos = null;
-          crosshairGesture.current.lingerTimer = null;
-        }, CROSSHAIR_LINGER_MS);
-        // Dismiss engagement on release whether it was a tap or
-        // drag — the crosshair is gone, the label should go too.
-        setEngagedVertexIdx(null);
-        g.startPos = null;
-        g.maxMovement = 0;
+        // Snapshot BEFORE mutating: were we in pinch mode (count >= 2)
+        // when this pointerup arrived? If so, the most recent
+        // pointermove may have been corrupted by the lifting finger's
+        // stale coordinates being averaged into the centroid. We undo
+        // that write by restoring the crosshair to prevPos (the
+        // position from one writeCrosshair call ago).
+        const wasMultiFinger = activePointers.current.size >= 2;
+        if (e) {
+          activePointers.current.delete(e.pointerId);
+        } else {
+          activePointers.current.clear();
+        }
+        const c = pointerCentroid();
+
+        if (wasMultiFinger && g.prevPos && !g.pendingLift) {
+          // Undo the (possibly corrupted) most recent pointermove
+          // write. Only do this when wasMultiFinger and no pending
+          // lift was in flight — a pending lift means the pointermove
+          // handler was already gated, so the most recent write was
+          // legitimate (pre-pinch-end).
+          writeCrosshair(g.prevPos);
+        }
+
+        // Helper: the "fully lifted" terminal flow. Tap detection,
+        // linger fade, engagement clear, pinch baseline reset.
+        // Identical to what the old fully-lifted branch ran.
+        const doFullLift = () => {
+          const duration = performance.now() - g.startedAt;
+          const wasTap = duration < TAP_MAX_MS && g.maxMovement < TAP_MAX_PX;
+          if (wasTap && g.pos) {
+            const vi = findNearestAssignedVertex(
+              g.pos,
+              CROSSHAIR_ENGAGEMENT_RADIUS,
+            );
+            if (vi !== null) {
+              anchor.handleDotClick(vi);
+            } else if (anchor.getAnchoredVi() !== null) {
+              anchor.releaseAnchor();
+            }
+          }
+          writeCrosshairOpacity(true);
+          if (g.lingerTimer) clearTimeout(g.lingerTimer);
+          g.lingerTimer = setTimeout(() => {
+            setCrosshairView({
+              visible: false,
+              releasing: false,
+              initialX: 0,
+              initialY: 0,
+            });
+            crosshairGesture.current.pos = null;
+            crosshairGesture.current.lingerTimer = null;
+          }, CROSSHAIR_LINGER_MS);
+          setEngagedVertexIdx(null);
+          g.startPos = null;
+          g.maxMovement = 0;
+          lastPinchDistance.current = null;
+        };
+
+        // Helper: commit a "one finger lifted, X-1 remain" transition
+        // immediately. Snap the crosshair to the new centroid,
+        // rebaseline pinch + tap origin. This is what we run when:
+        //   - the hesitation timer fires with fingers still down, OR
+        //   - a follow-up pointerup arrives during hesitation with
+        //     fingers still down (the two pointerups collapse into a
+        //     single commit point).
+        const doRebaseline = () => {
+          const live = pointerCentroid();
+          const livePt = clientToViewBox(live.x, live.y);
+          if (livePt) writeCrosshair(livePt);
+          lastPinchDistance.current = live.count >= 2 ? live.radius : null;
+          g.startedAt = performance.now();
+          g.startPos = { x: live.x, y: live.y };
+          g.maxMovement = 0;
+        };
+
+        // CASE A: A pending lift is already in flight. This pointerup
+        // is the "another finger lifted within the hesitation window"
+        // case. Cancel the pending and resolve immediately based on
+        // whatever the count is now.
+        if (g.pendingLift) {
+          clearTimeout(g.pendingLift);
+          g.pendingLift = null;
+          if (c.count === 0) {
+            doFullLift();
+          } else {
+            doRebaseline();
+          }
+          return;
+        }
+
+        // CASE B: No pending lift. If we're now fully lifted, fire
+        // the full-lift flow immediately — there's nothing further
+        // to wait for. If fingers remain, schedule a hesitation
+        // window: during it, pointermove + pinch are gated (see the
+        // pendingLift check in handlePointerMove) so the crosshair
+        // stays frozen at the prior centroid. If a follow-up
+        // pointerup arrives, we go to CASE A. If the timer expires,
+        // we commit the rebaseline.
+        if (c.count === 0) {
+          doFullLift();
+          return;
+        }
+        g.pendingLift = setTimeout(() => {
+          g.pendingLift = null;
+          // Defensive: if all pointers somehow vanished without
+          // sending pointerups (shouldn't happen, but pointerleave
+          // can clear the map), do a full lift instead.
+          if (activePointers.current.size === 0) {
+            doFullLift();
+          } else {
+            doRebaseline();
+          }
+        }, POINTERUP_HESITATION_MS);
         return;
       }
       // Remove the lifted pointer from the active map. If `e` is
@@ -1363,7 +1666,12 @@ export function PolyhedronGlobe({
       // back through the EMA after a finger-lift.
       dragMomentum.clearVelocity();
     },
-    [dragMomentum, findNearestAssignedVertex, anchor],
+    [
+      anchor,
+      clientToViewBox,
+      dragMomentum,
+      findNearestAssignedVertex,
+    ],
   );
 
   // Composite leave handler — pointerleave on the surface means
@@ -1989,18 +2297,15 @@ export function PolyhedronGlobe({
             transform places them at the cursor position. */}
         {touchMode === "hover" && crosshairView.visible && (
           <g
-            ref={crosshairGroupRef}
+            // All position + style management on this <g> is
+            // IMPERATIVE — the JSX intentionally declares neither
+            // `transform` nor `style`, so React never overwrites
+            // attributes that the event handlers manage live.
+            // See crosshairGroupRefCallback for mount-time setup +
+            // writeCrosshair / writeCrosshairOpacity / setCrosshair-
+            // Transit for the live writers.
+            ref={crosshairGroupRefCallback}
             pointerEvents="none"
-            // Initial transform from the position captured when the
-            // crosshair became visible. Subsequent moves bypass
-            // React entirely via writeCrosshair → setAttribute on
-            // this same element, so the position can update at the
-            // pointermove rate without re-rendering.
-            transform={`translate(${crosshairView.initialX} ${crosshairView.initialY})`}
-            style={{
-              opacity: crosshairView.releasing ? 0 : 1,
-              transition: `opacity ${CROSSHAIR_LINGER_MS}ms ease-out`,
-            }}
           >
             {/* Outer halo: soft glow so the user perceives the
                 crosshair even through their fingertip. */}

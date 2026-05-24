@@ -19,6 +19,21 @@
   width: 100%;
   height: 100%;
   user-select: none;
+  /*
+   * SVG defaults to overflow: hidden — children outside the viewBox
+   * box get clipped. The touch-hover crosshair tracks finger coords
+   * converted to viewBox space via clientToViewBox(), which CAN
+   * resolve to coords outside the 0..stageSize range when the finger
+   * is past the sphere bounds (legal now that drag/hover are bound
+   * to .globeWrap, not the stage SVG). Without `overflow: visible`
+   * the crosshair gets clipped at the SVG edge.
+   *
+   * Other SVG content (polyhedron faces, vertex glows, edge-glow
+   * filters) lives entirely within the viewBox box and isn't
+   * affected — their geometry doesn't extend past it, so making the
+   * SVG paintable beyond its bounds doesn't change their rendering.
+   */
+  overflow: visible;
 }
 
 /* SVG <a>/<Link> wrappers don't get default cursor; nudge them. */
