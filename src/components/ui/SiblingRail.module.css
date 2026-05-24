@@ -47,6 +47,9 @@
   width: var(--rail-w);
   flex-direction: column;
   overflow-y: auto;
+  /* Hide native bar; <CustomScrollbar/> in the leaf renders a thumb
+     bound to this scroller and positioned below the chrome only. */
+  scrollbar-width: none;
   border-right: 1px solid var(--border);
   background: var(--muted);
   /* No padding-top spacer here — instead, SiblingRail.tsx renders a
@@ -58,6 +61,9 @@
      becomes absolutely positioned and slides on data-rail-open. */
   transform: translateX(0);
   transition: transform var(--duration-slow) var(--ease-snap);
+}
+.rail::-webkit-scrollbar {
+  display: none;
 }
 
 /* See the comment block in .rail for why this is a flow child rather

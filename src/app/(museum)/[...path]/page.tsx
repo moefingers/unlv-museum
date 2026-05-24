@@ -4,6 +4,7 @@ import {
   NotesProvider,
   ProjectNotes,
 } from "@/components/ui/ProjectChromeNotes";
+import { LeafBodyScroll } from "@/components/ui/LeafBodyScroll";
 import museumPageShellStyles from "@/components/ui/MuseumPageShell.module.css";
 import { findProject, renderProjectBody } from "@/lib/project-route";
 import type { ViewMode } from "@/lib/projects";
@@ -60,10 +61,10 @@ export default async function FlatProjectPage({
           notes' presence. The chromeSpacer inside <main> reserves
           flow space matching both chrome-h and notes-h. */}
       <ProjectNotes project={project} tier={tier} />
-      <main className={museumPageShellStyles.leafBody}>
+      <LeafBodyScroll>
         <div className={museumPageShellStyles.chromeSpacer} aria-hidden="true" />
         {renderProjectBody({ project, tier, page })}
-      </main>
+      </LeafBodyScroll>
     </NotesProvider>
   );
 }

@@ -1,0 +1,37 @@
+/*
+ * Custom scrollbar — see CustomScrollbar.tsx for the model.
+ *
+ * Track is `position: fixed` and its top/left/height are set by JS on
+ * every scroll/resize tick (so it tracks the scroller's getBoundingClientRect).
+ * Thumb is absolutely positioned within the track; its translateY is
+ * set by JS in proportion to the scroller's scrollTop.
+ *
+ * Pointer events: the track itself is non-interactive (we don't
+ * support click-track-to-jump yet — the thumb isn't draggable either).
+ * To enable, set pointer-events: auto on .track and wire a pointerdown
+ * handler in CustomScrollbar.tsx.
+ */
+
+.track {
+  position: fixed;
+  width: 10px;
+  /* Above the glassy overlays so the thumb is always visible. */
+  z-index: 60;
+  pointer-events: none;
+  /* Slight breathing room from the viewport edge so the thumb has a
+     visible "rail" gutter behind it. */
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.thumb {
+  width: 100%;
+  border-radius: 999px;
+  opacity: 0.4;
+  transition: opacity var(--duration-normal) var(--ease-default);
+}
+
+.track:hover .thumb,
+.thumb:active {
+  opacity: 0.7;
+}

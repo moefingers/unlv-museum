@@ -104,13 +104,17 @@
   right: 0;
   height: 100dvh;
   overflow-y: auto;
-  /* Reserve a permanent gutter so the scrollbar is a real layout
-     dimension, not an overlay riding on top of content. */
-  scrollbar-gutter: stable;
+  /* Hide the native scrollbar. A <CustomScrollbar/> overlays the
+     visible region (below chrome+notes) so the bar doesn't slide
+     under the glass overlays. */
+  scrollbar-width: none;
   /* Stack flow children vertically without flex shrinking — the
      spacer + tier body must both keep their full heights so the
      total exceeds 100dvh and scrolling actually engages. */
   display: block;
+}
+.leafBody::-webkit-scrollbar {
+  display: none;
 }
 
 /* Initial spacer rendered as the first child of <main className=leafBody>.

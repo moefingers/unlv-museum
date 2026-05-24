@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Collapsible } from "@/components/ui/Collapsible";
+import { CustomScrollbar } from "@/components/ui/CustomScrollbar";
 import {
   CONTAINERS,
   pageSlug,
@@ -60,6 +61,7 @@ function SiblingRailInner({
   siblings: Project[];
 }) {
   const [open, setOpen] = useState(false);
+  const railRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activePageSlug = searchParams.get("page");
@@ -99,6 +101,7 @@ function SiblingRailInner({
       />
 
       <aside
+        ref={railRef}
         id="sibling-rail"
         className={styles.rail}
         aria-label={`${containerTitle} — siblings`}
@@ -214,6 +217,12 @@ function SiblingRailInner({
           aria-hidden="true"
         />
       </button>
+
+      {/* Custom scrollbar for the rail. Native bar is hidden via
+          `scrollbar-width: none` on .rail; this paints a thumb in the
+          rail's visible region (top: var(--chrome-h)) so the bar
+          doesn't slide under the chrome's blur. */}
+      <CustomScrollbar scrollerRef={railRef} topOffsetVar="--chrome-h" />
     </div>
   );
 }
