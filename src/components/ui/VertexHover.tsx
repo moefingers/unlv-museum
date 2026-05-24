@@ -196,14 +196,16 @@ export function VertexHover({
         pointerEvents="all"
         onMouseEnter={onHitTargetEnter}
         onMouseLeave={onHitTargetLeave}
-        // Block pointerdown propagation so the parent stage's drag
-        // handler doesn't start a drag when the user clicks a dot.
-        // (Without this, pointerdown bubbles up, the stage starts a
-        // drag, and even a small mouse jiggle on click can be
-        // misclassified as a drag — preventing the click handler
-        // from running.) The click below also stops propagation
-        // so the parent's background-dismiss handler doesn't fire.
-        onPointerDown={(e) => e.stopPropagation()}
+        // Pointerdown intentionally bubbles up to the surface so a
+        // press+drag starting on top of a vertex still initiates a
+        // sphere drag. The didDrag classifier (3px per-move
+        // threshold) suppresses the click when the gesture turned
+        // out to be a drag, so a brief jiggle-then-release still
+        // opens the card.
+        //
+        // onClick still stops propagation so a tap-to-open doesn't
+        // ALSO fire the surface's background-dismiss handler when
+        // an anchor is currently open.
         onClick={(e) => {
           e.stopPropagation();
           onHitTargetClick?.();

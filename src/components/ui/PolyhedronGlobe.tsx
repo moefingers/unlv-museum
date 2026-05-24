@@ -41,33 +41,46 @@ const COLLAPSE_MS = 4000;
 const INTENT_WINDOW_MS = 100;
 
 /**
- * Tessellated icosphere with optional per-vertex project assignments.
+ * Tessellated icosphere with optional per-vertex project assignments —
+ * the museum's landing-page centerpiece.
  *
- * polyhedron-hover-type phase: each vertex of the icosphere can host a
- * project. Hovering an assigned vertex pauses the sphere's rotation and
- * types the project's title below the vertex (with caret + subtle flicker)
- * — see ./HoverDot.tsx for the per-vertex visual logic.
+ * ─── The story ─────────────────────────────────────────────────
  *
- * Hover semantics (locked in /hover-dot sandbox):
- *   - Browser hover signal is the engagement contract. As long as the
- *     cursor is "still hovering" a dot, the title stays open. A
- *     motionless cursor doesn't dismiss anything.
- *   - On mouseleave, a graceMs timer fires. During grace the title is
- *     still visible. Re-entering before grace expires cancels it.
- *   - When grace expires, a brief 80ms brightness flash precedes the
- *     untype animation (3× faster than typing).
- *   - PolyhedronGlobe owns the engagement state and feeds it to
- *     VertexHover via the `engaged` prop. Auto-rotation pauses
- *     briefly when a dot's hover cycle starts. Dragging the sphere
- *     is allowed even mid-hover; the hover state survives drag.
+ * The sphere rotates slowly on its own. The user can drag it to spin
+ * to a different face, or zoom with the wheel / pinch. Hovering the
+ * cursor over an assigned vertex (or sliding a touch crosshair over
+ * one in Hover mode) types out the project's title beneath it.
  *
- * Rendering pipeline per frame:
- *   1. Compose Y-rotation (drag) × X-rotation (drag) × Z-tilt (axial)
- *   2. Rotate every vertex once
- *   3. Backface-cull each face by screen-space winding
- *   4. Painter-sort visible faces by centroid Z
- *   5. Render face polygons + edge halos
- *   6. Render <VertexHover> at each assigned + visible vertex
+ * Clicking/tapping a vertex commits to it: the typed label untypes,
+ * the sphere slides down and re-anchors with the clicked vertex
+ * pinned to a fixed screen position, and a cone shoots up out of
+ * the vertex, expanding into a hexagonal billboard via a staggered
+ * unfold animation that types in the project's full text.
+ *
+ * Dismissing (tap off, click anywhere on the page, ESC) reverses
+ * the animation; the sphere returns to free rotation. Cross-anchor
+ * handoff (tap a different vertex while one is open) reverses the
+ * billboard, slerps to the new vertex without lifting the sphere
+ * back up, then plays the open animation again.
+ *
+ * ─── Concerns owned by this component ──────────────────────────
+ *
+ *   - Mesh geodesy + per-frame projection (rotate, cull, sort, paint).
+ *   - Drag input → quaternion rotation, including release momentum
+ *     decay (extracted into useDragMomentum).
+ *   - Hover engagement (intent gating, collapse-on-leave timer).
+ *   - Pointer routing for mouse, single touch, and the multi-finger
+ *     centroid + pinch + crosshair logic in Hover mode.
+ *   - Anchor state machine + per-frame anchor-swing rotation
+ *     (extracted into useAnchorPhase).
+ *   - Hex-billboard placement above the anchored vertex (the
+ *     billboard itself is UnfoldingBillboard).
+ *
+ * Things the parent (LandingView) owns: userZoom state, the
+ * .globeWrap surface that intercepts drag/dismiss across the whole
+ * viewport, and the visual translateY that drops the sphere down
+ * when anchored. PolyhedronGlobe reports anchor changes upward via
+ * onAnchoredChange; it doesn't apply the translate itself.
  */
 
 /** Map from vertex index (0..N-1 in the mesh) to a project. */
@@ -395,16 +408,6 @@ const CROSSHAIR_ENGAGEMENT_RADIUS = 60;
 // 60ms tuned for human "simultaneous" two-finger lifts.
 const POINTERUP_HESITATION_MS = 60;
 
-// ─── Glow toggles ─────────────────────────────────────────────
-// Flip these constants to A/B individual visual effects in isolation
-// without touching the render code. polyhedron-glow branch ships with
-// all three on so you see the maximalist version first.
-// Visual-pass enable flags were file-scope constants here; they're
-// now driven per-render from useGraphics() inside the component
-// (settings.backgroundHalo, settings.edgeGlow, settings.vertexGlows).
-// Kept as defaults for any code path that still wants a static
-// override in the future — currently unused at module scope.
-
 /**
  * Compute the auto-rotation speed multiplier at time `now` given when
  * the current hover cycle started. Returns 1 (full speed) when no
@@ -659,12 +662,10 @@ export function PolyhedronGlobe({
     [anchor],
   );
 
-  // Dot mouseleave is INTENTIONALLY IGNORED — geometry drift would
-  // fire it spuriously. Engagement only releases via SVG-level leave
-  // or via a different dot's intent-gated mouseenter.
-  const handleDotLeave = useCallback(() => {
-    // noop
-  }, []);
+  // (Dot mouseleave is intentionally not handled — geometry drift
+  // under a motionless cursor would fire it spuriously. Engagement
+  // only releases via SVG-level leave or via a different dot's
+  // intent-gated mouseenter.)
 
   // SVG-level pointer handlers.
   //
@@ -1253,7 +1254,12 @@ export function PolyhedronGlobe({
             g.maxMovement = 0;
           }
         }
-        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        // Capture on currentTarget (the surface) rather than target
+        // (which might be a child like a vertex hit-rect that
+        // pointerdown bubbled up from). Otherwise subsequent pointer
+        // events go to the child and the surface's handlers don't
+        // fire, breaking drag-from-vertex.
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
         return;
       }
       // Anchored + pointerdown on bare sphere/background (dots stop
@@ -1291,7 +1297,10 @@ export function PolyhedronGlobe({
         dragMomentum.begin();
         lastMove.current.t = performance.now();
       }
-      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      // Capture on currentTarget (the surface) so subsequent pointer
+      // events stay routed to the drag handlers even when pointerdown
+      // originated on a child element like a vertex hit-rect.
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     },
     [
       anchor,
@@ -1328,46 +1337,33 @@ export function PolyhedronGlobe({
 
         const c = pointerCentroid();
         const g = crosshairGesture.current;
-        // Pending-lift suppression: an earlier pointerup is waiting
-        // out the hesitation window. While that's in flight, ALL
-        // pointermove activity for the crosshair is frozen — neither
-        // the crosshair position nor pinch zoom should respond to
-        // moves on the remaining finger(s). This is the single rule
-        // that kills the snap regardless of which order the OS fires
-        // pointerup A / pointerup B / pointermove B. We still
-        // accumulate maxMovement so an accidental jitter doesn't
-        // turn into a "tap" on commit.
-        if (g.pendingLift !== null) {
-          if (g.startPos) {
-            const dx = c.x - g.startPos.x;
-            const dy = c.y - g.startPos.y;
-            const movement = Math.hypot(dx, dy);
-            if (movement > g.maxMovement) g.maxMovement = movement;
-          }
-          return;
+        // Track furthest centroid distance from the gesture origin,
+        // used by the tap-vs-drag classifier on lift. Runs on every
+        // move, before any early return — a move that's suppressed
+        // for crosshair purposes (e.g. during pendingLift) still
+        // counts toward "this gesture moved too much to be a tap."
+        if (g.startPos) {
+          const dx = c.x - g.startPos.x;
+          const dy = c.y - g.startPos.y;
+          const movement = Math.hypot(dx, dy);
+          if (movement > g.maxMovement) g.maxMovement = movement;
         }
+        // While a pointerup is in its hesitation window (see the
+        // CASE A/B logic in handlePointerUp), freeze the crosshair —
+        // don't update its position or emit pinch zoom. This is the
+        // single rule that prevents the simultaneous-lift snap
+        // regardless of how the OS interleaves the up/move events.
+        if (g.pendingLift !== null) return;
         const vbPoint = clientToViewBox(c.x, c.y);
         if (!vbPoint) return;
         // Imperative DOM write — bypasses React reconciliation
         // so the crosshair tracks the centroid at the pointermove
         // event rate without per-frame state updates.
         writeCrosshair(vbPoint);
-        if (g.startPos) {
-          const dx = c.x - g.startPos.x;
-          const dy = c.y - g.startPos.y;
-          const movement = Math.hypot(dx, dy);
-          if (movement > g.maxMovement) {
-            g.maxMovement = movement;
-          }
-        }
-        // Engagement updates always run from the centroid — a
-        // multi-finger gesture's midpoint is still a meaningful
-        // hover target. Pinching naturally moves the centroid; if
-        // it passes over a vertex, that vertex engaging is correct
-        // behavior (the user can still see what they're hovering
-        // toward). Previously gated by count < 2 to avoid flicker
-        // during pinch, but the flicker is mild and the missing
-        // engagement feedback is worse.
+        // Engagement runs from the centroid regardless of finger
+        // count — a multi-finger midpoint is still a valid hover
+        // target. Mild flicker during pinch is preferable to no
+        // engagement feedback at all.
         const vi = findNearestAssignedVertex(
           vbPoint,
           CROSSHAIR_ENGAGEMENT_RADIUS,
@@ -1489,31 +1485,22 @@ export function PolyhedronGlobe({
   const handlePointerUp = useCallback(
     (e?: React.PointerEvent) => {
       // ── Touch hover mode ─────────────────────────────────────
-      // Pointerup in hover mode: remove the lifted pointer from
-      // activePointers, then branch on how many remain. Three cases:
-      //   1. count > 0 AND previous count was ≥2 AND new count is 1
-      //      → 2→1 transition. Start the grace window (don't update
-      //      the crosshair). If a second finger doesn't return in
-      //      MULTI_FINGER_EXIT_GRACE_MS, transit smoothly from the
-      //      frozen centroid to the remaining finger.
-      //   2. count > 0 otherwise (3→2, intermediate lifts)
-      //      → snap-rebaseline to the new centroid as before.
-      //   3. count == 0
-      //      → tap/linger/dismiss flow (full lift).
+      // In hover mode the user moves a crosshair (the centroid of
+      // all touching fingers) over vertices; a quick tap-and-lift
+      // commits an anchor on whichever vertex was nearest at lift.
+      //
+      // This handler resolves a pointer lifting. The tricky case
+      // is multi-finger gestures: if two fingers lift within
+      // POINTERUP_HESITATION_MS we treat them as simultaneous (no
+      // intermediate "one finger left" snap); otherwise we commit
+      // the rebaseline. See CASE A vs CASE B below.
       if (touchModeRef.current === "hover") {
         const g = crosshairGesture.current;
-        // Duplicate-event guard: pointerup can be delivered twice for
-        // the same pointerId via React's synthetic event delegation
-        // when handlers are bound on both the inner stage and the
-        // lifted .globeWrap surface, or by pointerup bubbling through
-        // two listening ancestors. If this pointerId isn't in
-        // activePointers anymore, we've already processed its lift —
-        // re-processing would incorrectly hit CASE A's
-        // doRebaseline (snapping the crosshair to the live single-
-        // finger position).
-        if (e && !activePointers.current.has(e.pointerId)) {
-          return;
-        }
+        // Skip duplicate deliveries: pointerup can fire twice for the
+        // same pointerId (synthetic-event delegation across the inner
+        // stage + lifted surface). Already-processed pointers aren't
+        // in the active map.
+        if (e && !activePointers.current.has(e.pointerId)) return;
         // Snapshot BEFORE mutating: were we in pinch mode (count >= 2)
         // when this pointerup arrived? If so, the most recent
         // pointermove may have been corrupted by the lifting finger's
@@ -2248,7 +2235,6 @@ export function PolyhedronGlobe({
                   y={v.sy}
                   engaged={engagedVertexIdx === v.vi}
                   onHitTargetEnter={() => handleDotEnter(v.vi)}
-                  onHitTargetLeave={handleDotLeave}
                   onHitTargetClick={() => anchor.handleDotClick(v.vi)}
                   typeDuration={HOVER_DOT_TYPE_DURATION}
                   idleGlowRadius={HOVER_DOT_IDLE_GLOW}
