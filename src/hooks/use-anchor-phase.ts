@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fromUnitVectors, type Quat } from "@/lib/quaternion";
+import {
+  fromUnitVectors,
+  slerp as quatSlerp,
+  toMatrix3,
+  type Quat,
+} from "@/lib/quaternion";
 import { useLatestRef } from "./use-latest-ref";
 
 /*
@@ -149,6 +154,22 @@ export interface AnchorPhaseAPI {
   // rAF → state-machine signal
   /** Call when the swing's slerp settles. Advances to coneRising. */
   notifySwingComplete: () => void;
+
+  /**
+   * Per-frame anchor-swing physics. Returns true if the swing
+   * animation is active and claimed this frame (caller's rAF loop
+   * should skip drag-momentum + auto-rotate for this frame).
+   *
+   * When the slerp settles, this also updates anchoredAxis and the
+   * config's autoRotateAxisRef so subsequent auto-rotation spins
+   * around the anchored vertex.
+   *
+   * The caller passes `applyQ` rather than mutating latestQRef
+   * directly because the consumer (PolyhedronGlobe) drives quat
+   * updates through a wrapped setter that also writes React state
+   * for re-render.
+   */
+  tickSwing(now: number, applyQ: (next: Quat) => void): boolean;
 
   // Derived values for JSX
   anchoredVertexIdx: number | null;
@@ -502,6 +523,64 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
     return () => window.removeEventListener("keydown", onKey);
   }, [anchoredVertexIdx, releaseAnchor]);
 
+  // ─── Per-frame anchor-swing physics ──────────────────────────
+  //
+  // Called from the consumer's rAF loop. When a swing is active
+  // (anchorAnim.current set), slerps from→to with cubic ease-in-out
+  // over ANCHOR_SWING_MS, applies the interpolated quaternion via
+  // applyQ, and on settle updates anchoredAxis + autoRotateAxisRef
+  // so subsequent auto-rotation spins around the anchored vertex.
+  // Returns true while the swing is in flight so the caller skips
+  // other rotation drivers (drag momentum, auto-rotate) this frame.
+  //
+  // The anchored axis re-computation uses the actual settled
+  // quaternion (q · v_mesh) rather than the stored target axis —
+  // avoids numerical drift from the slerp.
+  const tickSwing = useCallback(
+    (now: number, applyQ: (next: Quat) => void): boolean => {
+      const anim = anchorAnim.current;
+      if (!anim) return false;
+      const elapsed = now - anim.startedAt;
+      const tRaw = Math.min(1, elapsed / ANCHOR_SWING_MS);
+      // ease-in-out cubic
+      const t =
+        tRaw < 0.5
+          ? 4 * tRaw * tRaw * tRaw
+          : 1 - Math.pow(-2 * tRaw + 2, 3) / 2;
+      applyQ(quatSlerp(anim.fromQ, anim.toQ, t));
+      if (tRaw >= 1) {
+        // Settle: recompute the anchored vertex's world-space axis
+        // from the post-slerp quaternion.
+        const vi = getAnchoredVi();
+        if (vi !== null) {
+          const vMesh = meshVertices[vi];
+          if (vMesh) {
+            const m = toMatrix3(latestQRef.current);
+            const newAxis = {
+              x: m[0] * vMesh.x + m[1] * vMesh.y + m[2] * vMesh.z,
+              y: m[3] * vMesh.x + m[4] * vMesh.y + m[5] * vMesh.z,
+              z: m[6] * vMesh.x + m[7] * vMesh.y + m[8] * vMesh.z,
+            };
+            anchoredAxis.current = newAxis;
+            autoRotateAxisRef.current = newAxis;
+          }
+        }
+        anchorAnim.current = null;
+        notifySwingComplete();
+      }
+      return true;
+    },
+    [
+      anchorAnim,
+      anchoredAxis,
+      autoRotateAxisRef,
+      getAnchoredVi,
+      latestQRef,
+      meshVertices,
+      notifySwingComplete,
+    ],
+  );
+
   return {
     phase,
     phaseRef,
@@ -509,6 +588,7 @@ export function useAnchorPhase(config: UseAnchorPhaseConfig): AnchorPhaseAPI {
     anchorAnim,
     anchoredAxis,
     notifySwingComplete,
+    tickSwing,
     anchoredVertexIdx,
     hexOpen,
     coneHeightProgress,

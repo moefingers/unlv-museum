@@ -8,15 +8,11 @@ import { projectLandingUrl, type Project } from "@/lib/projects";
 import {
   fromAxisAngle,
   multiply as quatMultiply,
-  slerp as quatSlerp,
   toMatrix3,
   type Quat,
 } from "@/lib/quaternion";
 import { useLatestRef } from "@/hooks/use-latest-ref";
-import {
-  ANCHOR_SWING_MS,
-  useAnchorPhase,
-} from "@/hooks/use-anchor-phase";
+import { useAnchorPhase } from "@/hooks/use-anchor-phase";
 import { useDragMomentum } from "@/hooks/use-drag-momentum";
 import { useGraphics } from "@/hooks/use-graphics";
 import { useHoverCrosshair } from "@/hooks/use-hover-crosshair";
@@ -234,8 +230,6 @@ const INITIAL_PITCH_RAD = (15 * Math.PI) / 180;
 // ANCHOR_NDC_X / ANCHOR_NDC_Y. It's part of the state machine's
 // projection-reverse math and belongs with that machine.
 //
-// (ANCHOR_SWING_MS lives in use-anchor-phase.ts now — see exports.)
-//
 // Auto-rotation speed multiplier once anchored. The sphere keeps
 // spinning, but slower — so the anchored vertex feels still while
 // surrounding geometry drifts behind it.
@@ -294,12 +288,9 @@ const CONE_HALF_ANGLE_DEG = 24;
 // The sphere's anchored rotation cycle ONLY runs in the `open`
 // phase so the cone + hex animations play against a still
 // backdrop. The world stirs back to life once the card is open.
-// Swing phase duration = ANCHOR_SWING_MS (declared above + exported
-// for LandingView's matching transform transition). The rAF loop's
-// slerp reads ANCHOR_SWING_MS directly; the phase machine's swing
-// completion is signaled by the slerp's finish-tick rather than a
-// timer.
-// Phase timing constants (CONE_RISE_MS, WIDENING_MS,
+//
+// Phase timing constants (ANCHOR_SWING_MS, CONE_RISE_MS,
+// WIDENING_MS,
 // CONE_WIDEN_FRACTION, COLLAPSING_MS, CONE_FALL_MS, UNSWING_MS)
 // live with the state machine — see useAnchorPhase. They're not
 // imported here because no JSX in this file references them
@@ -720,45 +711,10 @@ export function PolyhedronGlobe({
       lastTick = now;
       const dtSec = dt / 1000;
 
-      // ─── Anchor swing-in (slerp) ───────────────────────────
-      // While the anchor animation is active, it OWNS the rotation
-      // entirely. Drag momentum is suppressed; auto-rotate is paused.
-      // The slerp progress is ease-in-out (cubic) so the swing
-      // feels deliberate at both ends instead of mechanically linear.
-      const anim = anchor.anchorAnim.current;
-      if (anim) {
-        const elapsed = now - anim.startedAt;
-        const tRaw = Math.min(1, elapsed / ANCHOR_SWING_MS);
-        // ease-in-out cubic: slow at both ends, fast in the middle.
-        const t =
-          tRaw < 0.5
-            ? 4 * tRaw * tRaw * tRaw
-            : 1 - Math.pow(-2 * tRaw + 2, 3) / 2;
-        applyQ(quatSlerp(anim.fromQ, anim.toQ, t));
-        if (tRaw >= 1) {
-          // Settle: the rotated vertex's world-space position becomes
-          // the new auto-rotate axis. Recompute it (instead of trusting
-          // the stored target) so the axis is exactly q · v_mesh — no
-          // drift from numerical slerp.
-          const vi = anchor.getAnchoredVi();
-          if (vi !== null) {
-            const vMesh = mesh.vertices[vi];
-            if (vMesh) {
-              const m = toMatrix3(latestQ.current);
-              anchor.anchoredAxis.current = {
-                x: m[0] * vMesh.x + m[1] * vMesh.y + m[2] * vMesh.z,
-                y: m[3] * vMesh.x + m[4] * vMesh.y + m[5] * vMesh.z,
-                z: m[6] * vMesh.x + m[7] * vMesh.y + m[8] * vMesh.z,
-              };
-              autoRotateAxis.current = anchor.anchoredAxis.current;
-            }
-          }
-          anchor.anchorAnim.current = null;
-          // Notify the swing-completion effect (above) that the
-          // slerp has just settled. Functional setter monotonically
-          // increments → effect's [swingCompletionTick] dep fires.
-          anchor.notifySwingComplete();
-        }
+      // Anchor swing claims rotation when active — drag momentum
+      // and auto-rotate are paused during the swing. Hook owns the
+      // slerp + settle logic; we just gate.
+      if (anchor.tickSwing(now, applyQ)) {
         frame = requestAnimationFrame(tick);
         return;
       }
