@@ -26,6 +26,7 @@
  */
 
 import { checkRateLimit } from "@vercel/firewall";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
 export interface MutationActor {
@@ -173,4 +174,73 @@ function buildUnauthResponse(request: Request): Response {
     },
     { status: 401 },
   );
+}
+
+/**
+ * Server-Action counterpart to {@link guardMutation}. Same security
+ * shape (session lookup + rate limit + actor) but adapted for the
+ * Server Action calling convention — no `Request` object, headers
+ * come from `next/headers`, and tier classification is the caller's
+ * responsibility (Server Actions don't carry a URL prefix, so the
+ * `original` vs `enhanced` split has to be declared at the
+ * `writeAuditEntry` call site).
+ *
+ * Returns a tagged-union shape so callers can branch:
+ *
+ *   const guard = await guardServerAction();
+ *   if (!guard.actor) {
+ *     redirect(`/some-form?error=${encodeURIComponent(guard.reason)}`);
+ *   }
+ *   // ... do the mutation, then writeAuditEntry with guard.actor
+ *
+ * The caller owns the redirect because the "back-to-where-I-was"
+ * URL is project-specific. This helper just answers the question
+ * "is this visitor allowed to mutate, and if so, who are they?"
+ */
+export interface ServerActionGuardAllowed {
+  actor: MutationActor;
+  reason: null;
+}
+export interface ServerActionGuardBlocked {
+  actor: null;
+  /**
+   * Short, URL-safe reason string the caller can put in a redirect's
+   * `?error=` param. One of:
+   *   - `"sign-in-required"` — no session
+   *   - `"rate-limited"` — over the per-IP or per-user budget
+   */
+  reason: "sign-in-required" | "rate-limited";
+}
+export type ServerActionGuardResult =
+  | ServerActionGuardAllowed
+  | ServerActionGuardBlocked;
+
+export async function guardServerAction(): Promise<ServerActionGuardResult> {
+  const reqHeaders = await headers();
+  const session = await auth.api.getSession({ headers: reqHeaders });
+
+  // Rate-limit first, like guardMutation, so unauth abusers can't
+  // hammer the sign-in-required path either. checkRateLimit accepts
+  // `headers` as an alternative IP-extraction source when a Request
+  // isn't in scope — the same X-Forwarded-For lookup either way.
+  const rateLimitKey = session ? `user:${session.user.id}` : null;
+  const { rateLimited } = await checkRateLimit("museum-api", {
+    headers: reqHeaders,
+    rateLimitKey: rateLimitKey ?? undefined,
+  });
+  if (rateLimited) {
+    return { actor: null, reason: "rate-limited" };
+  }
+
+  if (!session) {
+    return { actor: null, reason: "sign-in-required" };
+  }
+
+  return {
+    actor: {
+      id: session.user.id,
+      login: session.user.name ?? null,
+    },
+    reason: null,
+  };
 }
