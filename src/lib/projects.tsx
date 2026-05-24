@@ -1073,7 +1073,12 @@ export const PROJECTS: Project[] = [
     techEnhanced: ["Next.js 16", "Drizzle", "Neon", "Museum OAuth"],
     techReimagined: ["Next.js 16", "Drizzle", "Neon"],
     original: <OriginalFrame src="/originals/quirk-truck/index.html" />,
-    enhanced: COMING_SOON,
+    // Enhanced surface lives under the museum's own (museum) route group
+    // at /quirk-truck-enhanced — a faithful port of the EnterPrize-era
+    // UI (commit ad75237) on modernized infrastructure. The iframe
+    // pattern matches rest-rant / admin-portal / music-tour where a
+    // multi-route Enhanced app boots inside the project's tier strip.
+    enhanced: <OriginalFrame src="/quirk-truck-enhanced" />,
     reimagined: COMING_SOON,
     reimaginedExternal: "https://h-data.vercel.app",
     progression: true,

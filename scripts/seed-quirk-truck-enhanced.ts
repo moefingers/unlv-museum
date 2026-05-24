@@ -39,6 +39,7 @@
 
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
@@ -160,6 +161,44 @@ async function main() {
   `);
   const imgId = (imgRes.rows[0] as { id: string }).id;
 
+  // Bulk-load the Original QuirkTruck's Box 3 photo assets. The
+  // Original CRA app shipped them under `src/img/trucks/box3/*.webp`
+  // and referenced them from `data/trucks.json` by relative path
+  // (`./trucks/box3/oil.webp`). The museum Enhanced port stores image
+  // bytes in `quirk_truck_enhanced.images` and serves them through
+  // `/api/v2/quirk-truck-enhanced/images/<uuid>`. Here we insert each
+  // .webp's raw bytes (no re-compression needed; they're already
+  // hand-prepared small assets) and build a {filename: url} map so
+  // the section seed can reference them by their original names.
+  console.log("[seed] quirk-truck-enhanced: uploading Box 3 photo assets");
+  const box3ImageDir = resolve(
+    process.cwd(),
+    ".sources/quirkTruck/src/img/trucks/box3",
+  );
+  const box3Files = readdirSync(box3ImageDir).filter((f) => f.endsWith(".webp"));
+  const box3ImageUrls: Record<string, string> = {};
+  for (const filename of box3Files) {
+    const bytes = readFileSync(resolve(box3ImageDir, filename));
+    const base64 = bytes.toString("base64");
+    const res = await db.execute(sql`
+      INSERT INTO quirk_truck_enhanced.images
+        (owner_user_id, mime, bytes, width, height)
+      VALUES
+        (${adminId}, 'image/webp', decode(${base64}, 'base64'), NULL, NULL)
+      RETURNING id
+    `);
+    const id = (res.rows[0] as { id: string }).id;
+    box3ImageUrls[filename] = `/api/v2/quirk-truck-enhanced/images/${id}`;
+  }
+  /** Resolve a list of Original-style refs like `./trucks/box3/oil.webp`
+   *  to museum URLs. Skips any ref we don't have bytes for (Truck 801
+   *  was referenced in JSON but the .webp files weren't checked into
+   *  the source repo). */
+  const resolveBox3 = (refs: string[]): string[] =>
+    refs
+      .map((ref) => box3ImageUrls[ref.split("/").pop() || ""])
+      .filter((u): u is string => Boolean(u));
+
   console.log("[seed] quirk-truck-enhanced: inserting pages tree (single jsonb doc)");
   // Pages use `id` + `title` (source's actions.ts mutates by `title`,
   // routes by id-slug). Sections use `name` per the source's `section`
@@ -167,21 +206,182 @@ async function main() {
   // We add `id` to sections as a soft improvement so future code can
   // reference sections by stable id without breaking the name-keyed
   // walker.
+  // Trucks Overview is seeded from the Original QuirkTruck catalog
+  // (`.sources/quirkTruck/src/data/trucks.json`) so the Enhanced demo
+  // ships with the same fleet a visitor would see in the Original tier.
+  // Each top-level section is a truck; each truck's `preTrip`,
+  // `postTrip`, `quirks` are nested sections under it. The Original
+  // referenced images by relative paths into `public/img/trucks/...`;
+  // the museum port leaves those image refs as bare strings for now
+  // (the URL guard in PageCard skips them — only museum-issued
+  // `/api/v2/.../images/<uuid>` URLs render). When a visitor uploads
+  // real bytes, the new URL replaces the seed string.
+  // Section structure follows the source's `section` type
+  // (definitions.ts): `name`, `id?`, `description?`, `notes?`,
+  // `image?`, `images?`, `tags?`, `sections?`. `page-sections.tsx`
+  // surfaces `description` and `notes` as text content under the
+  // collapsible header, and `images[]` as inline thumbnails above
+  // it. `tags[]` renders as a row of pill chips. Ported verbatim
+  // from `.sources/quirkTruck/src/data/trucks.json`; image refs
+  // resolved through `resolveBox3()` so only Box 3 (the only truck
+  // whose .webp files were checked into the source repo) renders
+  // images. Truck 801 / Devestator / Lego entries kept their text
+  // content but ship without images — the Original's JSON referenced
+  // them but the bytes never made it into the repo.
+  const trucks = [
+    {
+      id: "truck-801",
+      name: "Truck 801",
+      description:
+        "A big truck with a side tipper and tail gate + raise bed to dump. Used for: glass, food waste.",
+      images: [],
+      sections: [
+        {
+          id: "801-pre-trip",
+          name: "Pre-Trip",
+          description: "Pre-trip checklist for Truck 801.",
+          images: [],
+          sections: [
+            { id: "801-oil", name: "Oil", description: "Type: 69W-420.", notes: "Do not overfill.", images: [], sections: [] },
+            { id: "801-transmission", name: "Transmission Fluid", description: "Type: green-monster brand, extra scary type.", notes: "Must be checked when transmission system is at full operating temperature.", images: [], sections: [] },
+            { id: "801-coolant", name: "Coolant", description: "Type: RED YOU MUST USE RED PLEASE.", notes: "Make sure to taste it before filling.", images: [], sections: [] },
+            { id: "801-tires", name: "Tires", description: "Rated pressure: 100 psi.", notes: "The inner tires can be checked and filled through the outers.", images: [], sections: [] },
+            {
+              id: "801-lights",
+              name: "Lights",
+              description: "Front, top, side, and rear light groups.",
+              images: [],
+              sections: [
+                { id: "801-front-lights", name: "Front Lights", notes: "High beam, low beam, running light, signals.", images: [], sections: [] },
+                { id: "801-top-lights", name: "Top Lights", notes: "Running lights on or near top on front, back, and sides.", images: [], sections: [] },
+                { id: "801-side-lights", name: "Side Lights", notes: "Type and location, IE side lights found on side.", images: [], sections: [] },
+                { id: "801-rear-lights", name: "Rear Lights", notes: "Brake, tail, reverse, signal, strobe.", images: [], sections: [] },
+              ],
+            },
+          ],
+        },
+        {
+          id: "801-post-trip",
+          name: "Post-Trip",
+          description: "Post-trip checklist for Truck 801.",
+          images: [],
+          sections: [
+            { id: "801-air-tanks", name: "Air Tanks", notes: "On colder days, air tanks should be emptied at end of shift by turning valves.", images: [], sections: [] },
+            { id: "801-cng", name: "CNG", notes: "This is a CNG truck. Please fill in front or on side.", images: [], sections: [] },
+          ],
+        },
+        {
+          id: "801-quirks",
+          name: "Quirks",
+          description: "Operator quirks for Truck 801.",
+          images: [],
+          sections: [
+            { id: "801-hold-breath", name: "Hold Breath", description: "You have to hold your breath when you start it.", tags: ["operation"], images: [], sections: [] },
+            { id: "801-tipper", name: "Tipper", description: "Make sure the latch is fixed on the crossbar before raising the tipper all the way up or you'll end up with a bin in truck.", tags: ["operation", "prevention", "safety"], images: [], sections: [] },
+            { id: "801-magic-words", name: "Magic Words", description: "You have to say the magic words when using the PTO or it will explode.", tags: ["operation", "truckDamage", "safety"], images: [], sections: [] },
+          ],
+        },
+      ],
+    },
+    {
+      id: "truck-box3",
+      name: "Box 3",
+      description: "Box truck, shorter than box 4 but wider. Used for: utility.",
+      images: [],
+      sections: [
+        {
+          id: "box3-pre-trip",
+          name: "Pre-Trip",
+          description: "Pre-trip checklist for Box 3.",
+          images: [],
+          sections: [
+            { id: "box3-raise-cab", name: "Raise Cab", description: "Driver side to the right of door.", notes: "From the first image, pull handle in yellow circle, at the same time pull the handle in the red circle. Then, pull the flat silver handle and use the black handle to raise the cab.", images: resolveBox3(["raiseCab1.webp", "raiseCab2.webp"]), sections: [] },
+            { id: "box3-oil", name: "Oil", description: "Type: 10W-30. Passenger side when cab is lifted. Search 'Raise Cab' for more details.", notes: "Yellow circle highlights dipstick. Red circle highlights fill port.", images: resolveBox3(["oil.webp"]), sections: [] },
+            { id: "box3-transmission", name: "Transmission Fluid", description: "Type: Dexron 6 Transmission Fluid. Passenger side when cab is lifted. Search 'Raise Cab' for more details.", notes: "Must be checked when transmission system is at full operating temperature, after driving for an hour.", images: resolveBox3(["transmissionFluid.webp"]), sections: [] },
+            { id: "box3-fuel", name: "Fuel", description: "Type: Unleaded (Gasoline). On driver side of truck.", notes: "Sometimes a pump may stop before it is full. Fill more slowly if necessary.", images: resolveBox3(["fuelPort.webp"]), sections: [] },
+            { id: "box3-coolant", name: "Coolant", description: "Type: RED! YOU MUST USE RED, PLEASE! Found on right side of truck between cab and box.", images: resolveBox3(["coolant.webp"]), sections: [] },
+            { id: "box3-tires", name: "Tires", description: "Type: 80 psi.", notes: "The inner tires can be checked and filled from through the outers.", images: resolveBox3(["tireInner.webp", "tireOuter.webp", "tire.webp"]), sections: [] },
+            { id: "box3-battery", name: "Battery", description: "Two batteries, group 31. Wired in parallel for 12 V system. Passenger side, low, to the left of steer axle.", notes: "Check for signs of corrosion around contacts.", images: resolveBox3(["battery.webp"]), sections: [] },
+            { id: "box3-wiper-fluid", name: "Wiper Fluid", description: "Open passenger door. On side of glove box.", notes: "Make sure cap is secured after filling.", images: resolveBox3(["wiperFluid.webp"]), sections: [] },
+            {
+              id: "box3-lights",
+              name: "Lights",
+              description: "Front, top, side-rear-top, rear, and license-plate light groups.",
+              images: [],
+              sections: [
+                { id: "box3-front", name: "Front", notes: "Light on the left is a headlight. Both lights on the right are clearance lights, one of which is a turn-signal as well.", images: resolveBox3(["headLight.webp"]), sections: [] },
+                { id: "box3-top", name: "Top", notes: "DRL — (5) lights on top of cab, (2) lights on top corners.", images: resolveBox3(["topFront.webp"]), sections: [] },
+                { id: "box3-side-rear-top", name: "Side Rear Top", notes: "On each side, in the top rear corner.", images: resolveBox3(["sideRearTop.webp"]), sections: [] },
+                { id: "box3-rear", name: "Rear", notes: "Shared brake, tail, signal lights. Separate reverse in white. (5) running lights on top.", images: resolveBox3(["rear.webp", "reverseLight.webp"]), sections: [] },
+                { id: "box3-license-light", name: "License Plate Light", notes: "On the inner edge by the license plate.", images: resolveBox3(["licenseLight.webp"]), sections: [] },
+              ],
+            },
+          ],
+        },
+        {
+          id: "box3-post-trip",
+          name: "Post-Trip",
+          description: "Post-trip checklist for Box 3.",
+          images: [],
+          sections: [
+            { id: "box3-example", name: "An Example", notes: "This is something you should check in your post trip.", images: [], sections: [] },
+          ],
+        },
+        {
+          id: "box3-quirks",
+          name: "Quirks",
+          description: "Operator quirks for Box 3.",
+          images: [],
+          sections: [
+            { id: "box3-lift-gate", name: "Lift Gate", description: "To operate lift gate, it must be turned on. Then after using switch to lower all the way, unfold it, and unfold it again.", tags: ["operation"], images: resolveBox3(["lampAndLiftSwitch.webp", "liftGateSwitch.webp", "liftGateUnfold1.webp", "liftGateUnfold2.webp"]), sections: [] },
+            { id: "box3-locked-ignition", name: "Can't turn key", description: "If you cannot turn the key, jerk the steering wheel rapidly back and forth while turning the key.", tags: ["operation"], images: resolveBox3(["ignition.webp"]), sections: [] },
+          ],
+        },
+      ],
+    },
+    {
+      id: "truck-devestator",
+      name: "Devestator",
+      description: "A really destructive truck. Used for: devestation.",
+      images: [],
+      sections: [
+        {
+          id: "devestator-quirks",
+          name: "Quirks",
+          description: "Operator quirks for the Devestator.",
+          images: [],
+          sections: [
+            { id: "devestator-destruction", name: "Pure Destruction", description: "If you're not careful, then you'll get destroyed. This thing is not safe.", tags: ["operation", "safety", "prevention"], images: [], sections: [] },
+          ],
+        },
+      ],
+    },
+    {
+      id: "truck-lego",
+      name: "Lego Truck",
+      description: "We use this truck to play. Used for: play-time, utility.",
+      images: [],
+      sections: [
+        {
+          id: "lego-quirks",
+          name: "Quirks",
+          description: "Operator quirks for the Lego Truck.",
+          images: [],
+          sections: [
+            { id: "lego-play-value", name: "Play Value", description: "Just saying this truck isn't good for anything other than play time.", tags: ["operation", "safety", "prevention"], images: [], sections: [] },
+          ],
+        },
+      ],
+    },
+  ];
+
   const pagesTree = {
     "trucks-overview": {
       id: "trucks-overview",
       title: "Trucks Overview",
-      description: "Top-level catalog of our trucks.",
-      image: imgId,
-      sections: [
-        {
-          id: "fleet-status",
-          name: "Fleet Status",
-          content: "Eight trucks in active service.",
-          images: [imgId],
-          sections: [],
-        },
-      ],
+      description: "Top-level catalog of our trucks — ported from the Original QuirkTruck CRA app's `trucks.json` so the Enhanced demo carries the same fleet visitors see in the Original tier.",
+      image: null,
+      sections: trucks,
     },
     "maintenance-log": {
       id: "maintenance-log",
@@ -192,13 +392,13 @@ async function main() {
         {
           id: "march-2024",
           name: "March 2024",
-          content: "Two oil changes, one transmission service.",
+          description: "Two oil changes, one transmission service.",
           images: [],
           sections: [
             {
               id: "truck-801",
               name: "Truck 801",
-              content: "Oil change on 2024-03-12. Synthetic 5W-30.",
+              description: "Oil change on 2024-03-12. Synthetic 5W-30.",
               images: [],
               sections: [],
             },
@@ -207,7 +407,7 @@ async function main() {
         {
           id: "april-2024",
           name: "April 2024",
-          content: "Quiet month — one tire rotation.",
+          description: "Quiet month — one tire rotation.",
           images: [],
           sections: [],
         },

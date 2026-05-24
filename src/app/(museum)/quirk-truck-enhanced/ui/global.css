@@ -1,0 +1,100 @@
+/*
+ * Tailwind for the EnterPrize Historical Enhanced port. The 2024 source
+ * used Tailwind v3 with `@tailwind base/components/utilities;`. The
+ * museum is on Tailwind v4, which uses a single @import + explicit
+ * @source directives so the scanner only picks up classes from this
+ * sub-tree (instead of the museum's whole `src/`). That keeps the
+ * EnterPrize bundle minimal AND prevents Tailwind utilities from
+ * leaking into other museum routes' stylesheets.
+ */
+@import "tailwindcss";
+
+@source "../**/*.{ts,tsx}";
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+/* AUDIT LOG */
+/* .audit-log {
+  border : 1px solid black;
+} */
+
+.audit-log.collapsed > .content {
+  visibility: hidden;
+  height: 0px;
+  transition: visibility 0s 0.5s, height .5s;
+
+}
+
+.audit-log.expanded > .content {
+  visibility: visible;
+  height: 300px;
+  transition: visibility 0s 0s, height .5s;
+}
+
+.audit-log > .content {
+  white-space: pre;
+  overflow: scroll;
+}
+
+/* PAGE CARD */
+
+.page-card > .description {
+  text-wrap: wrap;
+}
+
+/* SLIDERS */ 
+.slider-x {
+  position: relative;
+  animation: slider-x 10s ease-in-out infinite alternate-reverse;
+}
+.slider-x:hover, .slider-y:hover {
+  animation-play-state: paused;
+}
+
+@keyframes slider-x {
+  0% {
+    left: 0%;
+    transform: translateX(0%);
+  }
+  100% {
+    left: 100%;
+    transform: translateX(-100%);
+  }
+}
+
+.slider-y {
+  position: relative;
+  animation: slider-y 10s ease-in-out infinite alternate-reverse;
+  animation-delay: -2.5s;
+}
+.slider-y.work-orders{
+  animation-delay: -5s;
+}
+.slider-y.audit-logs{
+  animation-delay: -7.5s;
+}
+
+@keyframes slider-y {
+  0% {
+    top: 0%;
+    transform: translateY(0%);
+  }
+  100% {
+    top: 100%;
+    transform: translateY(-100%);
+  }
+}

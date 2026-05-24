@@ -3,73 +3,21 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { humanMessage } from "@/lib/toast-filter";
+import { MuseumMark } from "@/components/ui/MuseumMark";
 import styles from "./MuseumToastLayer.module.css";
 
-/**
- * Museum mark — the hexagon + inscribed triangle from src/app/icon.svg,
- * inlined so the toast can render it without a network fetch. The
- * outer-edge color of the radial gradient is parameterized as `hue`
- * (oklch hue degrees) so the same mark can carry status meaning:
+/*
+ * MuseumMark — the hexagon + inscribed triangle from src/app/icon.svg —
+ * now lives at @/components/ui/MuseumMark. The toast layer uses it
+ * with per-instance `hue` so the same mark can carry status meaning:
  *
  *   - 250  → museum blue (default; informational / unknown)
- *   -  35  → warning yellow (auth, 401/403)
+ *   -  70  → warning yellow (auth, 401/403)
  *   -  25  → destructive red (server, 5xx)
  *
- * Lightness/chroma stay fixed so the mark reads as "the museum's icon
- * in a different mood" rather than a different glyph entirely. Each
- * toast renders its own SVG (unique gradient id per instance) so the
- * defs don't collide.
+ * Each toast renders its own SVG (unique gradient id per instance) so
+ * the <defs> from multiple side-by-side toasts don't collide.
  */
-function MuseumMark({
-  size = 18,
-  hue = 250,
-  gradientId,
-}: {
-  size?: number;
-  hue?: number;
-  gradientId: string;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <defs>
-        <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-          <stop
-            offset="35%"
-            stopColor={`oklch(0.92 0.10 ${hue})`}
-            stopOpacity="0.85"
-          />
-          <stop
-            offset="100%"
-            stopColor={`oklch(0.78 0.20 ${hue})`}
-            stopOpacity="0.55"
-          />
-        </radialGradient>
-      </defs>
-      <polygon
-        points="12,2 20.66,7 20.66,17 12,22 3.34,17 3.34,7"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="1.6"
-        fill="none"
-      />
-      <polygon
-        points="12,2 20.66,17 3.34,17"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="1.4"
-        fill="none"
-      />
-    </svg>
-  );
-}
 
 /** Hue per toast kind — matches the border color treatment below. */
 function hueForKind(kind: "auth" | "server" | "other"): number {

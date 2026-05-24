@@ -266,12 +266,23 @@ in," not as a downgrade or upsell.
 
 ### Where to put the SVG
 
-The museum mark lives at [public/og/icon.svg](../../public/og/icon.svg) (or
-the closest existing equivalent). For Enhanced ports running inside a
-submodule whose dev server is separate, copy the SVG to the
-submodule's `public/` on first wiring and document the copy in the
-port's sources-conversions row — the submodule can't `import` from
-museum-side paths.
+The museum mark — a hexagon with an inscribed triangle, drawn in oklch
+with a soft white-to-blue radial gradient — is canonically defined in
+[src/app/icon.svg](../../src/app/icon.svg) (the App Router auto-serves
+it as the museum's favicon at `/icon.svg`). For in-tree React use, the
+mark is also available as a typed component at
+[src/components/ui/MuseumMark.tsx](../../src/components/ui/MuseumMark.tsx)
+— prefer that component over `<img src="/icon.svg">` because it inlines
+the SVG without a network fetch and accepts a `hue` prop so the mark
+can carry status mood (250=museum blue, 70=warning, 25=destructive).
+Each instance must pass a unique `gradientId` so multiple side-by-side
+copies don't collide on `<defs>`.
+
+For Enhanced ports running inside a submodule whose dev server is
+separate, copy the raw SVG (the icon.svg content, not the React
+component) to the submodule's `public/` on first wiring and document
+the copy in the port's sources-conversions row — the submodule can't
+`import` from museum-side paths.
 
 ## Related
 
