@@ -10,17 +10,15 @@
 .host {
   position: relative;
   flex-shrink: 0;
-  /* Single source of truth for the rail's open width. Drives both the
-     rail's own size and the toggle button's left offset so they stay
-     glued together regardless of state. */
-  --rail-w: 16rem;
+  /* --rail-w is declared on the shell root (see MuseumPageShell.module.css)
+     so the chrome's fixed-overlay siblings (notes) can read the same
+     value. .host inherits it via the CSS cascade. */
   width: var(--rail-w);
-  /* Fill the grid cell vertically. Without this, .host's intrinsic
-     height is its content height; the inner .rail's `height: 100%`
-     then resolves against an unconstrained ancestor and the rail
-     grows to fit its content (defeating overflow-y: auto). The grid
-     cell itself sizes correctly via the parent's row track; .host
-     has to opt into filling it. */
+  /* Fill the parent (the shell's .rail slot, which is `position: fixed`
+     with bottom: 0). Without this, .host's intrinsic height is its
+     content height; the inner .rail's `height: 100%` then resolves
+     against an unconstrained ancestor and the rail grows to fit its
+     content (defeating overflow-y: auto). */
   height: 100%;
   /* Persists the rail across sibling-leaf navigations inside a container.
      Only one SiblingRail renders per route (containerized projects only),
