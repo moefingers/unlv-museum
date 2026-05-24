@@ -27,6 +27,12 @@ export function LeafBodyScroll({ children }: { children: React.ReactNode }) {
         scrollerRef={ref}
         topOffsetVar="--chrome-h"
         extraTopOffsetVar="--notes-h"
+        /* The leaf body often holds iframes (CRA originals, embedded
+           HTML) with their own white background that doesn't follow
+           the museum's dark/light mode. The "dark" variant uses a
+           dark fill with a light outline so the thumb reads on both
+           white iframe content AND dark museum theme. */
+        variant="dark"
       />
     </>
   );

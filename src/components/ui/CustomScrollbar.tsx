@@ -43,7 +43,7 @@ export function CustomScrollbar({
   scrollerRef,
   topOffsetVar = "--chrome-h",
   extraTopOffsetVar,
-  thumbColorVar = "--muted-foreground",
+  variant = "auto",
 }: {
   scrollerRef: React.RefObject<HTMLElement | null>;
   /** CSS variable on scroller (or its ancestor) that defines the
@@ -52,7 +52,18 @@ export function CustomScrollbar({
   /** Optional additional offset (e.g. --notes-h for the body column).
       The track's top will be at (topOffset + extraTopOffset). */
   extraTopOffsetVar?: string;
-  thumbColorVar?: string;
+  /**
+   * Visual variant of the thumb. Choose based on what the scrollbar
+   * sits over:
+   *   - "auto" — theme-token (var(--foreground)). Use over museum-
+   *     themed surfaces that flip with dark/light mode.
+   *   - "dark" — dark thumb. Use over light backgrounds that DON'T
+   *     flip with theme (e.g. white iframes from CRA originals).
+   *   - "light" — light thumb. Use over dark backgrounds that don't
+   *     flip with theme.
+   * Default is "auto".
+   */
+  variant?: "auto" | "light" | "dark";
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -134,8 +145,13 @@ export function CustomScrollbar({
     >
       <div
         ref={thumbRef}
-        className={styles.thumb}
-        style={{ background: `var(${thumbColorVar})` }}
+        className={`${styles.thumb} ${
+          variant === "dark"
+            ? styles.thumbDark
+            : variant === "light"
+              ? styles.thumbLight
+              : styles.thumbAuto
+        }`}
       />
     </div>
   );
