@@ -59,32 +59,180 @@
   align-items: center;
   /* Allow the lead group to shrink (so its title block can truncate
      instead of pushing the trail off-screen) without letting the
-     back link itself collapse — that's pinned via flex-shrink: 0
-     on .backLink below. */
+     lead-controls cluster itself collapse — that's pinned via
+     flex-shrink: 0 on .leadControls + each control inside it. */
   min-width: 0;
   gap: calc(var(--space-3) * var(--app-margin, 1) * var(--chrome-margin, 1));
 }
 
-.backLink {
+/*
+ * Lead-group toolbar — the three-control cluster at the start of the
+ * chrome row: back button, recents-list button, museum mark. Grouped
+ * tightly together (small gap) so they read as one affordance cluster
+ * distinct from the title block to their right.
+ */
+.leadControls {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: calc(0.125rem * var(--app-margin, 1) * var(--chrome-margin, 1));
+}
+
+/*
+ * Shared button shape for the back + recents-list controls. Same
+ * silhouette + hover treatment so the cluster feels like one toolbar.
+ * The museum mark uses .markLink instead (no rectangular hover
+ * background — the glyph itself is the visual signal).
+ */
+.iconButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Pin the back arrow's size — narrow viewports compress the
-     header row, and without flex-shrink: 0 the back link collapses
-     to zero width and the icon vanishes from view. */
+  /* Pin size on narrow viewports — without flex-shrink: 0 the lead
+     cluster would collapse and the icons would vanish from view. */
   flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   padding: calc(0.375rem * var(--app-pad, 1) * var(--chrome-pad, 1));
   border-radius: var(--radius-md);
   color: var(--muted-foreground);
-  /* view-transition-name applied inline (see MuseumChrome.tsx) — same
-     CSS-Modules-scoping workaround as .header. */
   transition:
     background var(--duration-normal) var(--ease-default),
     color var(--duration-normal) var(--ease-default);
 }
-.backLink:hover {
+.iconButton:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--accent);
   color: var(--accent-foreground);
+}
+.iconButton:disabled,
+.iconButton[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/*
+ * Recents-list popover anchor. Holds the trigger button and the
+ * absolutely-positioned dropdown together so click-outside works
+ * (the parent contains both). Same idiom as SignInChip.signedInWrap.
+ */
+.recentWrap {
+  position: relative;
+}
+
+.recentPopover {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 50;
+  margin-top: calc(
+    var(--space-2) * var(--app-margin, 1) * var(--chrome-margin, 1)
+  );
+  min-width: 16rem;
+  max-width: 24rem;
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* Origin pinned at top-left so scale unfolds from the corner under
+     the list button trigger, not from the geometric center of the
+     popover. Reads as "opening out of the button" rather than
+     "appearing whole-cloth." */
+  transform-origin: top left;
+  /* Both states start from this baseline; the .open / .leaving
+     classes drive the actual animation via keyframes. forwards on
+     leaving keeps the popover at its collapsed end-state until React
+     unmounts the node (the two-phase dismiss in MuseumChrome.tsx
+     keeps it mounted for RECENT_POPOVER_EXIT_MS). */
+  will-change: transform, opacity;
+}
+
+.recentPopoverOpen {
+  animation: recent-popover-in 160ms var(--ease-default) forwards;
+}
+
+.recentPopoverLeaving {
+  animation: recent-popover-out 160ms var(--ease-default) forwards;
+  pointer-events: none;
+}
+
+@keyframes recent-popover-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes recent-popover-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+
+.recentItem {
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.125rem * var(--app-margin, 1) * var(--chrome-margin, 1));
+  padding: calc(var(--space-2) * var(--app-pad, 1) * var(--chrome-pad, 1))
+    calc(var(--space-3) * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+.recentItem:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.recentLabel {
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentPath {
+  font-family: var(--font-mono);
+  font-size: calc(0.78em * var(--app-size, 1) * var(--chrome-size, 1));
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Museum mark — the home affordance. No background hover rectangle
+ * (unlike .iconButton); the glyph already reads as a brand mark and
+ * a hovered card-shape behind it would visually conflict with the
+ * stroke gradient. A subtle scale on hover gives feedback without
+ * occluding the mark.
+ */
+.markLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: calc(0.25rem * var(--app-pad, 1) * var(--chrome-pad, 1));
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  transition: transform var(--duration-normal) var(--ease-default);
+}
+.markLink:hover {
+  transform: scale(1.08);
 }
 
 .titleBlock {
