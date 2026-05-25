@@ -13,44 +13,15 @@ import { useLatestRef } from "./use-latest-ref";
  * Anchor phase state machine — the multi-phase sequence that opens
  * a project's hex card from a vertex and closes it back down.
  *
- * Extracted from PolyhedronGlobe.tsx (Audit 2f). The behavior is
- * unchanged; the move is purely structural to make the state
- * machine isolated, testable, and shorter to read.
+ * For the full story (phase chart, transitions, cross-anchor
+ * handoff, what the hook owns vs. reads, tickSwing internals,
+ * tuning rationale), see CONTEXT/internal_docs/anchor-phase.md.
  *
- * Phase sequence (forward, idle→open):
+ * Phase chain at a glance:
  *   idle → swinging → coneRising → widening → open
- * Phase sequence (reverse, open→idle):
  *   open → collapsing → coneFalling → unswinging → idle
- * Cross-anchor handoff (click a different vertex while open):
- *   coneFalling jumps back to swinging with the new target instead
- *   of unswinging. The next-target rides on collapsing /
- *   coneFalling as `nextVi`.
- *
- * The state machine OWNS:
- *   - the `phase` state (and `phaseRef` mirror for rAF reads)
- *   - the swing animation state (`anchorAnim` ref) and post-swing
- *     world-space axis (`anchoredAxis` ref)
- *   - the phase-advance timer (`phaseTimer`)
- *   - all phase derivations (anchoredVertexIdx, hexOpen, cone
- *     progress + transition durations)
- *   - handleDotClick + releaseAnchor + ESC dismiss
- *
- * The state machine READS from outside (via the config arg):
- *   - meshVertices (for the target-quaternion compute)
- *   - latestQ (current rotation, used as the swing's fromQ)
- *   - autoRotateAxis (writable; swapped between world-Y and the
- *     anchored axis as phase changes)
- *   - hoverCycleStartRef (resettable; cleared on swing-in)
- *   - clearEngagement (called to dismiss any in-flight label
- *     engagement on the swinging-toward vertex)
- *
- * The state machine is READ FROM by:
- *   - the rAF rotation loop in PolyhedronGlobe, which uses
- *     `anchorAnim` for the slerp, writes `anchoredAxis` +
- *     `autoRotateAxis` on slerp completion, and calls
- *     `notifySwingComplete()` to advance from swinging→coneRising.
- *   - the JSX, which uses `anchoredVertexIdx`, `hexOpen`, and the
- *     cone progress + transition values to drive visuals.
+ *   (cross-anchor: coneFalling jumps back to swinging with nextVi
+ *   instead of unswinging)
  */
 
 // ─── Timing constants ────────────────────────────────────────────

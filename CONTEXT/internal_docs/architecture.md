@@ -40,14 +40,16 @@ The `original` tier may also be undefined (e.g., the `rest-rant-ssr` entry has n
 
 ## Globe Landing Page
 
-3D CSS sphere using `preserve-3d` transforms. Cards distributed via Fibonacci sphere algorithm, positioned with `rotateY(lon) rotateX(-lat) translateZ(radius)`.
+SVG icosphere with quaternion-driven rotation. The user can drag to spin, hover or tap vertices to engage projects, and click to anchor — which swings the chosen vertex to a fixed screen position and unfolds a hexagonal billboard out of it.
 
-Key implementation details:
+Implementation is split across the landing surface ([landing.md](landing.md)) and the globe itself ([globe.md](globe.md)). Sub-systems with their own docs:
 
-- `preserve-3d` chain must be unbroken from the perspective root to every leaf element that uses `translateZ`
-- Cards have stacked depth layers behind them (each slightly larger) for a 3D extrusion effect
-- iOS-style momentum physics: exponential velocity decay (600ms time constant), EMA velocity tracking, pole bounce reflection
-- 18° axial tilt via a separate wrapper div (not in the rotation transform)
+- [globe.md](globe.md) — the icosphere, quaternion math, hook composition, rAF orchestrator, pointer routing.
+- [anchor-phase.md](anchor-phase.md) — the multi-phase state machine for the click-to-anchor choreography.
+- [hover-crosshair.md](hover-crosshair.md) — opt-in touch interaction where each finger is a hover cursor (vs. a drag-grab), including multi-finger lift hesitation.
+- [landing.md](landing.md) — the front-page composition: globe/list switcher, URL state, breathing-mesh background, corner controls, viewport-aware framing.
+
+The previous CSS-3D + Fibonacci-sphere implementation was rewritten as the click-to-anchor + hex-billboard interaction was added — arbitrary-axis rotation around a clicked vertex doesn't compose cleanly with the CSS-3D approach.
 
 ## Project Registry
 

@@ -6,25 +6,16 @@ import { useLatestRef } from "@/hooks/use-latest-ref";
 /*
  * Touch hover-mode crosshair gesture state machine.
  *
- * In hover mode (an opt-in touch interaction the user picks via the
- * header pill), each finger touching the globe acts as a hover
- * cursor rather than a drag-grab. A crosshair UI element tracks the
- * centroid of all active fingers; the vertex nearest the centroid
- * engages (its label types in). Lifting fingers commits a tap on
- * the nearest vertex (open card), and a dragging gesture instead
- * fades the crosshair out without committing.
+ * For the interaction story, multi-finger lift hesitation +
+ * prevPos race-write undo, duplicate-pointerup guard, tuning
+ * constants, and "don't break these" invariants, see
+ * CONTEXT/internal_docs/hover-crosshair.md.
  *
- * Multi-finger lifts have a hesitation window: when one finger
- * lifts while others are down, we wait POINTERUP_HESITATION_MS for
- * additional pointerups before deciding whether the lift was
- * "simultaneous" (treat as full lift) or "one of several" (commit
- * the rebaseline to the remaining fingers' centroid). During the
- * window all pointermoves are gated, so the crosshair stays frozen
- * regardless of how the OS interleaves up/move events.
- *
- * Extracted from PolyhedronGlobe in the 2026-05 cleanup pass to
- * isolate the crosshair concerns from the sphere's drag-rotate,
- * anchor, and rendering code.
+ * In short: each finger is a hover cursor, not a drag-grab. The
+ * crosshair tracks the centroid of all active fingers; the vertex
+ * nearest engages. A quick tap commits; a drag-preview fades.
+ * Multi-finger lifts get a 60ms hesitation window so near-
+ * simultaneous lifts don't snap to whichever finger lingered.
  */
 
 // Linger (post-release fade) duration. The crosshair stays visible

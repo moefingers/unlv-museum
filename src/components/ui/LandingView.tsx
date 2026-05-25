@@ -369,6 +369,18 @@ export function LandingView() {
   );
 }
 
+/**
+ * The museum's front page. Owns the globe/list switcher, the
+ * breathing-mesh background, the floating header pill (view + sort
+ * + touch-mode toggles), the legend, the corner controls (theme,
+ * graphics, help), and the URL state.
+ *
+ * See CONTEXT/internal_docs/landing.md for the full story:
+ * composition, ownership boundaries with PolyhedronGlobe, FLIP
+ * animation in the list view, pointer-surface lifting, viewport-
+ * aware framing math, modal mutual exclusion, and the "don't
+ * break these" invariants.
+ */
 function LandingViewInner() {
   const searchParams = useSearchParams();
   // Seed view + sort from URL on first render so a deep-link to e.g.
