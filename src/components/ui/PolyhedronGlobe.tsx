@@ -45,43 +45,22 @@ const INTENT_WINDOW_MS = 100;
  * Tessellated icosphere with optional per-vertex project assignments —
  * the museum's landing-page centerpiece.
  *
- * ─── The story ─────────────────────────────────────────────────
+ * For the user-visible flow, hook composition, rAF orchestrator,
+ * pointer routing model, and touch-hover-mode state-machine quirks,
+ * see CONTEXT/internal_docs/globe.md.
  *
- * The sphere rotates slowly on its own. The user can drag it to spin
- * to a different face, or zoom with the wheel / pinch. Hovering the
- * cursor over an assigned vertex (or sliding a touch crosshair over
- * one in Hover mode) types out the project's title beneath it.
- *
- * Clicking/tapping a vertex commits to it: the typed label untypes,
- * the sphere slides down and re-anchors with the clicked vertex
- * pinned to a fixed screen position, and a cone shoots up out of
- * the vertex, expanding into a hexagonal billboard via a staggered
- * unfold animation that types in the project's full text.
- *
- * Dismissing (tap off, click anywhere on the page, ESC) reverses
- * the animation; the sphere returns to free rotation. Cross-anchor
- * handoff (tap a different vertex while one is open) reverses the
- * billboard, slerps to the new vertex without lifting the sphere
- * back up, then plays the open animation again.
- *
- * ─── Concerns owned by this component ──────────────────────────
- *
+ * This component owns:
  *   - Mesh geodesy + per-frame projection (rotate, cull, sort, paint).
- *   - Drag input → quaternion rotation, including release momentum
- *     decay (extracted into useDragMomentum).
  *   - Hover engagement (intent gating, collapse-on-leave timer).
- *   - Pointer routing for mouse, single touch, and the multi-finger
- *     centroid + pinch + crosshair logic in Hover mode.
- *   - Anchor state machine + per-frame anchor-swing rotation
- *     (extracted into useAnchorPhase).
- *   - Hex-billboard placement above the anchored vertex (the
- *     billboard itself is UnfoldingBillboard).
+ *   - Pointer routing dispatch (tap-mode handlers; hover-mode goes to
+ *     useHoverCrosshair).
+ *   - The rAF orchestrator that composes the three rotation drivers.
+ *   - The SVG + hex-billboard JSX.
  *
- * Things the parent (LandingView) owns: userZoom state, the
- * .globeWrap surface that intercepts drag/dismiss across the whole
- * viewport, and the visual translateY that drops the sphere down
- * when anchored. PolyhedronGlobe reports anchor changes upward via
- * onAnchoredChange; it doesn't apply the translate itself.
+ * The parent (LandingView) owns userZoom, the .globeWrap surface
+ * that gives drag/dismiss a viewport-sized hit region, and the
+ * anchored translateY. We report anchor changes upward via
+ * onAnchoredChange.
  */
 
 /** Map from vertex index (0..N-1 in the mesh) to a project. */
@@ -1467,29 +1446,43 @@ export function PolyhedronGlobe({
     }
   });
 
+  // ─── Render ──────────────────────────────────────────────────
+  //
+  // The DOM tree, top to bottom:
+  //
+  //   <div .stage>                          ← pointer surface + sizing
+  //     <svg>                                ← the polyhedron + crosshair
+  //       <defs>                             ← gradients, filters
+  //       <rect background halo>             ← atmospheric wash (optional)
+  //       <g> × N faces                      ← painter-sorted polyhedron faces
+  //       <VertexHover|circle> × N vertices  ← project dots + plain glows
+  //       <g crosshair>                      ← touch hover crosshair
+  //       <g cone>                           ← projection beam (when anchored)
+  //     </svg>
+  //     <div hex-billboard>                  ← HTML overlay above the SVG
+  //   </div>
+  //
+  // Order = painter order. Inside the SVG, later elements paint
+  // OVER earlier ones (defs don't paint at all). The hex billboard
+  // is an HTML sibling of <svg>, layered above it via position:
+  // absolute + zIndex:2 — it lives outside the SVG because
+  // UnfoldingBillboard owns its own SVG + HTML content layer.
+  //
+  // No transforms on .stage. ROTATION is per-vertex in projected[]
+  // math; SCALING + POSITIONING (anchored zoom, viewport framing)
+  // happen on globeScaleHost in LandingView so BreathingMesh can
+  // measure them in one place for its cutout.
   return (
     <div
       ref={stageRef}
       className={styles.stage}
-      style={{
-        width: stageSize,
-        height: stageSize,
-        // No transform here — both the anchored zoom AND user zoom
-        // are applied by LandingView on globeScaleHost (the element
-        // BreathingMesh measures for its cutout). This file owns
-        // ROTATION (via projected[] math) and SHAPE; LandingView
-        // owns SCALING + POSITIONING. Keeping one transform stack
-        // on one DOM element means the BreathingMesh cutout tracks
-        // the visible sphere without manual multipliers.
-      }}
-      // When the parent provides `surfaceHandlersRef`, it binds these
-      // handlers to a LARGER surface (.globeWrap) — we omit them
-      // here to avoid double-firing on events that originate inside
-      // the stage div. The handlers still fire via bubble-phase on
-      // .globeWrap above. When NO parent surface is provided, fall
-      // back to binding them locally on the stage div (legacy /
-      // standalone usage). The conditional spread keeps the prop
-      // surface clean either way.
+      style={{ width: stageSize, height: stageSize }}
+      // Pointer handlers: the parent (.globeWrap in LandingView)
+      // owns the input surface when surfaceHandlersRef is provided —
+      // gives drag/dismiss a viewport-sized hit region instead of
+      // just the transformed stage bbox. We omit the local handlers
+      // in that case to avoid double-firing. Standalone use (no
+      // parent surface) falls back to binding them here.
       {...(surfaceHandlersRef
         ? {}
         : {
@@ -1498,11 +1491,6 @@ export function PolyhedronGlobe({
             onPointerUp: handlePointerUp,
             onPointerCancel: handlePointerUp,
             onPointerLeave: handleSurfacePointerLeave,
-            // Background-click dismissal (Stage 4). The `didDrag`
-            // guard suppresses clicks that were really drag-releases
-            // (the pointermove handler flags didDrag when movement
-            // >3px). Dots and the hex card both stop propagation in
-            // bubble phase, so clicks on them never reach here.
             onClick: handleSurfaceClick,
           })}
     >
@@ -1511,14 +1499,22 @@ export function PolyhedronGlobe({
         viewBox={`0 0 ${stageSize} ${stageSize}`}
         className={styles.svg}
         aria-label="Museum sphere"
+        // SVG-level pointer handlers run alongside the stage-div
+        // ones; they convert client coords → viewBox coords for the
+        // hover-cycle bookkeeping (independent of the surface-lift
+        // pointer routing above).
         onPointerMove={handleSvgPointerMove}
         onPointerLeave={handleSvgPointerLeave}
       >
+        {/* ─── <defs>: gradients + filters used across the scene ─
+            Defined once here, referenced by `url(#id)` from polygons
+            and circles below. None of these paint on their own — they
+            describe paints that other elements pull in via fill /
+            stroke / filter attributes. */}
         <defs>
-          {/* Radial gradient for the background halo. Centered on the
-              sphere, fades from a soft tint at center to fully transparent
-              by the corners. Read on a dark theme as a faint atmospheric
-              glow; on a light theme as a barely-perceptible cool wash. */}
+          {/* Background halo — fades from a soft tint at center to
+              transparent at the corners. Reads as faint atmosphere on
+              dark theme, a barely-perceptible cool wash on light. */}
           <radialGradient
             id="ph-bg-halo"
             cx="50%"
@@ -1541,8 +1537,9 @@ export function PolyhedronGlobe({
             />
           </radialGradient>
 
-          {/* Radial gradient for each vertex glow — bright pinpoint at
-              center, soft falloff. Used as the fill of vertex circles. */}
+          {/* Fallback vertex glow — bright pinpoint, soft falloff.
+              Fill of unassigned vertex circles. Assigned vertices use
+              their own per-category gradients below. */}
           <radialGradient id="ph-vertex-glow" cx="50%" cy="50%" r="50%">
             <stop
               offset="0%"
@@ -1558,10 +1555,10 @@ export function PolyhedronGlobe({
             />
           </radialGradient>
 
-          {/* Gaussian-blur filter for edge glow. The blurred-stroke pass
-              uses this filter on a thicker, semi-transparent stroke so
-              edges read as having a halo. stdDeviation in viewBox units
-              — keep small relative to sphere radius. */}
+          {/* Edge-glow blur. The faces' edge-glow pass strokes the
+              polygon outline with a thick semi-transparent stroke and
+              runs it through this filter so the edges read as having
+              a halo. Skipped when graphics.edgeGlow is off. */}
           <filter
             id="ph-edge-glow"
             x="-50%"
@@ -1572,12 +1569,10 @@ export function PolyhedronGlobe({
             <feGaussianBlur stdDeviation="2.5" />
           </filter>
 
-          {/* Default radial gradient for vertex glow. VertexHover's
-              `glowGradientId` prop defaults to "hover-dot-glow"
-              (legacy name from the standalone HoverDot sandbox);
-              unassigned vertices fall back to this generic blue
-              treatment. Project-bearing museum vertices override
-              with per-category variants defined below. */}
+          {/* Neutral vertex glow used by VertexHover when category-
+              tinting is off (graphics.vertexGlows === "engaged-only"
+              for non-focused dots). Legacy id "hover-dot-glow" from
+              the standalone HoverDot sandbox. */}
           <radialGradient id="hover-dot-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="var(--glow-pinpoint)" />
             <stop offset="22%" stopColor="var(--glow-core)" />
@@ -1585,17 +1580,12 @@ export function PolyhedronGlobe({
             <stop offset="100%" stopColor="var(--glow-far)" />
           </radialGradient>
 
-          {/* Per-category vertex glow gradients. White-hot center →
-              category color mid → fade to transparent. Same stop
-              palette across all categories so the dots read as
-              consistently "lit pinpoints"; only the mid color
-              changes. The legend's category dots use a matching
-              CSS radial-gradient (LandingView.module.css) so the
-              two surfaces are visually identical.
-
-              `stop-color` accepts CSS var() — the colors track the
-              project's category tokens (light + dark theme variants
-              defined in globals.css). */}
+          {/* Per-category vertex glows. White-hot center → category
+              color mid → transparent edge. Same stop palette across
+              categories so dots read as consistent "lit pinpoints";
+              only the mid color (via --category-X token) changes.
+              The legend's category swatches mirror these stops as
+              CSS radial-gradients so legend + sphere read identical. */}
           {(
             [
               ["games", "--category-games"],
@@ -1628,27 +1618,22 @@ export function PolyhedronGlobe({
             </radialGradient>
           ))}
 
-          {/* Projection cone gradient. Used for the projection beam
-              from the anchored dot up to the hex's base. userSpaceOnUse
-              with anchor-anchored y1/y2 so the gradient flows along
-              the beam's axis regardless of where the anchor sits on
-              screen. Filled at runtime via the cone's <linearGradient>
-              attributes — this is just the stop palette. The gradient
-              ramps from bright-with-some-opacity at the apex (dot) to
-              fully-transparent at the top (hex base), so the beam
-              fades out toward the hex rather than ending in a hard
-              edge. The bias is shifted toward the bottom (offset 0.5
-              keeps the top half nearly transparent) so the hex floats
-              cleanly above the cone's brightest region. */}
+          {/* Cone gradient template. This <defs> entry is the stop
+              palette only; the cone itself instantiates its own
+              <linearGradient id="ph-cone-gradient-instance"> with
+              userSpaceOnUse + run-time x1/y1/x2/y2 so the gradient
+              flows along the beam's actual screen axis. The stops
+              fade from opaque-at-apex to transparent-at-top so the
+              hex floats cleanly above the brightest region instead
+              of meeting the beam at a hard edge. */}
           <linearGradient id="ph-cone-gradient" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="var(--cone-stop-far)" />
             <stop offset="65%" stopColor="var(--cone-stop-mid)" />
             <stop offset="100%" stopColor="var(--cone-stop-near)" />
           </linearGradient>
 
-          {/* Soft outer-blur for the cone edges — keeps the beam from
-              looking like a hard polygon. stdDeviation in viewBox
-              units; larger values make the cone hazier. */}
+          {/* Cone-edge softening blur. Keeps the beam from reading
+              as a hard polygon outline. */}
           <filter
             id="ph-cone-blur"
             x="-30%"
@@ -1660,6 +1645,11 @@ export function PolyhedronGlobe({
           </filter>
         </defs>
 
+        {/* ─── Background halo ───────────────────────────────────
+            Soft radial wash filling the whole stage. Paints first so
+            everything else sits on top of it. Skipped when the user
+            has disabled the backgroundHalo graphics toggle (the
+            biggest fillrate contributor on low-end hardware). */}
         {graphics.backgroundHalo && (
           <rect
             x={0}
@@ -1671,23 +1661,26 @@ export function PolyhedronGlobe({
           />
         )}
 
+        {/* ─── Polyhedron faces ──────────────────────────────────
+            faceRecords is painter-sorted by centroid Z (back-to-
+            front) earlier in this component, so later iterations
+            paint over earlier — giving correct visual stacking on
+            the sphere without depth testing.
+
+            Each face renders TWO passes when edge-glow is on: a
+            thick blurred stroke underneath (the halo) + a crisp
+            stroke + fill on top. Face shading multiplies alpha by
+            facingCamera so front faces are brighter than back —
+            disable to flatten the look (and skip the per-face
+            oklch resolves, a measurable perf save). */}
         {faceRecords.map((face) => {
-          // Face shading: when ON, each face's fill + stroke alpha
-          // is modulated by `facingCamera` (a per-face dot product
-          // with the view vector — front faces brighter, back-of-
-          // sphere faces darker). When OFF, use a midpoint static
-          // alpha. Visually this is the "flatten the shading" perf
-          // toggle: the sphere reads as a wireframe constellation
-          // rather than a lit volume, but compositing work drops
-          // considerably because every face's alpha is identical
-          // (no per-face oklch resolution work per repaint).
+          // shadingMul: per-face alpha multiplier. With shading on,
+          // we use facingCamera (front faces bright, back faces dim).
+          // With shading off, every face gets the same midpoint alpha
+          // — visually flatter, computationally cheaper.
           const shadingMul = graphics.faceShading ? face.facingCamera : 0.5;
           return (
             <g key={face.faceIdx}>
-              {/* Edge-glow pass: thick, semi-transparent stroke run through
-                the gaussian-blur filter sits underneath the crisp
-                stroke. Visible only where the silhouette of the polygon
-                is, since the fill itself is no-fill on the glow pass. */}
               {graphics.edgeGlow && (
                 <polygon
                   points={face.points}
@@ -1699,7 +1692,6 @@ export function PolyhedronGlobe({
                   pointerEvents="none"
                 />
               )}
-              {/* Crisp face on top: same fill + edge as the bare branch. */}
               <polygon
                 points={face.points}
                 fill={`oklch(from var(--foreground) l c h / ${0.04 + shadingMul * 0.1})`}
@@ -1712,27 +1704,21 @@ export function PolyhedronGlobe({
           );
         })}
 
+        {/* ─── Vertices ─────────────────────────────────────────
+            For each visible vertex: assigned → <VertexHover> (the
+            dot + hit-target + typing label), unassigned → plain
+            glow circle. Hidden entirely when vertexGlows === "off".
+            visibleVertices is built earlier via backface-culling +
+            projection so we don't render dots on the far side. */}
         {graphics.vertexGlows !== "off" &&
           visibleVertices.map((v) => {
             const project = assignmentByVertex.get(v.vi);
-            // Assigned vertex: render <VertexHover>. Engagement is
-            // sticky and parent-controlled — see the engagement model
-            // comment above. The dot's hit-target enter/leave events
-            // are intercepted by the parent (which gates on
-            // mousemove-recency to distinguish user intent from
-            // geometry drift). Dot mouseleave is intentionally a
-            // noop here; engagement only releases via SVG-level
-            // pointerleave OR a different dot's intent-gated enter.
             if (project) {
-              // In "engaged-only" mode, non-engaged + non-anchored
-              // assigned vertices keep their hit-target + label
-              // typing behavior but lose the category-tinted glow
-              // gradient — they fall back to the neutral default
-              // gradient. This drops one gradient-resolve per
-              // non-focused dot (multiplied across the visible 22-
-              // ish vertices, the perf delta is real) while
-              // preserving the project's identity color on the dot
-              // the user is actually focused on.
+              // Category-tinted glow is per-dot fillrate work. In
+              // "engaged-only" mode we use the neutral fallback for
+              // non-focused dots — keeps the focused dot's identity
+              // color while saving a gradient-resolve per dot across
+              // the visible ~22 vertices.
               const isFocused =
                 engagedVertexIdx === v.vi || anchor.anchoredVertexIdx === v.vi;
               const useCategoryGlow =
@@ -1763,7 +1749,9 @@ export function PolyhedronGlobe({
                 />
               );
             }
-            // Unassigned vertex: plain glow circle (same as before).
+            // Unassigned vertex: plain glow circle. Size + opacity
+            // both modulated by facingCamera so dots on the far side
+            // recede visually.
             const r = 4 + v.facingCamera * 4;
             const opacity = 0.4 + v.facingCamera * 0.5;
             return (
@@ -1779,36 +1767,28 @@ export function PolyhedronGlobe({
             );
           })}
 
-        {/* ─── Touch hover crosshair ──────────────────────────────
-            Rendered when the user is actively touching in hover
-            mode OR within the post-release linger window (fading
-            out). A small luminous hexagon — matches the UI's hex
-            vocabulary and gives the finger a clear "cursor"
-            affordance.
-            Position lives on the <g>'s transform attribute and is
-            updated IMPERATIVELY (via crosshairGroupRef +
-            setAttribute) on every pointermove, bypassing React
-            reconciliation so the crosshair tracks the finger at
-            the input event rate without per-frame re-renders.
-            Children are drawn at origin (0,0); the group's
-            transform places them at the cursor position. */}
+        {/* ─── Touch hover crosshair ─────────────────────────────
+            Tiny luminous hexagon that tracks the touch centroid in
+            hover mode. Children draw at origin (0,0); the group's
+            CSS transform places them. Position writes are imperative
+            (useHoverCrosshair owns them) so the crosshair tracks the
+            finger at native pointermove rate without React re-renders.
+            Rendered both during active touch and through the
+            post-release linger fade-out. */}
         {touchMode === "hover" && crosshairVisible && (
           <g
-            // All position + style management on this <g> is
-            // IMPERATIVE — the JSX intentionally declares neither
-            // `transform` nor `style`, so React never overwrites
-            // attributes that the event handlers manage live. The
-            // hook owns the mount-time writer + the imperative
-            // position/opacity writers; see use-hover-crosshair.ts.
+            // Neither `transform` nor `style` declared in JSX so
+            // React's reconciliation can't overwrite the imperative
+            // writes from the hook. See use-hover-crosshair.ts.
             ref={bindCrosshairGroup}
             pointerEvents="none"
           >
-            {/* Outer halo: soft glow so the user perceives the
-                crosshair even through their fingertip. */}
+            {/* Outer halo: glow that shows through under the
+                fingertip itself. */}
             <circle r={28} fill="url(#hover-dot-glow)" opacity={0.6} />
-            {/* Hexagon mark — bright rim, faint fill. Sized bigger
-                than a fingertip but small enough to see what it's
-                pointing at. Pre-computed once: it's static. */}
+            {/* Hexagon mark: bright rim, faint fill. Sized larger
+                than a fingertip but small enough to read what it
+                points at. */}
             <polygon
               points={(() => {
                 const r = 18;
@@ -1831,20 +1811,17 @@ export function PolyhedronGlobe({
           </g>
         )}
 
-        {/* ─── Projection cone (Stage 3) ──────────────────────────
-            Light-beam from the anchored dot upward to the hex base.
-            Two nested <g> transforms drive the choreography:
-              - outer: scale Y from 0 → 1 (cone rises). Transition
-                duration matches CONE_RISE_MS (open) or CONE_FALL_MS
-                (close). Origin at the dot so the cone grows UP from
-                the vertex.
-              - inner: scale X from 0 → 1 (cone widens). Transition
-                duration matches the WIDENING_MS × CONE_WIDEN_FRACTION
-                (open) or COLLAPSING_MS (close). Origin at the dot.
-            The polygon and edge lines inside are drawn at FULL SIZE
-            always; only the transforms move. transform-box: fill-box
-            so the % origin resolves against the cone polygon's bbox.
-            Fill is the linearGradient (also drawn at full size). */}
+        {/* ─── Projection cone ────────────────────────────────────
+            Light-beam from the anchored dot up to the hex's base.
+            Choreography uses TWO nested <g> transforms:
+              - outer: scaleY 0 → 1 (cone rises out of the dot).
+              - inner: scaleX 0 → 1 (cone widens from a line to a
+                triangle).
+            Both originate at the dot so the cone grows OUT of the
+            vertex. Polygon + edges are drawn full-size always; only
+            the wrapping transforms move. CSS transitions on each
+            scale carry the open/close timing — durations come from
+            anchor.cone{Height,Width}TransitionMs. */}
         {anchorGeometry && (
           <g
             style={{
@@ -1880,22 +1857,21 @@ export function PolyhedronGlobe({
                 <stop offset="55%" stopColor="var(--cone-stop-mid)" />
                 <stop offset="100%" stopColor="var(--cone-stop-far)" />
               </linearGradient>
-              {/* Soft blurred fill pass — wider feel. */}
+              {/* Soft blurred underlayer — gives the beam its haze. */}
               <polygon
                 points={anchorGeometry.coneTrianglePoints}
                 fill="url(#ph-cone-gradient-instance)"
                 filter="url(#ph-cone-blur)"
               />
-              {/* Crisp fill pass on top — gives the beam definition. */}
+              {/* Crisp fill on top — gives the beam its definition. */}
               <polygon
                 points={anchorGeometry.coneTrianglePoints}
                 fill="url(#ph-cone-gradient-instance)"
                 opacity={0.85}
               />
-              {/* Edge highlights along the two slanted sides of the
-                  triangle. Stroked lines, semi-transparent, blend
-                  the cone into surrounding space without a hard
-                  polygon outline. */}
+              {/* Edge highlights along the two slanted sides.
+                  Semi-transparent strokes blend into surroundings
+                  instead of reading as a hard polygon outline. */}
               <line
                 x1={anchorGeometry.dotX}
                 y1={anchorGeometry.coneBottomY}
@@ -1919,129 +1895,72 @@ export function PolyhedronGlobe({
         )}
       </svg>
 
-      {/* ─── Hexagonal billboard (Stage 3) ──────────────────────
-          The hex unfolds above the anchored vertex via the
-          UnfoldingBillboard component. It's an HTML overlay
-          (absolutely positioned on the stage div) rather than an
-          SVG element because the component owns its own SVG and
-          HTML content layer. Position is in stage-div pixel space,
-          which matches the parent SVG's viewBox 1:1.
-          Pointer events isolated to the billboard itself so the
-          underlying sphere/dot hit-targets keep working around it.
-          Rendered always while anchored so the close-cascade plays
-          out even after engagedVertexIdx clears.
-       */}
+      {/* ─── Hex billboard ─────────────────────────────────────
+          The card that unfolds above the anchored vertex. Lives
+          OUTSIDE the SVG (HTML overlay positioned absolutely on
+          the stage div) because UnfoldingBillboard owns its own
+          SVG + HTML content layer. Stays mounted throughout the
+          anchor lifecycle — `open` toggles the unfold cascade,
+          but the wrapper persists so the close-cascade can play. */}
       {anchorGeometry && (
         <div
           style={{
             position: "absolute",
             left: anchorGeometry.hexCx,
-            // The hex billboard's host is centered (translate -50%
-            // -50%) on its own internal origin. UnfoldingBillboard's
-            // stage-0 collapsed dot sits at that origin. So setting
-            // `top: dotY` puts the collapsed dot exactly on the
-            // anchored vertex; setting `top: hexCy` puts the
-            // unfolded hex's center at its final position. We lerp
-            // between them via coneHeightProgress so the dot
-            // visually "shoots out" of the vertex along the cone as
-            // the cone height grows.
+            // The wrapper centers on its own midpoint (translate
+            // -50% -50%). top:dotY lands the (collapsed) dot on
+            // the vertex; top:hexCy lands the (unfolded) hex's
+            // center at its final position. Lerp between them via
+            // coneHeightProgress so the dot visually shoots out of
+            // the vertex along the cone as it rises.
             top:
               anchorGeometry.dotY +
               (anchorGeometry.hexCy - anchorGeometry.dotY) *
                 anchor.coneHeightProgress,
             transform: "translate(-50%, -50%)",
-            // CSS transition on `top` ONLY during the cone
-            // rise/fall phases. During swinging, the dot's screen
-            // position moves frame-by-frame as the slerp runs —
-            // we want the hex to track it 1:1, not lag behind. A
-            // transition here would animate from the previous
-            // render's top to the current render's top, smearing
-            // the hex through space behind the moving dot.
+            // top-transition only during cone phases. During the
+            // swinging phase the dot moves frame-by-frame as the
+            // slerp runs and a transition here would smear the
+            // hex through space behind the moving dot.
             transition:
               anchor.phase.kind === "coneRising" ||
               anchor.phase.kind === "coneFalling"
                 ? `top ${anchor.coneHeightTransitionMs}ms ease-out`
                 : "none",
             pointerEvents: anchor.hexOpen ? "auto" : "none",
-            // Clip the wrapper's hit region to the actual hex shape.
-            // The wrapper itself is `viewbox × viewbox` = radius*2.4
-            // square (matching UnfoldingBillboard's outer SVG), but
-            // the visible hex only fills roughly the inner radius.
-            // Without this, finger taps in the corners of the SVG box
-            // (visually empty space) still hit the wrapper and got
-            // eaten by its `stopPropagation` onClick — so taps that
-            // looked like "outside the card" did nothing instead of
-            // dismissing. clip-path restricts hit-testing to the
-            // visible polygon, so off-hex taps fall through to the
-            // landing-view shell's dismiss handler.
+            // Clip the wrapper's hit region to the visible hex
+            // shape. The wrapper is radius*2.4 square (matches
+            // UnfoldingBillboard's SVG viewbox), much larger than
+            // the visible hex; without this, taps in the empty
+            // corners would hit the wrapper and get eaten by its
+            // bubble-phase stopPropagation. clip-path makes those
+            // off-hex taps fall through to the surface's dismiss.
             //
-            // POINTY-TOP regular hexagon matching what polygon-vertices.ts
-            // emits (its line 50 starts at angle -π/2 = 12 o'clock), with
-            // the polygon INFLATED past the geometric hex vertices so the
-            // stroke + drop-shadow glow on the visible hex aren't sliced
-            // by the clip. UnfoldingBillboard's path has a
-            // `drop-shadow(0 0 6px ...) drop-shadow(0 2px 12px ...)`
-            // filter that paints visibly beyond the hex's vertex
-            // positions.
-            //
-            // Wrapper size = R * 2.4, hex radius = R, so the geometric
-            // vertices sit at 50% ± 41.67% (vertical) and 50% ± 36.08%
-            // (horizontal). To preserve the hex orientation while
-            // adding margin, scale each offset-from-center uniformly:
-            // multiply by ~1.13 so the vertices land at 50% ± 47.1%
-            // (top/bottom), ±40.78% (horizontal corners), ±23.55%
-            // (intermediate). Result: clip just inside the wrapper's
-            // outer edge with breathing room for the glow.
-            //
-            // Trade-off: dismiss-on-tap area in the wrapper corners
-            // shrinks by a small ring (the inflated-vs-original gap),
-            // but those rings are still empty visual space the user
-            // wouldn't aim at. Inside-the-visible-hex still navigates;
-            // outside-the-visible-hex still falls through to
-            // .globeWrap's dismiss handler.
+            // The polygon is a pointy-top hexagon inflated to ~1.13×
+            // the geometric vertex positions so the SVG path's
+            // drop-shadow glow isn't sliced by the clip. Inflation
+            // costs a small ring of dismiss-area in the corners that
+            // the user wouldn't aim at anyway.
             clipPath:
               "polygon(50% 2.9%, 90.78% 26.45%, 90.78% 73.55%, 50% 97.1%, 9.22% 73.55%, 9.22% 26.45%)",
-            // Override the ancestor stage's `touch-action: none`.
-            // `none` is required on the sphere (so the browser
-            // doesn't pan/zoom natively while we drive rotation +
-            // pinch ourselves), but it ALSO suppresses the synthetic
-            // click events the browser would normally emit from
-            // taps — meaning Link clicks inside the hex card never
-            // fire on touch. `manipulation` re-enables the synthetic
-            // click while still disabling the (unwanted) double-tap
-            // zoom and panning gestures.
+            // Override the ancestor stage's `touch-action: none`
+            // (which suppresses native pan/zoom on the sphere) so
+            // the browser still synthesizes click events for taps
+            // on the Link inside.
             touchAction: "manipulation",
             zIndex: 2,
           }}
-          onPointerDownCapture={(e) => {
-            // Capture-phase stop so the stage's onPointerDown
-            // (drag-start + anchor-release) never sees this — the
-            // hex card is INSIDE the stage tree. The pointerdown
-            // here is for navigating the card, not for grabbing
-            // the sphere.
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            // BUBBLE-phase stop. By the time we get here in bubble
-            // phase, the click has ALREADY been delivered to the
-            // Link's React onClick (which calls router.push). Now
-            // we prevent it from bubbling up to the stage's
-            // onClick (background-dismiss). DO NOT stop in capture
-            // phase — that would prevent React's delegated event
-            // from reaching the Link in the first place.
-            e.stopPropagation();
-          }}
-          // Mark this subtree so the stage's onClickCapture
-          // (which preventDefaults when didDrag is set) can
-          // recognize clicks coming from the hex card and skip
-          // its preventDefault — finger jitter shouldn't block
-          // navigation just because the user drew a short arc.
+          // Capture-phase pointerdown stop: prevents the surface's
+          // drag-start handler from firing on taps that are meant
+          // to navigate the card.
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          // Bubble-phase click stop: the Link's onClick has
+          // already fired (it does router.push); stop here so the
+          // surface's background-dismiss doesn't ALSO fire.
+          onClick={(e) => e.stopPropagation()}
           data-hex-card=""
-          // Drive --glass-category from the anchored project's
-          // category so the hex card body/rim/text/text-shadow
-          // pick up the category hue. Falls back to neutral
-          // (--foreground) when no project is anchored. See the
-          // [data-glass-category] block in globals.css.
+          // Drive --glass-category for the hex's body/rim/text
+          // tinting. Falls back to neutral when no anchor.
           data-glass-category={anchoredProject?.category}
         >
           <UnfoldingBillboard
@@ -2056,24 +1975,11 @@ export function PolyhedronGlobe({
                   anchoredProject.href ?? projectLandingUrl(anchoredProject)
                 }
                 onClick={(e) => {
-                  // Explicit router.push instead of relying on Next's
-                  // native-click delegation. The previous version was
-                  // brittle for two combined reasons: (1) the stage
-                  // div's onClickCapture preventDefaulted clicks when
-                  // drag.current.didDrag was true, which finger-jitter could
-                  // flip on; (2) clicks on the hex card also stopped
-                  // propagation in capture phase, blocking React's
-                  // delegated onClick from running at all.
-                  //
-                  // With the capture-phase stops removed (see the
-                  // hex card div above and the stage onClickCapture
-                  // below), the click reaches us cleanly. We still
-                  // explicitly router.push for resilience against
-                  // any future Next.js click-delegation quirks.
-                  //
-                  // Honor modifier keys (cmd/ctrl/shift/alt/middle-
-                  // click) so power users can open in new tabs as
-                  // expected — the Link's href takes over there.
+                  // Explicit router.push for resilience against any
+                  // Next.js click-delegation quirks. Modifier keys
+                  // (cmd/ctrl/shift/alt/middle-click) fall through
+                  // to the Link's href so power users can open in
+                  // new tabs.
                   if (
                     e.ctrlKey ||
                     e.metaKey ||
