@@ -13,6 +13,7 @@ import {
 } from "@/lib/quaternion";
 import { useLatestRef } from "@/hooks/use-latest-ref";
 import { useAnchorPhase } from "@/hooks/use-anchor-phase";
+import { useAutoRotate } from "@/hooks/use-auto-rotate";
 import { useDragMomentum } from "@/hooks/use-drag-momentum";
 import { useGraphics } from "@/hooks/use-graphics";
 import { useHoverCrosshair } from "@/hooks/use-hover-crosshair";
@@ -185,9 +186,9 @@ interface PolyhedronGlobeProps {
   } | null>;
 }
 
-// Auto-rotation angular speed in radians/second. Equivalent to the
-// prior Euler AUTO_SPEED of 0.08 deg/frame at 60fps (~4.8 deg/sec).
-const AUTO_ANGULAR_SPEED = (0.08 / 16) * 1000 * (Math.PI / 180);
+// (AUTO_ANGULAR_SPEED lives in use-auto-rotate.ts — the only
+// consumer is the per-frame auto-rotate driver.)
+//
 // Drag input rate: radians of rotation per pixel of pointer move.
 // Equivalent to the prior Euler 0.3 deg/px.
 const DRAG_RATE = (0.3 * Math.PI) / 180;
@@ -690,18 +691,38 @@ export function PolyhedronGlobe({
     };
   }, []);
 
-  // ─── Drag-momentum physics loop ──────────────────────────────
+  // Auto-rotate driver. Composes with anchor.tickSwing and
+  // dragMomentum.tick in the rAF loop below as one of three
+  // rotation drivers (priority-ordered: anchor swing → drag
+  // momentum decay → auto-rotate). See use-auto-rotate.ts for the
+  // phase gating + hover-cycle speed modulation.
+  const autoRotate = useAutoRotate({
+    phaseRef: anchor.phaseRef,
+    latestQRef: latestQ,
+    autoRotateAxisRef: autoRotateAxis,
+    applyQ,
+    computeSpeedMul: useCallback(
+      (now: number) => computeHoverSpeedMul(now, hover.current.cycleStart),
+      [],
+    ),
+    notifyHoverCycleSettled: useCallback(() => {
+      if (hover.current.cycleStart !== null) {
+        hover.current.cycleStart = null;
+      }
+    }, []),
+    anchorSpeedMul: ANCHOR_AUTO_SPEED_MUL,
+  });
+
+  // ─── rAF rotation orchestrator ───────────────────────────────
   //
-  // Each frame: if drag-momentum is still decaying, apply incremental
-  // yaw/pitch rotations (computed from decaying angular velocities)
-  // to the quaternion. Otherwise auto-rotate around the current
-  // autoRotateAxis, modulated by the hover-cycle speed multiplier.
+  // Each frame, try the rotation drivers in priority order:
+  //   1. Anchor swing slerp (claims the frame entirely if active)
+  //   2. Drag momentum decay (claims the frame if active)
+  //   3. Auto-rotate (default; gated on phase + hover cycle)
   //
-  // Pole-bounce is GONE in this refactor — it was a constraint
-  // specific to the Euler model and doesn't compose with the
-  // arbitrary-axis rotation we'll need in Stage 2 (click-to-anchor).
-  // The sphere can now drag freely over the poles. This is a small
-  // user-facing change vs the prior Euler implementation.
+  // Each driver returns true if it applied a rotation, signaling
+  // the next driver to bow out for this frame. Drivers own their
+  // own state + physics; this loop is pure orchestration.
   useEffect(() => {
     let lastTick = performance.now();
     let frame: number;
@@ -719,47 +740,8 @@ export function PolyhedronGlobe({
         return;
       }
 
-      if (!dragMomentum.isDragging()) {
-        // Drag-release momentum: if the hook applied a decayed
-        // rotation this frame, skip auto-rotate. Otherwise fall
-        // through to auto-rotate.
-        const momentumApplied = dragMomentum.tick(now, dtSec);
-        if (!momentumApplied) {
-          // Auto-rotate around autoRotateAxis. Gated by phase:
-          //   idle / unswinging       → full-speed cruise (world-Y)
-          //   open                    → anchored 0.6× rotation
-          //                             around the anchored vertex
-          //   any in-flight phase     → no auto-rotation (the cone
-          //     (coneRising/widening/   + hex choreography plays
-          //      collapsing/coneFall)   against a still backdrop)
-          //
-          // The hover cycle (decel → hold → resume on dot hover)
-          // only modulates speed during idle. Once anchored, the
-          // anchored 0.6× speed is steady — no per-hover cycle.
-          const p = anchor.phaseRef.current.kind;
-          const rotationActive =
-            p === "idle" || p === "unswinging" || p === "open";
-          if (rotationActive) {
-            const speedMul =
-              p === "open"
-                ? 1 // anchored rotation is steady at 0.6× via anchorMul below
-                : computeHoverSpeedMul(now, hover.current.cycleStart);
-            if (
-              p !== "open" &&
-              speedMul >= 1 &&
-              hover.current.cycleStart !== null
-            ) {
-              hover.current.cycleStart = null;
-            }
-            if (speedMul > 0) {
-              const anchorMul = p === "open" ? ANCHOR_AUTO_SPEED_MUL : 1;
-              const angle = AUTO_ANGULAR_SPEED * speedMul * anchorMul * dtSec;
-              const axis = autoRotateAxis.current;
-              const delta = fromAxisAngle(axis.x, axis.y, axis.z, angle);
-              applyQ(quatMultiply(delta, latestQ.current));
-            }
-          }
-        }
+      if (!dragMomentum.isDragging() && !dragMomentum.tick(now, dtSec)) {
+        autoRotate.tick(now, dtSec);
       }
 
       frame = requestAnimationFrame(tick);
