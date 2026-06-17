@@ -10,7 +10,7 @@ Cross-cutting principles:
 - **Don't gate read-only content.** The museum is browsable without an account. GET endpoints stay anonymous.
 - **All mutations require a session.** POST/PATCH/DELETE on `/api/*` (and any reimagined-tier mutation surface) check `getSession()` and 401 on absence.
 - **Audit attribution is FK'd to `auth.user(id)`.** Project-domain mutations write to a per-pgSchema audit table referencing the actor.
-- **Single domain, single cookie.** No `.infinite-syndicate.com` parent-domain cookie. Sibling projects on other subdomains run their own auth.
+- **Single domain, single cookie.** No `.recanon.com` parent-domain cookie. Sibling projects on other subdomains run their own auth.
 
 ## SQL Injection Demo lockdown
 

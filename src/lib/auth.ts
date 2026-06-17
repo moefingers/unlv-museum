@@ -19,7 +19,7 @@ import { patAuth } from "./pat-plugin";
 // pattern. Lets local dev work on any port; production resolves to the
 // canonical museum domain because the request's host matches it directly.
 // Better Auth 1.6+ feature — see DynamicBaseURLConfig in @better-auth/core.
-const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
+const PRODUCTION_HOST = "unlv-museum.recanon.com";
 const allowedHosts: string[] = ["localhost:*", "127.0.0.1:*", PRODUCTION_HOST];
 if (process.env.VERCEL_SCOPE) {
   // Vercel preview deployments under the museum's team slug, e.g.
@@ -92,7 +92,7 @@ export const auth = betterAuth({
   },
 
   // Single-domain cookie scoped to the museum host only. Sibling projects
-  // under *.infinite-syndicate.com run their own auth.
+  // under *.recanon.com run their own auth.
   //
   // The `museum.` cookie prefix is defensive: even if a sibling project
   // (mistakenly) sets `better-auth.session_token` with domain=.infinite-

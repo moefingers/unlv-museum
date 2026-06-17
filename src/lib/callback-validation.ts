@@ -5,7 +5,7 @@
  * Trust ladder (any one match accepts):
  *  - localhost / 127.0.0.1
  *  - RFC 1918 private IPv4 (10.*, 172.16-31.*, 192.168.*)
- *  - unlv-museum.infinite-syndicate.com (the canonical production host)
+ *  - unlv-museum.recanon.com (the canonical production host)
  *  - *.vercel.app / *.vercel.dev / *.vercel.sh (preview deployments)
  *
  * Anything else is rejected — the caller must fall back to a safe default.
@@ -13,7 +13,7 @@
 
 import net from "node:net";
 
-const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
+const PRODUCTION_HOST = "unlv-museum.recanon.com";
 const TRUSTED_SUFFIXES = [".vercel.app", ".vercel.dev", ".vercel.sh"];
 
 function isPrivateIp(hostname: string): boolean {

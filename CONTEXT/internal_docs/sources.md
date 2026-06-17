@@ -60,7 +60,7 @@ Each converted source repo has two branches and one canonical metadata shape, ap
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Branch `original`              | The unmodified academic record. Renamed from the legacy default (`main`/`master`/`shepherd`). GitHub's rename API preserves history, PR refs, and creates redirects.              |
 | Branch `museum-ready/original` | The hosted version with the Node-LTS floor + pnpm + hosting-compat fixes applied. **Set as the GitHub default branch** — visitors who open `github.com/<owner>/<repo>` land here. |
-| Website (homepage)             | `https://unlv-museum.infinite-syndicate.com/<slug>` — points back at the museum entry that displays this repo.                                                                    |
+| Website (homepage)             | `https://unlv-museum.recanon.com/<slug>` — points back at the museum entry that displays this repo.                                                                    |
 | Description prefix             | `🏛️ unlv-museum:` — makes the museum membership visible in any GitHub repo listing.                                                                                               |
 
 Mental model:

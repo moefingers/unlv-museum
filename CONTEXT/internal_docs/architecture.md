@@ -4,7 +4,7 @@
 
 UNLV Museum is a portfolio showcase of academic projects from UNLV's software development course, rebuilt across three tiers: original, enhanced, and reimagined.
 
-Deployed to `unlv-museum.infinite-syndicate.com` as a separate Vercel project with an explicit DNS CNAME overriding infinite-syndicate's wildcard.
+Deployed to `unlv-museum.recanon.com` as a separate Vercel project with an explicit DNS CNAME overriding infinite-syndicate's wildcard.
 
 ## Three-Tier System
 

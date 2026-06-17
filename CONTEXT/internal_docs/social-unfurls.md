@@ -92,24 +92,24 @@ After any change to OG metadata:
 
 ```bash
 # Confirm both UA branches on production
-curl -sA "LinkedInBot/1.0" https://unlv-museum.infinite-syndicate.com/ \
+curl -sA "LinkedInBot/1.0" https://unlv-museum.recanon.com/ \
   | grep -oE '<meta (property|name)="(og:|twitter:)[^"]+" content="[^"]+"'
 
-curl -s https://unlv-museum.infinite-syndicate.com/ \
+curl -s https://unlv-museum.recanon.com/ \
   | grep -oE '<meta (property|name)="(og:|twitter:)[^"]+" content="[^"]+"' | wc -l
 # Default UA should report 23 tags; LinkedInBot should report 14.
 
 # Confirm assets resolve
 for url in stage-poster.png stage.mp4 player.html; do
-  curl -sI "https://unlv-museum.infinite-syndicate.com/og/$url" \
+  curl -sI "https://unlv-museum.recanon.com/og/$url" \
     | grep -iE 'HTTP|content-type|content-length'
 done
 ```
 
 Then force re-scrape at each debugger (they cache aggressively):
 
-- Facebook: https://developers.facebook.com/tools/debug/?q=https%3A%2F%2Funlv-museum.infinite-syndicate.com%2F
-- LinkedIn: https://www.linkedin.com/post-inspector/inspect/https%3A%2F%2Funlv-museum.infinite-syndicate.com%2F
+- Facebook: https://developers.facebook.com/tools/debug/?q=https%3A%2F%2Funlv-museum.recanon.com%2F
+- LinkedIn: https://www.linkedin.com/post-inspector/inspect/https%3A%2F%2Funlv-museum.recanon.com%2F
 - Cheapest live test: DM the URL to yourself in Discord (video should
   play inline) and Slack (poster should render).
 

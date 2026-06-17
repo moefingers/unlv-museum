@@ -789,7 +789,7 @@ function LandingViewInner() {
         view toggles and the header's collapsed state.
       */}
       <a
-        href="https://software.infinite-syndicate.com"
+        href="https://software.recanon.com"
         className={`text-sm ${styles.portfolioLink}`}
       >
         ← Software Portfolio

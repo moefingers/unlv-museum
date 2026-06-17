@@ -15,7 +15,7 @@ import { siGithub } from "simple-icons";
 import { ApiKeyModal } from "./ApiKeyModal";
 import styles from "./SignInChip.module.css";
 
-const PRODUCTION_HOST = "unlv-museum.infinite-syndicate.com";
+const PRODUCTION_HOST = "unlv-museum.recanon.com";
 
 /**
  * Decide between direct GitHub OAuth and the relay-through-production flow.

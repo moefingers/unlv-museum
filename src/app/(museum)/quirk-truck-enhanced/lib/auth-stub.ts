@@ -92,7 +92,7 @@ export async function signIn(
   const baseUrl =
     process.env.BETTER_AUTH_URL ||
     (process.env.NODE_ENV === "production"
-      ? "https://unlv-museum.infinite-syndicate.com"
+      ? "https://unlv-museum.recanon.com"
       : "http://localhost:3000");
 
   const res = await fetch(`${baseUrl}/api/v2/quirk-truck-enhanced/authentication`, {

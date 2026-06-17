@@ -52,7 +52,7 @@ If sensitive isn't required, mark the env var as `encrypted` instead (`# @vercel
 - Client ID: `Ov23lihWCteko6FLX5Ry` (public — fine to commit)
 - Client secret: `.env.local` only, never committed
 - Authorization callback URLs:
-  - `https://unlv-museum.infinite-syndicate.com/api/auth/callback/github` (production)
+  - `https://unlv-museum.recanon.com/api/auth/callback/github` (production)
   - `http://localhost:3000/api/auth/callback/github` (local dev)
 - Owner: `@moefingers`
 - Manage at: https://github.com/settings/developers → OAuth Apps → UNLV Museum
@@ -187,10 +187,10 @@ Tokens are hashed (`sha256(token)` stored in `auth.personal_access_token.token_h
 Non-canonical origins (Vercel preview URLs, LAN IPs, anywhere not in the GitHub OAuth App's registered callback list) can't run GitHub OAuth directly. The relay routes them through production:
 
 1. User on `https://unlv-museum-abc123-team.vercel.app/api-client` clicks Sign in
-2. The chip calls `https://unlv-museum.infinite-syndicate.com/auth/relay?callback=https://unlv-museum-abc123-team.vercel.app/auth/claim`
+2. The chip calls `https://unlv-museum.recanon.com/auth/relay?callback=https://unlv-museum-abc123-team.vercel.app/auth/claim`
 3. `/auth/relay` validates the callback against `isTrustedCallbackUrl`, drops a short-lived `relay-callback` cookie, redirects to `/auth/relay/start`
 4. `/auth/relay/start` fires Better Auth's GitHub OAuth flow with `callbackURL=/auth/relay/complete`
-5. User authorizes UNLV Museum on GitHub → GitHub redirects to `https://unlv-museum.infinite-syndicate.com/api/auth/callback/github` → Better Auth creates session on production
+5. User authorizes UNLV Museum on GitHub → GitHub redirects to `https://unlv-museum.recanon.com/api/auth/callback/github` → Better Auth creates session on production
 6. `/auth/relay/complete` reads the `relay-callback` cookie, generates an HMAC-signed claim token (1-minute TTL), redirects to `<preview>/auth/claim?claim=<token>`
 7. `/auth/claim` (on the preview origin) POSTs the token to `/api/auth/claim/session` → patAuth plugin's claim endpoint verifies signature, looks up the user, mints a session cookie on the preview origin
 8. User lands wherever the original callback pointed (or `/`), signed in
@@ -200,7 +200,7 @@ The user sees: sign-in button → GitHub consent → back on their environment, 
 **Security:**
 
 - Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL
-- Callback URLs are validated by `isTrustedCallbackUrl` against the trust ladder in `src/lib/callback-validation.ts` (localhost, RFC 1918 IPs, `unlv-museum.infinite-syndicate.com`, `*.vercel.app|dev|sh`)
+- Callback URLs are validated by `isTrustedCallbackUrl` against the trust ladder in `src/lib/callback-validation.ts` (localhost, RFC 1918 IPs, `unlv-museum.recanon.com`, `*.vercel.app|dev|sh`)
 - The `BETTER_AUTH_SECRET` must match across production and the local `.env.local` for signatures to verify — same constraint as zcanon
 
 **Files:**
@@ -271,19 +271,19 @@ emitUserAudit({
 
 ## Cookie Domain
 
-Single-domain only. The museum cookie is set on `unlv-museum.infinite-syndicate.com` (production) or `localhost:3000` (dev). **No `.infinite-syndicate.com` parent-domain cookie** — sibling projects under that subdomain don't share auth with the museum. Each project that wants its own auth runs its own Better Auth.
+Single-domain only. The museum cookie is set on `unlv-museum.recanon.com` (production) or `localhost:3000` (dev). **No `.recanon.com` parent-domain cookie** — sibling projects under that subdomain don't share auth with the museum. Each project that wants its own auth runs its own Better Auth.
 
 ### Defense: `cookiePrefix: "museum"`
 
-`advanced.cookiePrefix` in `src/lib/auth.ts` prefixes every Better Auth cookie with `museum.` — so the session cookie is `museum.session_token` instead of the default `better-auth.session_token`. This is **defensive against sibling-project cookie leak**: if another project on `*.infinite-syndicate.com` (mistakenly) sets `better-auth.session_token` with `domain=.infinite-syndicate.com`, the browser will deliver that cookie to the museum too. Better Auth would then read a cookie signed with a foreign secret, fail to validate it, and behave erratically.
+`advanced.cookiePrefix` in `src/lib/auth.ts` prefixes every Better Auth cookie with `museum.` — so the session cookie is `museum.session_token` instead of the default `better-auth.session_token`. This is **defensive against sibling-project cookie leak**: if another project on `*.recanon.com` (mistakenly) sets `better-auth.session_token` with `domain=.recanon.com`, the browser will deliver that cookie to the museum too. Better Auth would then read a cookie signed with a foreign secret, fail to validate it, and behave erratically.
 
 The prefix makes our cookies un-collidable with any unprefixed Better Auth installation. If a sibling project also adopts a unique prefix (`zcanon.`, `outlast.`, etc.), the defense is symmetric.
 
 ### Symptom of collision
 
-User signs in successfully (OAuth callback runs, server creates session row), but the SignInChip continues to show "Sign in" instead of the avatar. `/api/auth/get-session` returns `null` despite the database having a valid session. Clearing all cookies for `infinite-syndicate.com` in the browser restores the sign-in.
+User signs in successfully (OAuth callback runs, server creates session row), but the SignInChip continues to show "Sign in" instead of the avatar. `/api/auth/get-session` returns `null` despite the database having a valid session. Clearing all cookies for `recanon.com` in the browser restores the sign-in.
 
-If you see this, audit sibling projects for parent-domain cookies (`domain=.infinite-syndicate.com`). The museum's cookies are already scoped correctly; the leak is from _into_ us, not _out of_ us.
+If you see this, audit sibling projects for parent-domain cookies (`domain=.recanon.com`). The museum's cookies are already scoped correctly; the leak is from _into_ us, not _out of_ us.
 
 ## Files
 
@@ -310,7 +310,7 @@ If you see this, audit sibling projects for parent-domain cookies (`domain=.infi
 
 The following patterns are documented in zcanon's auth doc but **do not apply** to the museum:
 
-- **Multi-tenant cookies** (`crossSubDomainCookies: ".infinite-syndicate.com"`) — sibling projects have their own auth
+- **Multi-tenant cookies** (`crossSubDomainCookies: ".recanon.com"`) — sibling projects have their own auth
 - **`organization` plugin** — no orgs in the museum
 - **`admin` plugin's impersonation** — no admin role yet (could add later)
 - **Email/password** — GitHub-only suffices

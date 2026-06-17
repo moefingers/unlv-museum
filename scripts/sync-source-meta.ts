@@ -49,7 +49,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
 
-const MUSEUM_BASE_URL = "https://unlv-museum.infinite-syndicate.com";
+const MUSEUM_BASE_URL = "https://unlv-museum.recanon.com";
 const LEGACY_DEFAULTS = new Set(["main", "master", "shepherd"]);
 const TARGET_ORIGINAL = "original";
 const TARGET_DEFAULT = "museum-ready/original";
