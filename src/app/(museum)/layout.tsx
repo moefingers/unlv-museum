@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const isLinkedInBot = /LinkedInBot/i.test(ua);
 
   return {
-    metadataBase: new URL("https://unlv-museum.infinite-syndicate.com"),
+    metadataBase: new URL("https://unlv-museum.recanon.com"),
     title: { default: "UNLV Museum", template: "%s | UNLV Museum" },
     description:
       "Projects from UNLV's software development course, rebuilt across three toggleable tiers: original, enhanced, and reimagined.",
@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "UNLV Museum",
       description:
         "Projects from UNLV's software development course, rebuilt across three toggleable tiers.",
-      url: "https://unlv-museum.infinite-syndicate.com",
+      url: "https://unlv-museum.recanon.com",
       siteName: "UNLV Museum",
       type: "website",
       images: [
@@ -53,9 +53,9 @@ export async function generateMetadata(): Promise<Metadata> {
         : {
             videos: [
               {
-                url: "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+                url: "https://unlv-museum.recanon.com/og/stage.mp4",
                 secureUrl:
-                  "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+                  "https://unlv-museum.recanon.com/og/stage.mp4",
                 type: "video/mp4",
                 width: 1920,
                 height: 1080,
@@ -80,9 +80,9 @@ export async function generateMetadata(): Promise<Metadata> {
           players: [
             {
               playerUrl:
-                "https://unlv-museum.infinite-syndicate.com/og/player.html",
+                "https://unlv-museum.recanon.com/og/player.html",
               streamUrl:
-                "https://unlv-museum.infinite-syndicate.com/og/stage.mp4",
+                "https://unlv-museum.recanon.com/og/stage.mp4",
               width: 1920,
               height: 1080,
             },

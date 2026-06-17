@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 })`,
       // Or: send the PAT as a Bearer token on every request if the
       // visitor's tool can't store cookies (some Postman setups).
-      bearer: `curl -X POST https://unlv-museum.infinite-syndicate.com/api/v2/music-tour/bands \\
+      bearer: `curl -X POST https://unlv-museum.recanon.com/api/v2/music-tour/bands \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${raw}" \\
   -d '{ "name": "...", "genre": "...", "availableStartTime": "...", "endTime": "..." }'`,
