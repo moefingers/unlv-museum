@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { projectLandingUrl, type Project } from "@/lib/projects";
 import {
@@ -402,15 +401,6 @@ export function PolyhedronGlobe({
   // CSS still hides the layer. The JSX guards prevent the work
   // from happening at all, which is what we want for perf.
   const { settings: graphics } = useGraphics();
-
-  // Next router for explicit programmatic navigation from the hex
-  // card's Link onClick. Avoids relying on Next's native-click
-  // delegation, which can silently drop clicks when invoked during
-  // ongoing view transitions / Suspense settling from rapid prior
-  // navigation. The Link still has an href for SSR/middle-click
-  // semantics, but the onClick handler explicitly pushes the route
-  // — robust path that doesn't depend on the global click intercept.
-  const router = useRouter();
 
   // Vertex-idx → project lookup. Vertices without an assignment render
   // as plain glow circles (no hover, no title).
@@ -1954,8 +1944,8 @@ export function PolyhedronGlobe({
           // drag-start handler from firing on taps that are meant
           // to navigate the card.
           onPointerDownCapture={(e) => e.stopPropagation()}
-          // Bubble-phase click stop: the Link's onClick has
-          // already fired (it does router.push); stop here so the
+          // Bubble-phase click stop: by the time the click bubbles
+          // here the native Link has already navigated; stop it so the
           // surface's background-dismiss doesn't ALSO fire.
           onClick={(e) => e.stopPropagation()}
           data-hex-card=""
@@ -1974,26 +1964,18 @@ export function PolyhedronGlobe({
                 href={
                   anchoredProject.href ?? projectLandingUrl(anchoredProject)
                 }
-                onClick={(e) => {
-                  // Explicit router.push for resilience against any
-                  // Next.js click-delegation quirks. Modifier keys
-                  // (cmd/ctrl/shift/alt/middle-click) fall through
-                  // to the Link's href so power users can open in
-                  // new tabs.
-                  if (
-                    e.ctrlKey ||
-                    e.metaKey ||
-                    e.shiftKey ||
-                    e.altKey ||
-                    e.button !== 0
-                  ) {
-                    return;
-                  }
-                  e.preventDefault();
-                  const href =
-                    anchoredProject.href ?? projectLandingUrl(anchoredProject);
-                  router.push(href);
-                }}
+                // Native Next.js <Link> navigation. An earlier version
+                // overrode onClick with preventDefault + router.push to
+                // "bypass a brittle global click interceptor" — but that
+                // override didn't commit the navigation on the first
+                // click; the route only flushed on the next
+                // click-away/releaseAnchor re-render (the reported
+                // billboard regression). The wrapper's bubble-phase
+                // onClick stopPropagation already keeps this click from
+                // reaching the surface's background-dismiss, and the
+                // native Link handles modifier-key / middle-click
+                // new-tab semantics, so plain href navigation is both
+                // correct and simpler.
                 style={{
                   display: "flex",
                   flexDirection: "column",
