@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { THEME_INIT_INTEGRITY } from "@/lib/theme-script";
 import { MuseumToastLayer } from "@/components/ui/MuseumToastLayer";
+import MigrationToast from "@/components/ui/MigrationToast";
 import "../globals.css";
 import styles from "./layout.module.css";
 
@@ -140,6 +141,11 @@ export default function RootLayout({
             button and sees a "Sign in to continue" toast without the
             project needing per-project UX code. */}
         <MuseumToastLayer />
+        {/* Migration reassurance toast: shows once for visitors arriving from
+            the old unlv-museum.infinite-syndicate.com host (recanon's redirect
+            appends ?from=is), then strips the param. Transition artifact —
+            see MigrationToast.tsx for how to retire it. */}
+        <MigrationToast />
       </body>
     </html>
   );

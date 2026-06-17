@@ -1,0 +1,111 @@
+/* Migration reassurance toast. First-party + branded (uses the museum design
+   tokens so it flips with light/dark), deliberately NOT a transient auto-vanish
+   box: it persists until the visitor dismisses it. Bottom-center so it doesn't
+   collide with the top-right MuseumToastLayer status stack. Paired with
+   MigrationToast.tsx; delete both together when the artifact is retired. */
+
+.root {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 70; /* above MuseumToastLayer (60) */
+  width: min(440px, calc(100vw - 2rem));
+  pointer-events: none; /* only the card is interactive */
+}
+
+.card {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px -18px
+    color-mix(in oklab, var(--foreground), transparent 45%);
+  animation: toast-in var(--duration-slow) var(--ease-out) both;
+}
+
+.icon {
+  flex: 0 0 auto;
+  margin-top: 0.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+
+.title {
+  margin: 0;
+  color: var(--foreground);
+  font-weight: var(--font-weight-medium);
+  font-size: 0.9375rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-default),
+    color var(--duration-fast) var(--ease-default);
+}
+
+.close:hover {
+  background: color-mix(in oklab, var(--foreground), transparent 90%);
+  color: var(--foreground);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .root {
+    width: calc(100vw - 1.5rem);
+  }
+}
