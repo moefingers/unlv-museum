@@ -32,7 +32,7 @@ Read the CONTEXT docs for decisions already made:
 - **Commands:** `pnpm dev`, `pnpm build`, `pnpm lint`
 - **Hooks:** Pre-commit runs lint-staged + verify-locks. Pre-push (a) runs `sync:source-meta` when `projects.tsx` is in the push (so source-repo banners auto-update when tier presence changes), (b) verifies every submodule's HEAD is pushed upstream, (c) runs `pnpm build`. If sync produces submodule pointer bumps, the hook blocks; commit the staged bumps and re-push.
 - **Domain:** `unlv-museum.recanon.com`
-- **DNS:** Explicit CNAME overrides infinite-syndicate's wildcard. Comment in infinite-syndicate's `src/proxy.ts` documents the carve-out.
+- **DNS:** Explicit CNAME overrides recanon's wildcard. Comment in recanon's `src/proxy.ts` documents the carve-out.
 - **Database:** Neon project `quiet-cell-88302228`, connection via `DATABASE_URL`
 
 ## Key Constraints
