@@ -6,5 +6,28 @@
 # the resolver. On Windows where Husky uses Git Bash, the .bin
 # entries are POSIX shell shims that exec node themselves, so this
 # is functionally equivalent and avoids the second spawn.
+#
+# Non-code skip-guard (canonical, shared verbatim with the sibling repos via
+# .husky/lib/non-code-paths.sh): when the staged set is non-code only
+# (docs/images/pdf/.husky, per the shared allowlist) neither lint-staged (targets
+# ts/tsx/js/mjs) nor verify-locks (submodule/lock integrity) has anything to
+# check, so skip both. Any code — or a lock/submodule/gitlink change, which the
+# allowlist counts as CODE — runs the full checks exactly as before. FAIL SAFE:
+# any uncertainty (allowlist missing/unreadable, empty read) runs the checks.
+. "$(dirname "$0")/lib/non-code-paths.sh" 2>/dev/null || {
+  echo "[pre-commit] cannot load non-code allowlist — running checks to be safe."
+  node_modules/.bin/lint-staged
+  node_modules/.bin/tsx scripts/verify-locks.ts
+  exit $?
+}
+
+# The staged set the checks would act on (Added/Copied/Modified/Renamed;
+# deletions have no content). `|| true` so an empty/failed read can't abort.
+staged=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
+if [ -n "$staged" ] && all_non_code "$staged"; then
+  echo "[pre-commit] non-code-only staged (docs/images/pdf) — skipping lint-staged + verify-locks."
+  exit 0
+fi
+
 node_modules/.bin/lint-staged
 node_modules/.bin/tsx scripts/verify-locks.ts
