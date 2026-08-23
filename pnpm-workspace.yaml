@@ -1,0 +1,8 @@
+# pnpm settings live here (pnpm >= 10 no longer reads package.json's "pnpm"
+# field). Not a multi-package workspace — this file is just the settings home.
+# allowBuilds whitelists the dependencies whose install-time build scripts may
+# run; everything else's scripts stay blocked.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

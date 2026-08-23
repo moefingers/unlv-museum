@@ -42,13 +42,6 @@
     ],
     "*.{json,css,md}": "prettier --write"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "@swc/core",
-      "sharp"
-    ]
-  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^25.7.0",
