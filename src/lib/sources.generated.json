@@ -3,7 +3,7 @@
     "repo": "moefingers/JS-Events-Demonstration",
     "branch": "museum-ready/original",
     "commit": "112460150d88a323db4e7fc2bdaf17a37d605811",
-    "lockHash": "sha256:d2561422222b536e9af48c9cec09166a974465f046e282f5d075dc944e8a7bf1",
+    "lockHash": "sha256:e1614738096e9b478bcccf1b4ef85cae98bb65e928e08905ab6321a20c0a501f",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"
@@ -12,7 +12,7 @@
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
     "commit": "0dcedc6fc2ce5dc56929fa7e4636d1d6548c9a1a",
-    "lockHash": "sha256:4c12dcf7c87f9ad9f7e67f743a4499bed86cdf191fd25f44582b980caed653f2",
+    "lockHash": "sha256:662f6047643af67003d5108d1a5dffa28138b6737a39d2398f084465f261dd95",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-12-30"
@@ -57,7 +57,7 @@
     "repo": "moefingers/JS-Making-an-Interactive-Map",
     "branch": "museum-ready/original",
     "commit": "6a8840a80ddd58abcc6f86a42f1c927c32655406",
-    "lockHash": "sha256:b09287952679277a31872539d745869b3bd82b6b11d9cc270e718f0f81b93d2b",
+    "lockHash": "sha256:2f7dcd4785d84c09b7318cb5888854e343b28e155ea85bcc9ff56dadd1cc0900",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-04"
