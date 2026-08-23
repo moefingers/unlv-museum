@@ -6,11 +6,16 @@
  * the developer hand-edited public/originals/<slug>/ without running
  * `pnpm sync:source <slug>` — almost always a mistake.
  *
+ * `--update` accepts INTENTIONAL hand-edits: it rewrites the drifted slugs'
+ * lockHash to match the on-disk artifact instead of failing (the escape hatch
+ * documented in CONTEXT/internal_docs/sources.md). Missing recipes/targets
+ * still fail — --update only blesses drift, never absence.
+ *
  * Slugs that aren't yet converted (not present in sources.generated.json) are
  * skipped. This keeps the pre-commit hook fast and offline.
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hashDir } from "./lib/hash-dir.mts";
@@ -25,7 +30,9 @@ const sources = JSON.parse(readFileSync(sourcesPath, "utf8")) as Record<
   { repo: string; branch: string; commit: string; lockHash: string }
 >;
 
+const update = process.argv.includes("--update");
 const failures: string[] = [];
+const refreshed: string[] = [];
 
 for (const [slug, info] of Object.entries(sources)) {
   const recipe = recipes[slug];
@@ -53,10 +60,22 @@ for (const [slug, info] of Object.entries(sources)) {
   }
   const actual = hashDir(target);
   if (actual !== info.lockHash) {
-    failures.push(
-      `${slug}: lockHash mismatch.\n  expected: ${info.lockHash}\n  actual:   ${actual}\n  Run: pnpm sync:source ${slug}`,
-    );
+    if (update) {
+      info.lockHash = actual;
+      refreshed.push(slug);
+    } else {
+      failures.push(
+        `${slug}: lockHash mismatch.\n  expected: ${info.lockHash}\n  actual:   ${actual}\n  Run: pnpm sync:source ${slug}`,
+      );
+    }
   }
+}
+
+if (refreshed.length > 0) {
+  writeFileSync(sourcesPath, JSON.stringify(sources, null, 2) + "\n");
+  console.log(
+    `[verify-locks] refreshed lockHash for: ${refreshed.join(", ")} — commit src/lib/sources.generated.json`,
+  );
 }
 
 if (failures.length > 0) {
@@ -64,8 +83,10 @@ if (failures.length > 0) {
   for (const msg of failures) console.error("  - " + msg);
   console.error(
     "\nIf you intentionally hand-edited public/originals/<slug>/, run:\n" +
+      "  pnpm verify:locks --update\n" +
+      "to accept the edits, or rebuild from source instead:\n" +
       "  pnpm sync:source <slug>\n" +
-      "to rebuild from source and refresh the lockHash. See CONTEXT/internal_docs/sources.md.",
+      "See CONTEXT/internal_docs/sources.md.",
   );
   process.exit(1);
 }
