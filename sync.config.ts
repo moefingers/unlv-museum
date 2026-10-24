@@ -335,6 +335,18 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // Hacker Times: chapter 3.2.4 CSS lab (fork of
+  // CodeKing710/activity-3.2.4-hacker-times). Static HTML/CSS + Google
+  // Fonts, no build. museum-ready/original is the legacy `main` tip (Part 1)
+  // unchanged; no hosting fixes needed. The repo's `part2` branch is not
+  // served. Allowlist skips LICENSE and the banner README.
+  "hacker-times": {
+    type: "static-copy",
+    from: ".sources/CSS-The-Hacker-Times-Part-1",
+    to: "public/originals/css-fundamentals/hacker-times",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

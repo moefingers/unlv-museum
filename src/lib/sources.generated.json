@@ -151,5 +151,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-11-02"
+  },
+  "hacker-times": {
+    "repo": "moefingers/CSS-The-Hacker-Times-Part-1",
+    "branch": "museum-ready/original",
+    "commit": "866cd6843e297b7f0e34c0623a6dab4e08edfe95",
+    "lockHash": "sha256:7f6a2b9e46f9d1938ba4651940df44092d325037685ebf7ad0deb55eb325525a",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-11-06"
   }
 }

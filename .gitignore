@@ -61,6 +61,7 @@ next-env.d.ts
 !.sources/HTML-Improved-Form
 !.sources/UNLV-html-layouts-activity
 !.sources/css-demo
+!.sources/CSS-The-Hacker-Times-Part-1
 
 dev.log
 .dev.log
