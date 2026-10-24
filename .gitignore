@@ -62,6 +62,7 @@ next-env.d.ts
 !.sources/UNLV-html-layouts-activity
 !.sources/css-demo
 !.sources/CSS-The-Hacker-Times-Part-1
+!.sources/CSS-Transform-Transition-and-Animations-Oh-My
 
 dev.log
 .dev.log

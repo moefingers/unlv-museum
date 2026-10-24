@@ -347,6 +347,23 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // CSS Transforms, Transitions & Animations: chapter 3.3.2 lab (fork of
+  // MarsVolta4366/activity-3.3.2-animations). Three static activities, each
+  // its own index.html; the museum iframes animation-activity/ by default.
+  // museum-ready/original is the legacy `main` tip unchanged; no hosting
+  // fixes needed. Allowlist skips LICENSE / .gitignore / the README-only
+  // button-transition.gif at the repo root.
+  animations: {
+    type: "static-copy",
+    from: ".sources/CSS-Transform-Transition-and-Animations-Oh-My",
+    to: "public/originals/css-fundamentals/animations",
+    include: [
+      "animation-activity",
+      "transform-activity",
+      "transition-activity",
+    ],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

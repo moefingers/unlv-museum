@@ -160,5 +160,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-11-06"
+  },
+  "animations": {
+    "repo": "moefingers/CSS-Transform-Transition-and-Animations-Oh-My",
+    "branch": "museum-ready/original",
+    "commit": "1f8c751f1e099bd9641945c9b917a927d5f210fe",
+    "lockHash": "sha256:ef12d5bfb4a0c903ee7a9bcd3e30520ae017d4edf63fdcf075fee243b3be0f5b",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-11-08"
   }
 }
