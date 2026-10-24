@@ -57,6 +57,7 @@ next-env.d.ts
 !.sources/My-Values
 !.sources/h-data
 !.sources/html-1-restaurant-menu-activity
+!.sources/HTML-Bird-Songs
 
 dev.log
 .dev.log

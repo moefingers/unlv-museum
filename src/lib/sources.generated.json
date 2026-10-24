@@ -115,5 +115,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-10-26"
+  },
+  "bird-songs": {
+    "repo": "moefingers/HTML-Bird-Songs",
+    "branch": "museum-ready/original",
+    "commit": "4b5560caea008e11e4233692dbfaacbc45e4ae8b",
+    "lockHash": "sha256:23cf3ad8d28c6989a8b2d61d2c0a0a81a60814c6854b380ffdfdf3e96b85a7a5",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-10-28"
   }
 }

@@ -53,3 +53,7 @@
 	path = .sources/html-1-restaurant-menu-activity
 	url = https://github.com/moefingers/html-1-restaurant-menu-activity.git
 	branch = museum-ready/original
+[submodule ".sources/HTML-Bird-Songs"]
+	path = .sources/HTML-Bird-Songs
+	url = https://github.com/moefingers/HTML-Bird-Songs.git
+	branch = museum-ready/original

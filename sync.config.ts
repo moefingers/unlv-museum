@@ -277,6 +277,27 @@ export const recipes: Record<string, Recipe> = {
     ],
   },
 
+  // Bird Songs: chapter 2.4.1 HTML lab (fork of sjxliu/lab-2.4.1-bird-songs).
+  // Static HTML + local images/sounds + YouTube embeds, no build.
+  // museum-ready/original is the legacy `master` tip unchanged; no hosting
+  // fixes needed. Allowlist skips LICENSE / .gitignore and names assets/
+  // subdirs so assets/.DS_Store (gitignored museum-side) isn't copied.
+  "bird-songs": {
+    type: "static-copy",
+    from: ".sources/HTML-Bird-Songs",
+    to: "public/originals/html-fundamentals/bird-songs",
+    include: [
+      "index.html",
+      "canary.html",
+      "duck.html",
+      "meadowlark.html",
+      "rooster.html",
+      "assets/css",
+      "assets/images",
+      "assets/sounds",
+    ],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //
