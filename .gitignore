@@ -64,6 +64,7 @@ next-env.d.ts
 !.sources/CSS-The-Hacker-Times-Part-1
 !.sources/CSS-Transform-Transition-and-Animations-Oh-My
 !.sources/CSS-Responsive-Boxes
+!.sources/css-responsive-nav
 
 dev.log
 .dev.log

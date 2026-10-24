@@ -81,3 +81,7 @@
 	path = .sources/CSS-Responsive-Boxes
 	url = https://github.com/moefingers/CSS-Responsive-Boxes.git
 	branch = museum-ready/original
+[submodule ".sources/css-responsive-nav"]
+	path = .sources/css-responsive-nav
+	url = https://github.com/moefingers/css-responsive-nav.git
+	branch = museum-ready/original

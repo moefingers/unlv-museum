@@ -377,6 +377,21 @@ export const recipes: Record<string, Recipe> = {
     include: ["medial-queries1", "medial-queries2", "medial-queries3"],
   },
 
+  // Responsive Navigation: own June 2024 CSS exercise. Static HTML/CSS + a
+  // small JS file that duplicates the nav buttons / main sections, no build.
+  // museum-ready/original is the legacy `shepherd` tip unchanged; no hosting
+  // fixes needed. Allowlist skips README / LICENSE / .gitignore.
+  "css-responsive-nav": {
+    type: "static-copy",
+    from: ".sources/css-responsive-nav",
+    to: "public/originals/css-responsive-nav",
+    include: [
+      "index.html",
+      "style.css",
+      "duplicateNavButtonsAndMainSections.js",
+    ],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

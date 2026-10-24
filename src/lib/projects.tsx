@@ -656,9 +656,7 @@ export const PROJECTS: Project[] = [
     // outer museum URL carries a `?route=` query param that mirrors
     // the iframe's hash — refresh/share/back all work. Mirrors the
     // `?page=` pattern used by multi-page Originals.
-    original: (
-      <OriginalFrame src="/originals/rest-rant/index.html" syncHash />
-    ),
+    original: <OriginalFrame src="/originals/rest-rant/index.html" syncHash />,
     enhanced: COMING_SOON,
     reimagined: COMING_SOON,
     // Bidirectional pairing with the api-client lab surface. Value is
@@ -1414,6 +1412,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "css-responsive-nav",
+    repo: "moefingers/css-responsive-nav",
     title: "Responsive Navigation",
     description: "Pure CSS responsive navigation.",
     year: "Jun 2024",
