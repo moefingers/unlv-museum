@@ -424,6 +424,16 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // Jack's Paint: vanilla JS paint-chip picker (selection is on mouseover
+  // of the swatches), no build, no hosting fixes (museum-ready/original ==
+  // main). The allowlist leaves out LICENSE, .vscode/ and the banner README.
+  "jacks-paint": {
+    type: "static-copy",
+    from: ".sources/UNLV-JS-Jacks-Paint",
+    to: "public/originals/js-exercises/jacks-paint",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

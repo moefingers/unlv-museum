@@ -214,5 +214,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-11-17"
+  },
+  "jacks-paint": {
+    "repo": "moefingers/UNLV-JS-Jacks-Paint",
+    "branch": "museum-ready/original",
+    "commit": "acaed5d3bcfce95d91f3798a85ec56a849a33fa3",
+    "lockHash": "sha256:367b50077c879d7d44d7ecb3e67468fece6a70dd764a5ececee23069b33472de",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-12-19"
   }
 }

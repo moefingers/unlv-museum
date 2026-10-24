@@ -882,6 +882,7 @@ export const PROJECTS: Project[] = [
   {
     slug: "jacks-paint",
     container: "js-exercises",
+    repo: "moefingers/UNLV-JS-Jacks-Paint",
     title: "Jack's Paint",
     description: "Browser-based paint application.",
     year: "Dec 2023",

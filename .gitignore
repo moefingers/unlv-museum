@@ -68,6 +68,7 @@ next-env.d.ts
 !.sources/UNLV-MilestO-W-N
 !.sources/JS-Stock-Charts
 !.sources/copycatactivity
+!.sources/UNLV-JS-Jacks-Paint
 
 dev.log
 .dev.log
