@@ -77,3 +77,7 @@
 	path = .sources/CSS-Transform-Transition-and-Animations-Oh-My
 	url = https://github.com/moefingers/CSS-Transform-Transition-and-Animations-Oh-My.git
 	branch = museum-ready/original
+[submodule ".sources/CSS-Responsive-Boxes"]
+	path = .sources/CSS-Responsive-Boxes
+	url = https://github.com/moefingers/CSS-Responsive-Boxes.git
+	branch = museum-ready/original

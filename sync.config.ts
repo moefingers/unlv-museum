@@ -364,6 +364,19 @@ export const recipes: Record<string, Recipe> = {
     ],
   },
 
+  // Responsive Boxes: chapter 3.4.3 lab (fork of
+  // snyderae13/lab-3.4.3-responsive-boxes). Three media-query exercises,
+  // each its own index.html; the museum iframes medial-queries1/ by default.
+  // museum-ready/original is the legacy `main` tip unchanged; no hosting
+  // fixes needed. Allowlist skips README / LICENSE and the README-only
+  // imgs/ screenshots.
+  "responsive-boxes": {
+    type: "static-copy",
+    from: ".sources/CSS-Responsive-Boxes",
+    to: "public/originals/css-fundamentals/responsive-boxes",
+    include: ["medial-queries1", "medial-queries2", "medial-queries3"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

@@ -10,7 +10,7 @@ body {
 }
 .container div {
   text-align: center;
-  margin: 2%;
+  margin:2%;
 }
 .container {
   height: 100vh;
@@ -21,15 +21,15 @@ body {
 /* mobile */
 .a {
   flex-grow: 1;
-  width: 96%;
+  width:96%;
 }
 .b {
   flex-grow: 4;
-  width: 96%;
+  width:96%;
 }
 .c {
   flex-grow: 1;
-  width: 96%;
+  width:96%;
 }
 
 /* desktop */

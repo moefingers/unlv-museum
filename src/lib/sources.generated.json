@@ -169,5 +169,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-11-08"
+  },
+  "responsive-boxes": {
+    "repo": "moefingers/CSS-Responsive-Boxes",
+    "branch": "museum-ready/original",
+    "commit": "edc5f974b98baa600d309ac53afabba57c48f002",
+    "lockHash": "sha256:78b03d00fa86e27fdd51ded79b60303a98920deecad05d437efb84d7ef7f1f98",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-11-11"
   }
 }
