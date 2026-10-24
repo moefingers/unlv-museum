@@ -322,6 +322,19 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // CSS Demo: own early CSS sketch (empty <body>, zero-byte style1.css);
+  // the blank iframe is the artifact. museum-ready/original is the legacy
+  // `shepherd` tip unchanged. Note: this restores the submitted empty
+  // `<script src="">` tag that the pre-conversion served copy had dropped
+  // (no hosting reason: an empty src fetches nothing). Allowlist keeps the
+  // banner README out of the served copy.
+  "css-demo": {
+    type: "static-copy",
+    from: ".sources/css-demo",
+    to: "public/originals/css-fundamentals/css-demo",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

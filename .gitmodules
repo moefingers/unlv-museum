@@ -65,3 +65,7 @@
 	path = .sources/UNLV-html-layouts-activity
 	url = https://github.com/moefingers/UNLV-html-layouts-activity.git
 	branch = museum-ready/original
+[submodule ".sources/css-demo"]
+	path = .sources/css-demo
+	url = https://github.com/moefingers/css-demo.git
+	branch = museum-ready/original

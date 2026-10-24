@@ -142,5 +142,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-10-31"
+  },
+  "css-demo": {
+    "repo": "moefingers/css-demo",
+    "branch": "museum-ready/original",
+    "commit": "674dd1531a34ad662b73f7becdeff754ed520ed1",
+    "lockHash": "sha256:f3f34cca98b3a5f5feb3173341a30cb462ed169abef53ae4297400e5d3c7cc6f",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-11-02"
   }
 }
