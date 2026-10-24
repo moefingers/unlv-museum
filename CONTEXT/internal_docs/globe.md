@@ -20,8 +20,10 @@ inline comments are tight and lean on this story.
    on-screen anchor position. A light beam (cone) shoots up from
    the vertex and a hexagonal billboard unfolds at its top,
    revealing the project's full title + year + description.
-4. **Navigate.** Clicking inside the hex billboard navigates to the
-   project's landing page.
+4. **Navigate.** Clicking anywhere on the hex billboard navigates to
+   the project's landing page. The route is fully prefetched while
+   the card unfolds; if the server is still slow, the hex pulses
+   until the page lands, and the sphere holds still in the meantime.
 5. **Dismiss.** Tapping anywhere off the card (or pressing ESC, or
    clicking on the page background) reverses the choreography: hex
    collapses, cone falls, sphere unswings back to free rotation.
@@ -89,6 +91,8 @@ that calls three rotation drivers in priority order:
 function tick(now) {
   const dtSec = (now - lastTick) / 1000;
   lastTick = now;
+  // 0. A hex-card navigation is in flight: no driver runs
+  if (navigationHold.current) return;
   // 1. Anchor swing (claims the frame entirely if active)
   if (anchor.tickSwing(now, applyQ)) return;
   // 2. Drag momentum decay (claims the frame if active)
@@ -141,6 +145,7 @@ averaged with finger B's live position, snapping the crosshair
 toward finger B. Hard-to-predict snap.
 
 Two layered defenses:
+
 - **Pointerup hesitation.** When pointerup arrives with other
   pointers still down, we don't act immediately — we wait 60ms. If
   another pointerup arrives in the window, we treat both as
@@ -190,6 +195,21 @@ state has a `pendingLift` timer reference.
   Without the clip, taps in the wrapper's empty corners would get
   eaten by its stopPropagation and dismiss wouldn't fire. The
   polygon is inflated ~1.13× so the drop-shadow glow isn't sliced.
+- **The card's Link wraps the whole UnfoldingBillboard.** The clip
+  above makes the entire visible hex the click target. When the Link
+  wrapped only the text block, ~60% of the hex was glass that
+  swallowed clicks silently (the wrapper stops propagation).
+- **Every rotation frame is a React render, so a card navigation
+  holds rotation.** applyQ → setQ re-renders the globe each frame;
+  while a navigation is in flight those renders compete with it for
+  the main thread and can restart its commit, which once left the
+  route unrendered until a background click (the collapse phases
+  don't auto-rotate) stopped them. The card Link's click sets
+  `navigationHold`; HexLinkPending releases it if the navigation
+  settles without unmounting the globe, and a bfcache `pageshow`
+  releases it after a full-page fallback. The Link also uses
+  `prefetch` (full) because project routes are dynamic with no
+  loading.js, so the default prefetch would fetch only the shell.
 - **Pointerup may fire twice for the same pointerId** (synthetic
   event delegation across the inner stage + lifted surface). The
   hover pointerup handler bails if the pointerId is no longer in

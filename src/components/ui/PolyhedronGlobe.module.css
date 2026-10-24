@@ -47,3 +47,52 @@
   stroke: var(--ring);
   stroke-width: 2;
 }
+
+/* Hex card Link. Wraps the whole UnfoldingBillboard so the entire
+   visible hex is the click target (the card wrapper's clip-path trims
+   the hit region to the hex). Text keeps its own colors. */
+.hexCardLink {
+  position: relative;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+/* A rectangular outline would be clipped away by the wrapper's hex
+   clip-path, so the focus ring follows the painted hex instead. */
+.hexCardLink:focus {
+  outline: none;
+}
+.hexCardLink:focus-visible {
+  filter: drop-shadow(0 0 1.5px var(--ring)) drop-shadow(0 0 5px var(--ring));
+}
+
+/* Pending pulse over the hex while its navigation waits on the
+   server (HexLinkPending). A ring of light near the rim, clipped to
+   the hex by the wrapper. */
+.hexPending {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    transparent 55%,
+    color-mix(in srgb, var(--glass-stroke) 45%, transparent) 85%,
+    transparent 100%
+  );
+  animation: hexPendingPulse 900ms ease-in-out infinite alternate;
+}
+@keyframes hexPendingPulse {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hexPending {
+    animation: none;
+    opacity: 0.7;
+  }
+}
