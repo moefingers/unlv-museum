@@ -298,6 +298,18 @@ export const recipes: Record<string, Recipe> = {
     ],
   },
 
+  // Improved Sign-up Form: chapter 2.5.2 HTML lab (fork of
+  // NikoPoliarco/lab-2.5.2-improved-sign-up-form). GET form -> results.html,
+  // which reads URLSearchParams client-side. No build. museum-ready/original
+  // is the legacy `main` tip unchanged; no hosting fixes needed. Allowlist
+  // skips README / LICENSE / .gitignore / .DS_Store (incl. assets/.DS_Store).
+  "improved-form": {
+    type: "static-copy",
+    from: ".sources/HTML-Improved-Form",
+    to: "public/originals/html-fundamentals/improved-form",
+    include: ["index.html", "results.html", "assets/css", "assets/images"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //
