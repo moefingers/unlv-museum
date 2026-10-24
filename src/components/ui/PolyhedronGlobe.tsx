@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { geodesic, type Mesh } from "@/lib/polyhedra";
 import { projectLandingUrl, type Project } from "@/lib/projects";
 import {
@@ -692,6 +692,11 @@ export function PolyhedronGlobe({
   // Each driver returns true if it applied a rotation, signaling
   // the next driver to bow out for this frame. Drivers own their
   // own state + physics; this loop is pure orchestration.
+  //
+  // navigationHold pauses every driver while a hex-card navigation
+  // is in flight (set by the card Link's click, released by
+  // HexLinkPending). See handleHexLinkClick for why.
+  const navigationHold = useRef(false);
   useEffect(() => {
     let lastTick = performance.now();
     let frame: number;
@@ -700,6 +705,11 @@ export function PolyhedronGlobe({
       const dt = now - lastTick;
       lastTick = now;
       const dtSec = dt / 1000;
+
+      if (navigationHold.current) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
 
       // Anchor swing claims rotation when active — drag momentum
       // and auto-rotate are paused during the swing. Hook owns the
@@ -1165,6 +1175,36 @@ export function PolyhedronGlobe({
     if (anchor.getAnchoredVi() !== null) anchor.releaseAnchor();
   }, [dragMomentum, anchor]);
 
+  // Hex-card Link click: hold the sphere still until the navigation
+  // lands. Every rotation frame is a React render (applyQ → setQ),
+  // and while the card's route is in flight those renders compete
+  // with the navigation for the main thread and can restart its
+  // commit, so the route could sit unrendered until rotation stopped.
+  // Before this hold, the only thing that stopped it was a
+  // background click (the collapse phases don't auto-rotate), which
+  // read as "the card click does nothing, then clicking away
+  // navigates". Modified clicks open a new tab and leave this page
+  // as-is, so they don't hold.
+  const handleHexLinkClick = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    navigationHold.current = true;
+  }, []);
+  const releaseNavigationHold = useCallback(() => {
+    navigationHold.current = false;
+  }, []);
+  // A client navigation that falls back to a full page load (e.g.
+  // deployment skew) leaves this page in the bfcache with the hold
+  // still set; release it if the browser restores the page.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) navigationHold.current = false;
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   // Mirror handlers into the parent's surfaceHandlersRef so the
   // parent can bind them to a larger surface (.globeWrap, which
   // is fullscreen). Without this, the handlers only fire from
@@ -1462,6 +1502,81 @@ export function PolyhedronGlobe({
   // math; SCALING + POSITIONING (anchored zoom, viewport framing)
   // happen on globeScaleHost in LandingView so BreathingMesh can
   // measure them in one place for its cutout.
+
+  // The hex card's billboard + text. Built once here because the JSX
+  // below wraps it in the card's Link when there's a project to link
+  // to.
+  const hexBillboard = anchorGeometry && (
+    <UnfoldingBillboard
+      open={anchor.hexOpen}
+      radius={anchorGeometry.hexRadius}
+      stageDelay={90}
+      spring={{ stiffness: 260, damping: 18 }}
+    >
+      {anchoredProject && (
+        <span
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.35rem",
+            textAlign: "center",
+            padding: "0 12%",
+            // Reserve enough vertical room for title + year +
+            // desc inside the hex's inscribed-square region.
+            // UnfoldingBillboard's contentLayer caps width at
+            // radius * 1.4 already.
+            width: "100%",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: HOVER_DOT_FONT_FAMILY,
+              fontSize: 18,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              color: "var(--glass-text)",
+              textShadow: "var(--glass-text-shadow)",
+              lineHeight: 1.2,
+            }}
+          >
+            {anchoredProject.title}
+          </span>
+          <span
+            style={{
+              fontFamily: HOVER_DOT_FONT_FAMILY,
+              fontSize: 11,
+              color: "var(--glass-text-muted)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {anchoredProject.year}
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              lineHeight: 1.35,
+              color: "var(--glass-text-secondary)",
+              // Trim the description to one or two lines so it
+              // fits the hex's bowl. Clamping with -webkit-
+              // line-clamp is widely supported and graceful on
+              // the few engines that still ignore it (the
+              // overflow just hides any excess).
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              marginTop: "0.1rem",
+            }}
+          >
+            {anchoredProject.description}
+          </span>
+        </span>
+      )}
+    </UnfoldingBillboard>
+  );
+
   return (
     <div
       ref={stageRef}
@@ -1953,91 +2068,38 @@ export function PolyhedronGlobe({
           // tinting. Falls back to neutral when no anchor.
           data-glass-category={anchoredProject?.category}
         >
-          <UnfoldingBillboard
-            open={anchor.hexOpen}
-            radius={anchorGeometry.hexRadius}
-            stageDelay={90}
-            spring={{ stiffness: 260, damping: 18 }}
-          >
-            {anchoredProject && (
-              <Link
-                href={
-                  anchoredProject.href ?? projectLandingUrl(anchoredProject)
-                }
-                // Native Next.js <Link> navigation. An earlier version
-                // overrode onClick with preventDefault + router.push to
-                // "bypass a brittle global click interceptor" — but that
-                // override didn't commit the navigation on the first
-                // click; the route only flushed on the next
-                // click-away/releaseAnchor re-render (the reported
-                // billboard regression). The wrapper's bubble-phase
-                // onClick stopPropagation already keeps this click from
-                // reaching the surface's background-dismiss, and the
-                // native Link handles modifier-key / middle-click
-                // new-tab semantics, so plain href navigation is both
-                // correct and simpler.
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.35rem",
-                  textAlign: "center",
-                  textDecoration: "none",
-                  padding: "0 12%",
-                  cursor: "pointer",
-                  // Reserve enough vertical room for title + year +
-                  // desc inside the hex's inscribed-square region.
-                  // UnfoldingBillboard's contentLayer caps width at
-                  // radius * 1.4 already.
-                  width: "100%",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: HOVER_DOT_FONT_FAMILY,
-                    fontSize: 18,
-                    fontWeight: 600,
-                    letterSpacing: "0.02em",
-                    color: "var(--glass-text)",
-                    textShadow: "var(--glass-text-shadow)",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {anchoredProject.title}
-                </span>
-                <span
-                  style={{
-                    fontFamily: HOVER_DOT_FONT_FAMILY,
-                    fontSize: 11,
-                    color: "var(--glass-text-muted)",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  {anchoredProject.year}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    lineHeight: 1.35,
-                    color: "var(--glass-text-secondary)",
-                    // Trim the description to one or two lines so it
-                    // fits the hex's bowl. Clamping with -webkit-
-                    // line-clamp is widely supported and graceful on
-                    // the few engines that still ignore it (the
-                    // overflow just hides any excess).
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    marginTop: "0.1rem",
-                  }}
-                >
-                  {anchoredProject.description}
-                </span>
-              </Link>
-            )}
-          </UnfoldingBillboard>
+          {anchoredProject ? (
+            <Link
+              href={anchoredProject.href ?? projectLandingUrl(anchoredProject)}
+              // The Link wraps the whole billboard so the entire
+              // visible hex navigates. It used to wrap only the text
+              // block, which covered ~40% of the hex; a click on the
+              // glass above or below the text hit this wrapper, got
+              // stopped, and did nothing. The wrapper's clip-path
+              // keeps the hit region to the hex itself.
+              //
+              // Native Next.js <Link> navigation (an earlier
+              // preventDefault + router.push override is gone; the
+              // native Link also keeps modifier-key / middle-click
+              // new-tab semantics).
+              //
+              // prefetch: the project routes are dynamic with no
+              // loading.js, so the default prefetch fetches only the
+              // shared shell and the click still waits on a full
+              // server render. A full prefetch, started when the card
+              // mounts at the beginning of the anchor swing, has the
+              // ~1.8s open cascade to land before the card is
+              // clickable.
+              prefetch
+              onClick={handleHexLinkClick}
+              className={styles.hexCardLink}
+            >
+              {hexBillboard}
+              <HexLinkPending onSettled={releaseNavigationHold} />
+            </Link>
+          ) : (
+            hexBillboard
+          )}
         </div>
       )}
 
@@ -2051,4 +2113,24 @@ export function PolyhedronGlobe({
           div's onClick. */}
     </div>
   );
+}
+
+/**
+ * Lives inside the hex card's <Link> (useLinkStatus reads the nearest
+ * enclosing Link). While the navigation is waiting on the server it
+ * renders a pulse over the hex, so a slow route reads as "working"
+ * instead of "nothing happened". When the pending state ends with
+ * this component still mounted (the navigation settled without
+ * leaving the landing page), it releases the globe's navigation hold.
+ * A prefetched route skips the pending state entirely; that
+ * navigation commits straight away and unmounts the globe.
+ */
+function HexLinkPending({ onSettled }: { onSettled: () => void }) {
+  const { pending } = useLinkStatus();
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending) onSettled();
+    wasPending.current = pending;
+  }, [pending, onSettled]);
+  return pending ? <span aria-hidden className={styles.hexPending} /> : null;
 }
