@@ -1,3 +1,5 @@
 {
-  "windowSize": { "widthValue": 900, "heightValue": 700 }
+    "windowSize":
+        {"widthValue" : 900,
+        "heightValue" : 700}
 }

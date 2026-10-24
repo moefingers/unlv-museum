@@ -392,6 +392,19 @@ export const recipes: Record<string, Recipe> = {
     ],
   },
 
+  // MilestO-W-N (Jan 2024): vanilla JS 1-4 player territory game, no build.
+  // Hosting fix on museum-ready/original: the three JSON module imports use
+  // import attributes (`with { type: 'json' }`) instead of the import-
+  // assertions keyword (`assert`) that Chrome 126+ rejects, which left the
+  // game blank. The allowlist keeps README / LICENSE / the social-card
+  // images out of the iframe copy. (milestown2 is the separate Enhanced repo.)
+  milestown: {
+    type: "static-copy",
+    from: ".sources/UNLV-MilestO-W-N",
+    to: "public/originals/milestown",
+    include: ["index.html", "favicon.ico", "assets", "publicationfiles"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

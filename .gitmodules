@@ -85,3 +85,7 @@
 	path = .sources/css-responsive-nav
 	url = https://github.com/moefingers/css-responsive-nav.git
 	branch = museum-ready/original
+[submodule ".sources/UNLV-MilestO-W-N"]
+	path = .sources/UNLV-MilestO-W-N
+	url = https://github.com/moefingers/UNLV-MilestO-W-N.git
+	branch = museum-ready/original

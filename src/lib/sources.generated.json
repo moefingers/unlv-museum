@@ -187,5 +187,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-06-12"
+  },
+  "milestown": {
+    "repo": "moefingers/UNLV-MilestO-W-N",
+    "branch": "museum-ready/original",
+    "commit": "44281871ecfbdda29aba25f369b88c967d5bee60",
+    "lockHash": "sha256:2ee2182c441078a659c94e41a7df01a017223173e5d4892d6b1838c7c756bc40",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-01-06"
   }
 }
