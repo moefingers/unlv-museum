@@ -66,6 +66,7 @@ next-env.d.ts
 !.sources/CSS-Responsive-Boxes
 !.sources/css-responsive-nav
 !.sources/UNLV-MilestO-W-N
+!.sources/JS-Stock-Charts
 
 dev.log
 .dev.log

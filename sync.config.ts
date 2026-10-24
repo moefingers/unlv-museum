@@ -405,6 +405,15 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "favicon.ico", "assets", "publicationfiles"],
   },
 
+  // Stock Charts: Chart.js + Bootstrap from CDNs over bundled mock data, no
+  // build. The served app is the repo's public/ dir (what `pnpm start` /
+  // live-server serves). museum-ready/original only pnpm-normalizes.
+  "stock-charts": {
+    type: "static-copy",
+    from: ".sources/JS-Stock-Charts/public",
+    to: "public/originals/stock-charts",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

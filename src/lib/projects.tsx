@@ -1111,6 +1111,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "stock-charts",
+    repo: "moefingers/JS-Stock-Charts",
     title: "Stock Charts",
     description: "Financial data visualization.",
     year: "Jan 2024",

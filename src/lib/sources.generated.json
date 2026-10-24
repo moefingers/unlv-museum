@@ -196,5 +196,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-06"
+  },
+  "stock-charts": {
+    "repo": "moefingers/JS-Stock-Charts",
+    "branch": "museum-ready/original",
+    "commit": "0e34a8f11e538ed42f894502eae10f635e0f80c6",
+    "lockHash": "sha256:5adb650d58080f837c7d3644e35c6067818c330f9ff3ec2e8b35d6f9476599b9",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-01-26"
   }
 }

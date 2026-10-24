@@ -89,3 +89,7 @@
 	path = .sources/UNLV-MilestO-W-N
 	url = https://github.com/moefingers/UNLV-MilestO-W-N.git
 	branch = museum-ready/original
+[submodule ".sources/JS-Stock-Charts"]
+	path = .sources/JS-Stock-Charts
+	url = https://github.com/moefingers/JS-Stock-Charts.git
+	branch = museum-ready/original
