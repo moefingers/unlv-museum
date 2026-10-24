@@ -133,5 +133,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-10-28"
+  },
+  "layouts": {
+    "repo": "moefingers/UNLV-html-layouts-activity",
+    "branch": "museum-ready/original",
+    "commit": "9ab861eca68833f1ebbf3e6274b4b7dc0707276c",
+    "lockHash": "sha256:371ce0bba765289a1693a12b7d6edd7579ba16cda4aa9217241a8fae10305691",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-10-31"
   }
 }

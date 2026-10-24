@@ -61,3 +61,7 @@
 	path = .sources/HTML-Improved-Form
 	url = https://github.com/moefingers/HTML-Improved-Form.git
 	branch = museum-ready/original
+[submodule ".sources/UNLV-html-layouts-activity"]
+	path = .sources/UNLV-html-layouts-activity
+	url = https://github.com/moefingers/UNLV-html-layouts-activity.git
+	branch = museum-ready/original

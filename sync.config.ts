@@ -310,6 +310,18 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "results.html", "assets/css", "assets/images"],
   },
 
+  // HTML Layouts: chapter 2.x layouts activity (own repo). Static HTML/CSS
+  // with placebear.com images + Font Awesome CDN, no build.
+  // museum-ready/original is the legacy `main` tip unchanged; no hosting
+  // fixes needed. Allowlist keeps the banner README (added by
+  // sync:source-meta) out of the served copy.
+  layouts: {
+    type: "static-copy",
+    from: ".sources/UNLV-html-layouts-activity",
+    to: "public/originals/html-fundamentals/layouts",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

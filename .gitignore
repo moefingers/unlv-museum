@@ -59,6 +59,7 @@ next-env.d.ts
 !.sources/html-1-restaurant-menu-activity
 !.sources/HTML-Bird-Songs
 !.sources/HTML-Improved-Form
+!.sources/UNLV-html-layouts-activity
 
 dev.log
 .dev.log
