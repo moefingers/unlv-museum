@@ -93,3 +93,7 @@
 	path = .sources/JS-Stock-Charts
 	url = https://github.com/moefingers/JS-Stock-Charts.git
 	branch = museum-ready/original
+[submodule ".sources/copycatactivity"]
+	path = .sources/copycatactivity
+	url = https://github.com/moefingers/copycatactivity.git
+	branch = museum-ready/original

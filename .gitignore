@@ -67,6 +67,7 @@ next-env.d.ts
 !.sources/css-responsive-nav
 !.sources/UNLV-MilestO-W-N
 !.sources/JS-Stock-Charts
+!.sources/copycatactivity
 
 dev.log
 .dev.log

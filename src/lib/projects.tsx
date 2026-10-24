@@ -1123,6 +1123,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "copycat",
+    repo: "moefingers/copycatactivity",
     title: "Copycat Activity",
     description: "HTML/CSS recreation from a design mockup.",
     year: "Nov 2023",

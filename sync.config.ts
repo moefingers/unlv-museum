@@ -414,6 +414,16 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/stock-charts",
   },
 
+  // Copycat Activity: HTML/CSS recreation, no build, no hosting fixes
+  // (museum-ready/original == shepherd). The allowlist keeps the banner
+  // README out of the iframe copy.
+  copycat: {
+    type: "static-copy",
+    from: ".sources/copycatactivity",
+    to: "public/originals/copycat",
+    include: ["index.html", "assets"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

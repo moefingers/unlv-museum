@@ -205,5 +205,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-01-26"
+  },
+  "copycat": {
+    "repo": "moefingers/copycatactivity",
+    "branch": "museum-ready/original",
+    "commit": "c156ddc4c722da7eee0a8347992d8df490d5e643",
+    "lockHash": "sha256:8937eb340cbcd410b62b047b0a15f41bebe7bb8cf1696f0628afba1f7b0c6f36",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-11-17"
   }
 }
