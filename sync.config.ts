@@ -257,6 +257,26 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // Restaurant Menu: chapter 2.3.2 HTML lab (fork of the
+  // sjxliu/lab-2.3.2-restaurant-menu starter). Static HTML/CSS, no build.
+  // museum-ready/original is the legacy `master` tip unchanged; the served
+  // copy needed no hosting fixes. The allowlist skips README / LICENSE /
+  // .DS_Store, and names assets/ subdirs so assets/.DS_Store (gitignored
+  // museum-side) never lands in public/originals and skews the lockHash.
+  "restaurant-menu": {
+    type: "static-copy",
+    from: ".sources/html-1-restaurant-menu-activity",
+    to: "public/originals/html-fundamentals/restaurant-menu",
+    include: [
+      "index.html",
+      "about.html",
+      "menu.html",
+      "contact.html",
+      "assets/css",
+      "assets/images",
+    ],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

@@ -49,3 +49,7 @@
 	path = .sources/h-data
 	url = https://github.com/moefingers/h-data.git
 	branch = museum-ready/enhanced
+[submodule ".sources/html-1-restaurant-menu-activity"]
+	path = .sources/html-1-restaurant-menu-activity
+	url = https://github.com/moefingers/html-1-restaurant-menu-activity.git
+	branch = museum-ready/original

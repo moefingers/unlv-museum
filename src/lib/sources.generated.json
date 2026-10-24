@@ -106,5 +106,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-12-23"
+  },
+  "restaurant-menu": {
+    "repo": "moefingers/html-1-restaurant-menu-activity",
+    "branch": "museum-ready/original",
+    "commit": "849f0b4c9916bddc90bf0c14b22cef27f25a15e0",
+    "lockHash": "sha256:e0562543ce0edd6c6e01c95564f601f6c7819834f909985ca6bdaed01f916368",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-10-26"
   }
 }
