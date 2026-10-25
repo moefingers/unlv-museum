@@ -72,6 +72,7 @@ next-env.d.ts
 !.sources/JS-Web-Game-Part-7
 !.sources/RR-Music-Search
 !.sources/RR-Getting-Started-With-Bootstrap
+!.sources/RR-Stylesheets-React
 
 dev.log
 .dev.log

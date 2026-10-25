@@ -282,6 +282,26 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/react-exercises/bootstrap",
   },
 
+  // Stylesheets in React: React Router series. The HackerUSA-CE starter as
+  // forked (App.css + index.css on a 'Hello World' component). react-scripts
+  // 5.0.1 + React 18, so no `--openssl-legacy-provider`. museum-ready/
+  // original normalizes npm to pnpm. pnpm-workspace.yaml keeps the npm
+  // lock's package set (autoInstallPeers: false), declines core-js banner
+  // scripts and sets nodeLinker: hoisted, so the rebuild matches the served
+  // bundle byte for byte. Verified on Node 24.14.1 / pnpm 12.10.1.
+  // PUBLIC_URL=. makes asset paths relative under
+  // /originals/react-exercises/stylesheets/.
+  stylesheets: {
+    type: "cra-build",
+    cwd: ".sources/RR-Stylesheets-React",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/react-exercises/stylesheets",
+  },
+
   // My Values — static HTML/CSS artifact (no build step). Source-level
   // hosting fix on museum-ready/original: two responsive breakpoints
   // (900px wrap, 600px stack) so the four-column desktop layout doesn't

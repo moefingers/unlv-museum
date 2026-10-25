@@ -113,3 +113,7 @@
 	path = .sources/RR-Getting-Started-With-Bootstrap
 	url = https://github.com/moefingers/RR-Getting-Started-With-Bootstrap.git
 	branch = museum-ready/original
+[submodule ".sources/RR-Stylesheets-React"]
+	path = .sources/RR-Stylesheets-React
+	url = https://github.com/moefingers/RR-Stylesheets-React.git
+	branch = museum-ready/original

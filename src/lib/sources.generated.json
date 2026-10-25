@@ -250,5 +250,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-03-12"
+  },
+  "stylesheets": {
+    "repo": "moefingers/RR-Stylesheets-React",
+    "branch": "museum-ready/original",
+    "commit": "e674e8dfa047c9f8e546ac1786da13b88a7d0a69",
+    "lockHash": "sha256:4e5806b1ecf7a1dce1ebd3efca6f8cecd7505db66b7dab00a7c575a07f265ec9",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-03-12"
   }
 }
