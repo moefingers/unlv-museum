@@ -2,7 +2,8 @@
  * scripts/build-readme-card.ts — the museum README's hero card.
  *
  * An animated SVG recreation of the museum's social card
- * (public/og/stage-poster.png): the landing globe's anchored "stage
+ * (public/og/stage-poster.png), zoomed out into the profile banners'
+ * shape (see "README framing"): the landing globe's anchored "stage
  * view" — the BreathingMesh lattice, the upper arc of the icosphere,
  * a projection cone rising from a vertex, and the "UNLV Museum" hex
  * card unfolding above it — played through the real anchor
@@ -390,7 +391,25 @@ const CARD_ENTRY: {
  *     top-left as if the crop were the whole viewport.
  */
 const CARD_W = 1200;
-const CARD_H = 630;
+/** The recanon banner's shape (900×320); see "README framing" below. */
+const CARD_H = (CARD_W * 320) / 900;
+/**
+ * Rounded frame, matching the dynimage banners this card sits under on
+ * the moefingers profile README (dynimage src/lib/cards/svg-helpers.ts
+ * cardFrameOpen/cardFrameClose). Every banner there renders at 100%
+ * width, so radius and stroke scale from the recanon banner directly
+ * above (rx 20, stroke 1 at 900 wide) by 1200/900. Stroke colors are
+ * dynimage's theme strokes. The border is drawn inset by half its width:
+ * on a rect flush with the edge, the viewport would cut the stroke's
+ * outer half along the sides but not around the corners, so the
+ * corners would read heavier.
+ */
+const FRAME_RADIUS = (20 * CARD_W) / 900;
+const FRAME_STROKE = CARD_W / 900;
+const FRAME_STROKE_COLOR: Record<Theme, string> = {
+  dark: "#27272a",
+  light: "#e4e4e7",
+};
 const OG_ANCHOR_VERTEX = 40;
 const OG_ORBIT_DEG = 105.47;
 const OG_STAGE_SCALE = 1.3887;
@@ -400,6 +419,26 @@ const OG_USER_ZOOM =
   OG_STAGE_SCALE / (ANCHOR_ZOOM_SCALE * OG_DEVICE_PIXEL_RATIO);
 /** Capture viewport (CSS) px → card px. */
 const VIEWPORT_TO_CARD = OG_DEVICE_PIXEL_RATIO;
+/**
+ * README framing. On the profile README the card sits under dynimage's
+ * recanon banner at the same 100% width, so it takes that banner's
+ * shape (CARD_H). The OG view is taller than that (the anchored vertex
+ * sits at y≈459 of 630), so the card zooms out the way the landing
+ * view's wheel zoom does: the stage and BreathingMesh's lattice pitch
+ * scale together by README_ZOOM, and README_FOCUS, a point of the OG
+ * frame, keeps its place in the card. 0.72 keeps the whole open card,
+ * the cone and a band of globe below the anchored vertex. The focus
+ * sits 40px below the top so the unfolding hex's tip, which overshoots
+ * the open card's top edge mid-cascade, still clears the frame.
+ */
+const README_ZOOM = 0.72;
+const README_FOCUS = { x: CARD_W / 2, y: 40 };
+const STAGE_SCALE = OG_STAGE_SCALE * README_ZOOM;
+const STAGE_OFFSET = {
+  x: README_FOCUS.x + (OG_STAGE_OFFSET.x - README_FOCUS.x) * README_ZOOM,
+  y: README_FOCUS.y + (OG_STAGE_OFFSET.y - README_FOCUS.y) * README_ZOOM,
+};
+const USER_ZOOM = OG_USER_ZOOM * README_ZOOM;
 
 const GFX = PRESET_DEFINITIONS.high;
 
@@ -1033,8 +1072,8 @@ function switchTimes(
   return out;
 }
 
-const toCardX = (x: number) => x * OG_STAGE_SCALE + OG_STAGE_OFFSET.x;
-const toCardY = (y: number) => y * OG_STAGE_SCALE + OG_STAGE_OFFSET.y;
+const toCardX = (x: number) => x * STAGE_SCALE + STAGE_OFFSET.x;
+const toCardY = (y: number) => y * STAGE_SCALE + STAGE_OFFSET.y;
 
 // ═══ Globe layer ════════════════════════════════════════════════════
 
@@ -1100,7 +1139,7 @@ function buildGlobeModel(): GlobeModel {
   const pointsOf = (face: number[], P: Projected[]) =>
     face.map((vi) => `${num(P[vi]!.sx)},${num(P[vi]!.sy)}`).join(" ");
   const glowMargin =
-    (FACE_GLOW_STROKE.width / 2 + 3 * EDGE_GLOW_BLUR) * OG_STAGE_SCALE;
+    (FACE_GLOW_STROKE.width / 2 + 3 * EDGE_GLOW_BLUR) * STAGE_SCALE;
 
   const faces: GlobeModel["faces"] = [];
   MESH.faces.forEach((face, id) => {
@@ -1138,7 +1177,7 @@ function buildGlobeModel(): GlobeModel {
   );
   const vertexVisible = (vi: number, P: Projected[]) =>
     facesOf[vi]!.some((f) => isFrontFacing(f, P));
-  const dotMargin = DOT_GLOW_RADIUS * OG_STAGE_SCALE;
+  const dotMargin = DOT_GLOW_RADIUS * STAGE_SCALE;
   const dots: GlobeModel["dots"] = [];
   MESH.vertices.forEach((_, vi) => {
     const seen = samples.some(
@@ -1926,12 +1965,11 @@ function renderMesh(pal: Palette): string {
     vh,
     Math.max(vw, vh) * MESH_LATTICE_MARGIN,
   );
-  const zoom = OG_USER_ZOOM;
+  const zoom = USER_ZOOM;
   // Cutout: the globe stage's box (stageSize square, scaled) in viewport px.
   const cx = toCardX(STAGE_CENTER) / p;
   const cy = toCardY(STAGE_CENTER) / p;
-  const cutoutR =
-    ((STAGE_SIZE * OG_STAGE_SCALE) / p / 2) * MESH_CUTOUT_TIGHTNESS;
+  const cutoutR = ((STAGE_SIZE * STAGE_SCALE) / p / 2) * MESH_CUTOUT_TIGHTNESS;
 
   // Card-space positions per keyframe, in integer tenths of a px.
   const frames: Int32Array[] = [];
@@ -2194,7 +2232,7 @@ async function main() {
     const mesh = renderMesh(pal);
     const label = `${CARD_ENTRY.title} — ${CARD_ENTRY.description}`;
     const svg = [
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_W} ${CARD_H}" width="${CARD_W}" height="${CARD_H}" role="img" aria-labelledby="card-title">`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_W} ${num(CARD_H, 2)}" width="${CARD_W}" height="${num(CARD_H, 2)}" role="img" aria-labelledby="card-title">`,
       `<title id="card-title">${escapeXml(label)}</title>`,
       `<!-- Generated by scripts/build-readme-card.ts (${theme}). Do not edit by hand: run \`pnpm build:readme-card\`. -->`,
       `<defs>`,
@@ -2202,14 +2240,18 @@ async function main() {
       cone.defs,
       card.defs,
       `<g id="glyphs">${bank.renderDefs()}</g>`,
+      `<clipPath id="card-frame"><rect width="${CARD_W}" height="${num(CARD_H, 2)}" rx="${num(FRAME_RADIUS, 2)}" ry="${num(FRAME_RADIUS, 2)}"/></clipPath>`,
       `</defs>`,
-      `<rect width="${CARD_W}" height="${CARD_H}" fill="${pal.background.hex}"/>`,
+      `<g clip-path="url(#card-frame)">`,
+      `<rect width="${CARD_W}" height="${num(CARD_H, 2)}" fill="${pal.background.hex}"/>`,
       mesh,
-      `<g transform="matrix(${OG_STAGE_SCALE} 0 0 ${OG_STAGE_SCALE} ${OG_STAGE_OFFSET.x} ${OG_STAGE_OFFSET.y})">`,
+      `<g transform="matrix(${num(STAGE_SCALE, 5)} 0 0 ${num(STAGE_SCALE, 5)} ${num(STAGE_OFFSET.x, 3)} ${num(STAGE_OFFSET.y, 3)})">`,
       g.body,
       cone.body,
       card.body,
       `</g>`,
+      `</g>`,
+      `<rect x="${num(FRAME_STROKE / 2, 3)}" y="${num(FRAME_STROKE / 2, 3)}" width="${num(CARD_W - FRAME_STROKE, 3)}" height="${num(CARD_H - FRAME_STROKE, 3)}" rx="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" ry="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" fill="none" stroke="${FRAME_STROKE_COLOR[theme]}" stroke-width="${num(FRAME_STROKE, 3)}"/>`,
       `</svg>`,
       "",
     ].join("\n");
