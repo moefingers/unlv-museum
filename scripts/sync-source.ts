@@ -190,6 +190,11 @@ function findSubmoduleRootForRecipe(recipe: Recipe): string | null {
  * the local `original` branch. Returns null when the owner has no commits
  * on `original` — typical for forks of starter-code where the owner did
  * the actual coursework off-git or only touched museum-ready/original.
+ *
+ * The author match ignores case: the owner's commits are authored as
+ * "moefingers", "MoeFingers" and the 145162456+moefingers noreply address,
+ * and git's --author is case-sensitive by default (quirkTruck has 42 owner
+ * commits, of which a case-sensitive match finds 4).
  */
 function readOwnerCommitRange(
   submoduleRoot: string,
@@ -201,7 +206,7 @@ function readOwnerCommitRange(
     for (const ref of refCandidates) {
       try {
         const out = execSync(
-          `git log --author=${OWNER_USERNAME} --pretty=%ad --date=short ${ref}`,
+          `git log -i --author=${OWNER_USERNAME} --pretty=%ad --date=short ${ref}`,
           { cwd: submoduleRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
         ).trim();
         if (out) {

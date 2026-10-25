@@ -13,8 +13,8 @@
     "branch": "museum-ready/original",
     "commit": "11cc687cdcb9b5eabbd361a4e8ab56fd95d26527",
     "lockHash": "sha256:486e85213b1a97626b77c25d507bc2eeac5e1c328a5a65947768589a3e48e803",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-12-31",
+    "ownerLastCommit": "2024-05-24",
     "forkedAt": "2023-12-30"
   },
   "shared-counter": {
@@ -31,8 +31,8 @@
     "branch": "museum-ready/original",
     "commit": "21814e046f221c5d08b064513b9c058224d72a0a",
     "lockHash": "sha256:a443013c04a4c0da6d07d2c5f7c5ebce7d486a9cca509b7fdee46c6e78c63258",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-02-18",
+    "ownerLastCommit": "2024-02-18",
     "forkedAt": "2024-02-19"
   },
   "music-tour-api": {
@@ -40,8 +40,8 @@
     "branch": "museum-ready/original",
     "commit": "a716ba3ffa22360558849e658b815db8161080b2",
     "lockHash": "sha256:8a43a525936fbabf90e786eb3045e3807f735d3283a0ed8c252af05b36f73adc",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-04-06",
+    "ownerLastCommit": "2024-04-06",
     "forkedAt": "2024-04-02"
   },
   "rest-rant": {
@@ -49,8 +49,8 @@
     "branch": "museum-ready/original",
     "commit": "05039759b7e63b76767af63fe348af6fbe5ac8f9",
     "lockHash": "sha256:e008556f46cca4ddedf2f03848049b4bcdbb6c31bbd633781f9d4ca323ff4236",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-05-04",
+    "ownerLastCommit": "2024-05-04",
     "forkedAt": "2024-05-04"
   },
   "interactive-map": {
@@ -67,8 +67,8 @@
     "branch": "museum-ready/original",
     "commit": "9cd97754756f1bf8306c274448674a4fedcb369f",
     "lockHash": "sha256:15ad8bdedf1f00c33e6fb47622813aa25a1ce56f37bae7f110f61cb5a1325e00",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-05-02",
+    "ownerLastCommit": "2024-05-02",
     "forkedAt": "2024-05-02"
   },
   "rest-rant-ssr": {
@@ -76,8 +76,8 @@
     "branch": "museum-ready/original",
     "commit": "95de99f7a457e199e17f8f174ee07b384e476b69",
     "lockHash": "sha256:f43c923fccc75a93bc0198eacfc9a7aa5d5d8d2806048eec0a868493094bf64f",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-02-26",
+    "ownerLastCommit": "2024-02-26",
     "forkedAt": "2024-02-03"
   },
   "declarative-counter": {
@@ -85,8 +85,8 @@
     "branch": "museum-ready/original",
     "commit": "4fe916e9d0d864088669da897a106ad29f6f04cd",
     "lockHash": "sha256:3fb5ff6281006c2926a27f2f0e0d0a39b12bc7541c06c0ea319c9e09daa0e7cd",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-02-28",
+    "ownerLastCommit": "2024-02-28",
     "forkedAt": "2024-02-29"
   },
   "montys-mineral-spa": {
@@ -94,8 +94,8 @@
     "branch": "museum-ready/original",
     "commit": "98c335405e7c16bcaeb1e45f3acd8c98dd3fd51a",
     "lockHash": "sha256:166e686568973aeaef508358bfa64dd24dd82504255f46e7cb4218dc3e17b058",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-03-10",
+    "ownerLastCommit": "2024-03-10",
     "forkedAt": "2024-03-10"
   },
   "my-values": {
@@ -103,8 +103,8 @@
     "branch": "museum-ready/original",
     "commit": "98c3abc0236dd165ce9676c3c96ca0a075134f45",
     "lockHash": "sha256:648d8e46168e0386ea847ae2ed57b5ea8270ef11a88f3f041f3903994891b5f4",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-12-23",
+    "ownerLastCommit": "2023-12-23",
     "forkedAt": "2023-12-23"
   },
   "restaurant-menu": {
@@ -112,8 +112,8 @@
     "branch": "museum-ready/original",
     "commit": "3f93ae0263278649af56c3ffee98e148de7cdbcd",
     "lockHash": "sha256:e341241ccf69f89d4f21726b0bb808a5f3ceaadfa2167137ca660488bad76377",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-10-27",
+    "ownerLastCommit": "2023-10-27",
     "forkedAt": "2023-10-26"
   },
   "bird-songs": {
@@ -121,8 +121,8 @@
     "branch": "museum-ready/original",
     "commit": "75e21e9de579ec404bbbd4cc6a638e372d2cc094",
     "lockHash": "sha256:814e5e8b6f3d6e78b7595c3eed2b7fac8bbab8fd2bdb56423f11d0b483d64a73",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-10-28",
+    "ownerLastCommit": "2023-10-28",
     "forkedAt": "2023-10-28"
   },
   "improved-form": {
@@ -130,8 +130,8 @@
     "branch": "museum-ready/original",
     "commit": "4f55736504f1760a1c41399990821e2ce5aebe46",
     "lockHash": "sha256:3a15eacb72c90f87879437cdb8104a417dfc1f7b7a4945790f8baf187429c253",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-10-28",
+    "ownerLastCommit": "2023-10-28",
     "forkedAt": "2023-10-28"
   },
   "layouts": {
@@ -139,8 +139,8 @@
     "branch": "museum-ready/original",
     "commit": "7a6fd4f35b6bd021b614cd7464206537061e54d9",
     "lockHash": "sha256:a82ec2d62ee61e02539f0bd44e56cf530aa4d2f2e8ce59cb4c755d628727bfa1",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-10-30",
+    "ownerLastCommit": "2024-01-25",
     "forkedAt": "2023-10-31"
   },
   "css-demo": {

@@ -272,6 +272,25 @@ function applyBranchRename(_slug: string, repo: string) {
   ]);
 }
 
+/**
+ * Make `origin/original` exist in the local submodule. sync-source reads
+ * the owner's commit dates from it, and a branch renamed upstream a moment
+ * ago (applyBranchRename) isn't there until it's fetched. The explicit
+ * refspec works even when the clone only fetches museum-ready/original.
+ * Repos with no `original` branch (no legacy default to rename) are fine:
+ * the fetch fails quietly and the dates stay null.
+ */
+function fetchOriginalBranch(submoduleRoot: string) {
+  try {
+    execSync(
+      `git fetch origin "+refs/heads/${TARGET_ORIGINAL}:refs/remotes/origin/${TARGET_ORIGINAL}"`,
+      { cwd: submoduleRoot, stdio: ["ignore", "ignore", "ignore"] },
+    );
+  } catch {
+    console.log(`[meta]   no ${TARGET_ORIGINAL} branch to fetch`);
+  }
+}
+
 function applyDefaultBranch(_slug: string, repo: string) {
   const meta = JSON.parse(
     gh(["api", `repos/${repo}`, "--jq", "{default_branch}"]),
@@ -400,6 +419,7 @@ function applyReadmeBanner(slug: string, repo: string, homepage: string) {
       cwd: submoduleRoot,
       stdio: ["ignore", "ignore", "inherit"],
     });
+    fetchOriginalBranch(submoduleRoot);
     execSync(`git checkout "${TARGET_DEFAULT}"`, {
       cwd: submoduleRoot,
       stdio: ["ignore", "ignore", "inherit"],
