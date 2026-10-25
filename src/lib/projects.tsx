@@ -634,7 +634,7 @@ export const PROJECTS: Project[] = [
     title: "Gwhac-A-Mole",
     description: "Guacamole-themed whack-a-mole React game.",
     synopsis:
-      "Whack-a-mole in React with a guacamole twist — a countdown starts a ten-second round across nine hills, hits score and misses cost a point, and the running total carries across rounds.",
+      "Whack-a-mole in React with a guacamole twist — ten-second rounds across nine hills, with hits, misses and a running score.",
     year: "Mar 2024",
     category: "games",
     techOriginal: ["React", "Create React App", "CSS"],
@@ -717,7 +717,7 @@ export const PROJECTS: Project[] = [
     title: "Commerce Array",
     description: "Full-stack e-commerce platform.",
     synopsis:
-      "Multi-store e-commerce front end in React — three storefronts with product filters, a shared cart with live stock counts, best sellers and an admin mode for editing products, originally backed by an Express + Sequelize API.",
+      "Multi-store e-commerce front end in React — three storefronts, product filters, a shared cart with live stock and an admin mode.",
     year: "Apr 2024",
     category: "full-stack",
     techOriginal: ["Express", "PostgreSQL", "Sequelize", "React"],
@@ -734,7 +734,7 @@ export const PROJECTS: Project[] = [
     title: "Restaurant Menu",
     description: "Multi-page restaurant website (chapter 2.3.2).",
     synopsis:
-      "Four-page restaurant site in plain HTML and CSS — home, menu, about and contact pages sharing one stylesheet and Font Awesome icons, from the chapter 2.3.2 lab.",
+      "Four-page restaurant site in plain HTML and CSS — home, menu, about and contact pages with Font Awesome icons (chapter 2.3.2).",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -751,7 +751,7 @@ export const PROJECTS: Project[] = [
     title: "Bird Songs",
     description: "Five-page bird gallery (chapter 2.4.1).",
     synopsis:
-      "Five-page bird gallery in plain HTML — a home index linking four bird pages, each with photos and a recording of its song, plus embedded YouTube videos (chapter 2.4.1).",
+      "Five-page bird gallery in plain HTML — four bird pages with photos, song recordings and YouTube embeds (chapter 2.4.1).",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML"],
@@ -768,7 +768,7 @@ export const PROJECTS: Project[] = [
     title: "Improved Sign-up Form",
     description: "Form with validation + results page (chapter 2.5.2).",
     synopsis:
-      "Vacation-contest sign-up form in HTML — required contact fields, radio and checkbox preferences, and a GET submit to a results page that reads the query string back and randomly announces a win or a loss (chapter 2.5.2).",
+      "Vacation-contest sign-up form in HTML — required fields, preferences and a results page that randomly says you won or lost.",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML"],
@@ -844,7 +844,7 @@ export const PROJECTS: Project[] = [
     title: "CSS Transforms, Transitions & Animations",
     description: "Three-activity sampler (chapter 3.3.2).",
     synopsis:
-      "Three CSS motion activities from chapter 3.3.2 — transforms, a hover transition that eases a button's colours, and keyframe animations that morph a hamburger icon into an X.",
+      "Three CSS motion activities (chapter 3.3.2) — transforms, a hover transition, and keyframes that morph a hamburger into an X.",
     year: "Nov 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -890,7 +890,7 @@ export const PROJECTS: Project[] = [
     title: "Web Game Series",
     description: "Progressive game built across multiple assignments.",
     synopsis:
-      "Top-down browser game in vanilla JavaScript, built up across a multi-part assignment — arrow keys walk an animated character, an NPC patrols its route, and clicking items moves them into an inventory bar.",
+      "Top-down browser game in vanilla JavaScript — arrow keys walk a character, an NPC patrols, and clicked items fill an inventory.",
     year: "Dec 2023 – Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "live-server"],
@@ -1060,7 +1060,7 @@ export const PROJECTS: Project[] = [
     title: "React Art Gallery",
     description: "React-based art gallery.",
     synopsis:
-      "Art browser in React over the Metropolitan Museum's collection API — step through the collection one object id at a time (±1 or ±5) and see each work as it loads.",
+      "Art browser in React over the Metropolitan Museum's collection API, stepping through works one object id at a time.",
     year: "Mar 2024",
     category: "frontend",
     techOriginal: ["React", "Babel", "CSS"],
@@ -1124,7 +1124,7 @@ export const PROJECTS: Project[] = [
     title: "Timer & Stopwatch",
     description: "Feature-packed timer/stopwatch combo.",
     synopsis:
-      "Stopwatch app in React, Vite and Ant Design — multiple stopwatches with laps and average lap time, configurable display and colours, and a timer half left as a work in progress.",
+      "Stopwatch app in React, Vite and Ant Design — multiple stopwatches with laps and averages, display settings and an unfinished timer.",
     year: "Apr – May 2024",
     category: "frontend",
     techOriginal: ["React", "Vite", "Ant Design"],
@@ -1138,7 +1138,7 @@ export const PROJECTS: Project[] = [
     title: "Food Truck",
     description: "Food truck website with menu and jQuery animations.",
     synopsis:
-      "Fibonacci's Food Truck — a restaurant site in HTML, CSS and jQuery with a fade-in on load, a quarterly menu with photos, an about section and social links.",
+      "Fibonacci's Food Truck — a restaurant site in HTML, CSS and jQuery with a fade-in, a photo menu and social links.",
     year: "Oct 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS", "jQuery"],
@@ -1152,7 +1152,7 @@ export const PROJECTS: Project[] = [
     title: "Stock Charts",
     description: "Financial data visualization.",
     synopsis:
-      "Stock tracker in vanilla JavaScript and Chart.js — line, bar and pie charts of price over time, highest price and average price for four tickers (GME, MSFT, DIS, BNTX) from bundled mock data.",
+      "Stock tracker in vanilla JavaScript and Chart.js — line, bar and pie charts of four tickers' prices from bundled mock data.",
     year: "Jan 2024",
     category: "frontend",
     techOriginal: ["JavaScript", "Chart.js", "Express"],
@@ -1379,7 +1379,7 @@ export const PROJECTS: Project[] = [
     title: "Music Search",
     description: "iTunes search SPA — query, results grid, album detail.",
     synopsis:
-      "iTunes search app in React and React Router — a search bar queries the iTunes API, results render as a grid, and clicking an item opens its detail view with artwork, genre and release date.",
+      "iTunes search app in React and React Router — search the iTunes API, browse a results grid and open an item's details.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "React Router", "iTunes API", "CRA"],
@@ -1417,7 +1417,7 @@ export const PROJECTS: Project[] = [
     title: "React + Bootstrap",
     description: "Bootstrap components composed into a React app.",
     synopsis:
-      "React app composed from React-Bootstrap components — a navbar, buttons and a form with email, password, a checkbox and a dropdown, from the React Router series' Bootstrap chapter.",
+      "React app built from React-Bootstrap components — a navbar, buttons and a form with text inputs, a checkbox and a dropdown.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "Bootstrap", "CRA"],
@@ -1465,7 +1465,7 @@ export const PROJECTS: Project[] = [
     title: "Responsive Navigation",
     description: "Pure CSS responsive navigation.",
     synopsis:
-      "Responsive navigation bar in HTML, CSS and a little JavaScript — five section links that collapse into a hamburger on narrow screens and open into a side menu on hover.",
+      "Responsive navigation bar in HTML, CSS and a little JavaScript that collapses into a hamburger menu on narrow screens.",
     year: "Jun 2024",
     category: "exercises",
     techOriginal: ["HTML", "CSS", "JavaScript"],

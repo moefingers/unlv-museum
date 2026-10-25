@@ -531,8 +531,28 @@ const TIER_LABEL_Y = 250;
 const STAT_Y = 304;
 const STARTER_Y = 334;
 
+const SYNOPSIS_CHARS = 72;
+const SYNOPSIS_LINES = 2;
+
+/**
+ * The synopsis wrapped to the banner's two lines. When it doesn't fit, the
+ * last line drops whole words (and any trailing punctuation) until an
+ * ellipsis fits, so a long synopsis reads as shortened instead of stopping
+ * mid-phrase.
+ */
+function fitSynopsis(text: string): string[] {
+  const lines = wrap(text, SYNOPSIS_CHARS);
+  if (lines.length <= SYNOPSIS_LINES) return lines;
+  const words = (lines[SYNOPSIS_LINES - 1] ?? "").split(" ");
+  while (words.length > 1 && words.join(" ").length + 1 > SYNOPSIS_CHARS) {
+    words.pop();
+  }
+  const last = words.join(" ").replace(/[\s,;:(—–-]+$/, "");
+  return [...lines.slice(0, SYNOPSIS_LINES - 1), `${last}…`];
+}
+
 export function renderBanner(p: BannerInput): string {
-  const synopsisLines = wrap(p.synopsis, 72).slice(0, 2);
+  const synopsisLines = fitSynopsis(p.synopsis);
   const synopsisSvg = synopsisLines
     .map(
       (line, i) =>
