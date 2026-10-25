@@ -1,0 +1,56 @@
+[
+  {
+    "store_id": 1,
+    "store_name": "Door Knobs \"N\" Locks",
+    "icon": null,
+    "image": null,
+    "about_us": "Founded in 1994 we have been selling random stuff for over 30 years.",
+    "primary_categories": ["Straight", "Crooked", "Curved"],
+    "best_sellers": [1, 4, 7, 10],
+    "style": {
+      "triColorBack": [
+        "rgba(10,30,0,0.8)",
+        "rgba(0,0,10,0.8)",
+        "rgba(40,0,0,0.8)"
+      ],
+      "cardStyle": { "background-color": "rgba(200, 200, 100, .4)" },
+      "cardStyleHover": { "background-color": "rgba(170, 170, 80, .7)" }
+    }
+  },
+  {
+    "store_id": 2,
+    "store_name": "Electronics \"R\" Us",
+    "icon": null,
+    "image": null,
+    "about_us": "If it's one thing we got it's another thing. Just kidding, it's electronics.",
+    "primary_categories": ["New", "Used", "Refurbished"],
+    "best_sellers": [2, 5, 8, 11],
+    "style": {
+      "triColorBack": [
+        "rgba(10,0,30,0.8)",
+        "rgba(0,30,0,0.8)",
+        "rgba(0,20,20,0.8)"
+      ],
+      "cardStyle": { "background-color": "rgba(200, 200, 255, .4)" },
+      "cardStyleHover": { "background-color": "rgba(170, 170, 255, .7)" }
+    }
+  },
+  {
+    "store_id": 3,
+    "store_name": "Clothing Co",
+    "icon": null,
+    "image": null,
+    "about_us": "Clothing from around the world.",
+    "primary_categories": ["American", "African", "Alien"],
+    "best_sellers": [3, 6, 9, 12],
+    "style": {
+      "triColorBack": [
+        "rgba(30,10,0,0.8)",
+        "rgba(0,10,30,0.8)",
+        "rgba(10,40,0,0.8)"
+      ],
+      "cardStyle": { "background-color": "rgba(255, 200, 200, .4)" },
+      "cardStyleHover": { "background-color": "rgba(255, 170, 170, .7)" }
+    }
+  }
+]

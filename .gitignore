@@ -78,6 +78,7 @@ next-env.d.ts
 !.sources/gwhac-a-mole
 !.sources/UNLV-react-art-gallery
 !.sources/react-timer-stopwatch-v2
+!.sources/mp2-ecommerce
 
 dev.log
 .dev.log

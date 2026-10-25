@@ -304,5 +304,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-05-05"
+  },
+  "commerce-array": {
+    "repo": "moefingers/mp2-ecommerce",
+    "branch": "museum-ready/original",
+    "commit": "f36b04f12b63383d7705a67aae8f57394c8e5f2a",
+    "lockHash": "sha256:2e3646f4189aab454c9c239c8d9f9de6d6e08410e061a3bb3200400981fefbe7",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-04-09"
   }
 }

@@ -624,6 +624,28 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/timer-stopwatch",
   },
 
+  // Commerce Array: Vite 5 + React Router 6 storefront (the repo also holds
+  // its Express/Sequelize backend, which the museum doesn't run; the install
+  // pulls those deps too, harmlessly). museum-ready/original is the legacy
+  // `shepherd` tip plus pnpm normalize plus one source-level hosting fix: the
+  // HashRouter alias in src/main.jsx, since BrowserRouter matches no route at
+  // /originals/commerce-array/index.html. `--base ./` makes asset paths
+  // relative. The postPatch rewrites the five dead AWS API Gateway URLs in
+  // the built bundle, in place (index.html already names the hash Vite
+  // assigned), and copies in the museum-authored JSON stubs from
+  // scripts/data/commerce-array/, since the build copy empties the
+  // destination first.
+  "commerce-array": {
+    type: "vite-build",
+    cwd: ".sources/mp2-ecommerce",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build --base ./",
+    buildOutput: "dist",
+    to: "public/originals/commerce-array",
+    postPatch: ["scripts/patch-commerce-array.mjs"],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //
@@ -631,11 +653,5 @@ export const recipes: Record<string, Recipe> = {
   //   type: "static-copy",
   //   from: ".sources/foodTruckUNLV",
   //   to: "public/originals/food-truck",
-  // },
-  //
-  // "commerce-array": {
-  //   type: "patch-only",
-  //   to: "public/originals/commerce-array",
-  //   patchScript: "scripts/patch-commerce-array.mjs",
   // },
 };

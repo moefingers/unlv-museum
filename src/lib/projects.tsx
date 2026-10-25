@@ -711,6 +711,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "commerce-array",
+    repo: "moefingers/mp2-ecommerce",
     title: "Commerce Array",
     description: "Full-stack e-commerce platform.",
     year: "Apr 2024",
