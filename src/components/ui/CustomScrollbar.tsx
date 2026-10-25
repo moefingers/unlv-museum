@@ -90,7 +90,9 @@ export function CustomScrollbar({
     const update = () => {
       raf = 0;
       const rect = scroller.getBoundingClientRect();
-      const top = readVar(topOffsetVar) + (extraTopOffsetVar ? readVar(extraTopOffsetVar) : 0);
+      const top =
+        readVar(topOffsetVar) +
+        (extraTopOffsetVar ? readVar(extraTopOffsetVar) : 0);
       const visibleH = rect.height - top;
       const contentH = scroller.scrollHeight;
 
@@ -111,7 +113,8 @@ export function CustomScrollbar({
       const thumbH = Math.max(24, (visibleH / contentH) * visibleH);
       const scrollableRange = contentH - rect.height; // total scrollable distance
       const thumbRange = visibleH - thumbH;
-      const ratio = scrollableRange > 0 ? scroller.scrollTop / scrollableRange : 0;
+      const ratio =
+        scrollableRange > 0 ? scroller.scrollTop / scrollableRange : 0;
       const thumbTop = ratio * thumbRange;
       thumb.style.height = `${thumbH}px`;
       thumb.style.transform = `translateY(${thumbTop}px)`;
@@ -126,11 +129,25 @@ export function CustomScrollbar({
     scroller.addEventListener("scroll", schedule, { passive: true });
     const ro = new ResizeObserver(schedule);
     ro.observe(scroller);
+    // The content's height can change without the scroller's own box
+    // changing (an OriginalFrame sizing itself to its page, or shrinking
+    // to fit the window), so watch the children too, re-observing when
+    // they're swapped.
+    const observeChildren = () => {
+      for (const child of scroller.children) ro.observe(child);
+    };
+    observeChildren();
+    const mo = new MutationObserver(() => {
+      observeChildren();
+      schedule();
+    });
+    mo.observe(scroller, { childList: true });
     window.addEventListener("resize", schedule);
 
     return () => {
       scroller.removeEventListener("scroll", schedule);
       ro.disconnect();
+      mo.disconnect();
       window.removeEventListener("resize", schedule);
       if (raf) cancelAnimationFrame(raf);
     };
