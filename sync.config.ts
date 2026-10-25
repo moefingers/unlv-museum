@@ -605,6 +605,25 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/art-gallery",
   },
 
+  // Timer + Stopwatch v2: Vite 5 + @vitejs/plugin-react-swc + antd.
+  // museum-ready/original is the legacy `shepherd` tip plus pnpm normalize;
+  // no source-level hosting fixes. vite.config.js pins base
+  // '/react-timer-stopwatch-v2/' for its GitHub Pages deploy; `--base ./`
+  // (Vite's counterpart of CRA's PUBLIC_URL=.) makes asset paths relative
+  // for the iframe without touching the source config, and pnpm passes it
+  // through as `vite build --base ./`. Rollup's output doesn't depend on
+  // node_modules paths, so pnpm's default isolated layout already matches
+  // the hosted bundle.
+  "timer-stopwatch": {
+    type: "vite-build",
+    cwd: ".sources/react-timer-stopwatch-v2",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build --base ./",
+    buildOutput: "dist",
+    to: "public/originals/timer-stopwatch",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

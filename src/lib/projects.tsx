@@ -1093,6 +1093,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "timer-stopwatch",
+    repo: "moefingers/react-timer-stopwatch-v2",
     title: "Timer & Stopwatch",
     description: "Feature-packed timer/stopwatch combo.",
     year: "Apr – May 2024",

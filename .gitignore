@@ -77,6 +77,7 @@ next-env.d.ts
 !.sources/rr-react-rainbow
 !.sources/gwhac-a-mole
 !.sources/UNLV-react-art-gallery
+!.sources/react-timer-stopwatch-v2
 
 dev.log
 .dev.log
