@@ -110,7 +110,7 @@
   "restaurant-menu": {
     "repo": "moefingers/html-1-restaurant-menu-activity",
     "branch": "museum-ready/original",
-    "commit": "849f0b4c9916bddc90bf0c14b22cef27f25a15e0",
+    "commit": "3f93ae0263278649af56c3ffee98e148de7cdbcd",
     "lockHash": "sha256:e0562543ce0edd6c6e01c95564f601f6c7819834f909985ca6bdaed01f916368",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -119,7 +119,7 @@
   "bird-songs": {
     "repo": "moefingers/HTML-Bird-Songs",
     "branch": "museum-ready/original",
-    "commit": "4b5560caea008e11e4233692dbfaacbc45e4ae8b",
+    "commit": "75e21e9de579ec404bbbd4cc6a638e372d2cc094",
     "lockHash": "sha256:23cf3ad8d28c6989a8b2d61d2c0a0a81a60814c6854b380ffdfdf3e96b85a7a5",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -128,7 +128,7 @@
   "improved-form": {
     "repo": "moefingers/HTML-Improved-Form",
     "branch": "museum-ready/original",
-    "commit": "570c80b6f21a76eaeed25f5326c4f890b0adde1f",
+    "commit": "4f55736504f1760a1c41399990821e2ce5aebe46",
     "lockHash": "sha256:f3227d1cc80a154b4ba277065b08443c02ae7a64057c0935429ea8ef8bd8f95e",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -137,7 +137,7 @@
   "layouts": {
     "repo": "moefingers/UNLV-html-layouts-activity",
     "branch": "museum-ready/original",
-    "commit": "9ab861eca68833f1ebbf3e6274b4b7dc0707276c",
+    "commit": "7a6fd4f35b6bd021b614cd7464206537061e54d9",
     "lockHash": "sha256:371ce0bba765289a1693a12b7d6edd7579ba16cda4aa9217241a8fae10305691",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
