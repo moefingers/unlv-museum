@@ -633,6 +633,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/gwhac-a-mole",
     title: "Gwhac-A-Mole",
     description: "Guacamole-themed whack-a-mole React game.",
+    synopsis:
+      "Whack-a-mole in React with a guacamole twist — a countdown starts a ten-second round across nine hills, hits score and misses cost a point, and the running total carries across rounds.",
     year: "Mar 2024",
     category: "games",
     techOriginal: ["React", "Create React App", "CSS"],
@@ -714,6 +716,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/mp2-ecommerce",
     title: "Commerce Array",
     description: "Full-stack e-commerce platform.",
+    synopsis:
+      "Multi-store e-commerce front end in React — three storefronts with product filters, a shared cart with live stock counts, best sellers and an admin mode for editing products, originally backed by an Express + Sequelize API.",
     year: "Apr 2024",
     category: "full-stack",
     techOriginal: ["Express", "PostgreSQL", "Sequelize", "React"],
@@ -729,6 +733,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/html-1-restaurant-menu-activity",
     title: "Restaurant Menu",
     description: "Multi-page restaurant website (chapter 2.3.2).",
+    synopsis:
+      "Four-page restaurant site in plain HTML and CSS — home, menu, about and contact pages sharing one stylesheet and Font Awesome icons, from the chapter 2.3.2 lab.",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -744,6 +750,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/HTML-Bird-Songs",
     title: "Bird Songs",
     description: "Five-page bird gallery (chapter 2.4.1).",
+    synopsis:
+      "Five-page bird gallery in plain HTML — a home index linking four bird pages, each with photos and a recording of its song, plus embedded YouTube videos (chapter 2.4.1).",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML"],
@@ -759,6 +767,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/HTML-Improved-Form",
     title: "Improved Sign-up Form",
     description: "Form with validation + results page (chapter 2.5.2).",
+    synopsis:
+      "Vacation-contest sign-up form in HTML — required contact fields, radio and checkbox preferences, and a GET submit to a results page that reads the query string back and randomly announces a win or a loss (chapter 2.5.2).",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML"],
@@ -774,6 +784,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/UNLV-html-layouts-activity",
     title: "HTML Layouts",
     description: "Layouts activity (chapter 2.x).",
+    synopsis:
+      "Single-page layout exercise in HTML and CSS — a hero image, a row of Font Awesome icons and four image cards built from placebear.com photos.",
     year: "Oct 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -793,6 +805,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/css-demo",
     title: "CSS Demo",
     description: "Early CSS sketch (own, pre-chapter-3 labs).",
+    synopsis:
+      "An early CSS sketch, submitted blank — an empty page and a zero-byte stylesheet, kept exactly as turned in before the chapter 3 labs.",
     year: "Nov 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -812,6 +826,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/CSS-The-Hacker-Times-Part-1",
     title: "Hacker Times",
     description: "Newspaper-styled CSS practice (chapter 3.2.4).",
+    synopsis:
+      'Newspaper-style front page, "The Hacker Times", laid out in HTML and styled with CSS for the chapter 3.2.4 lab.',
     year: "Nov 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -827,6 +843,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/CSS-Transform-Transition-and-Animations-Oh-My",
     title: "CSS Transforms, Transitions & Animations",
     description: "Three-activity sampler (chapter 3.3.2).",
+    synopsis:
+      "Three CSS motion activities from chapter 3.3.2 — transforms, a hover transition that eases a button's colours, and keyframe animations that morph a hamburger icon into an X.",
     year: "Nov 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS"],
@@ -845,6 +863,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/CSS-Responsive-Boxes",
     title: "Responsive Boxes",
     description: "Media queries + flexbox (chapter 3.4.3).",
+    synopsis:
+      "Three media-query exercises from chapter 3.4.3 — flexbox boxes that rearrange at a 600px breakpoint as the viewport narrows.",
     year: "Nov 2023",
     category: "exercises",
     techOriginal: ["HTML", "CSS", "Media Queries"],
@@ -869,6 +889,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/JS-Web-Game-Part-7",
     title: "Web Game Series",
     description: "Progressive game built across multiple assignments.",
+    synopsis:
+      "Top-down browser game in vanilla JavaScript, built up across a multi-part assignment — arrow keys walk an animated character, an NPC patrols its route, and clicking items moves them into an inventory bar.",
     year: "Dec 2023 – Jan 2024",
     category: "games",
     techOriginal: ["JavaScript", "HTML", "live-server"],
@@ -888,6 +910,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/UNLV-JS-Jacks-Paint",
     title: "Jack's Paint",
     description: "Browser-based paint application.",
+    synopsis:
+      "Paint selection page for Jack's Hardware in JavaScript — hovering one of nine paint swatches shows its name and price and dims the others.",
     year: "Dec 2023",
     category: "frontend",
     techOriginal: ["JavaScript", "jQuery", "Canvas"],
@@ -1035,6 +1059,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/UNLV-react-art-gallery",
     title: "React Art Gallery",
     description: "React-based art gallery.",
+    synopsis:
+      "Art browser in React over the Metropolitan Museum's collection API — step through the collection one object id at a time (±1 or ±5) and see each work as it loads.",
     year: "Mar 2024",
     category: "frontend",
     techOriginal: ["React", "Babel", "CSS"],
@@ -1097,6 +1123,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/react-timer-stopwatch-v2",
     title: "Timer & Stopwatch",
     description: "Feature-packed timer/stopwatch combo.",
+    synopsis:
+      "Stopwatch app in React, Vite and Ant Design — multiple stopwatches with laps and average lap time, configurable display and colours, and a timer half left as a work in progress.",
     year: "Apr – May 2024",
     category: "frontend",
     techOriginal: ["React", "Vite", "Ant Design"],
@@ -1109,6 +1137,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/foodTruckUNLV",
     title: "Food Truck",
     description: "Food truck website with menu and jQuery animations.",
+    synopsis:
+      "Fibonacci's Food Truck — a restaurant site in HTML, CSS and jQuery with a fade-in on load, a quarterly menu with photos, an about section and social links.",
     year: "Oct 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS", "jQuery"],
@@ -1121,6 +1151,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/JS-Stock-Charts",
     title: "Stock Charts",
     description: "Financial data visualization.",
+    synopsis:
+      "Stock tracker in vanilla JavaScript and Chart.js — line, bar and pie charts of price over time, highest price and average price for four tickers (GME, MSFT, DIS, BNTX) from bundled mock data.",
     year: "Jan 2024",
     category: "frontend",
     techOriginal: ["JavaScript", "Chart.js", "Express"],
@@ -1133,6 +1165,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/copycatactivity",
     title: "Copycat Activity",
     description: "HTML/CSS recreation from a design mockup.",
+    synopsis:
+      "Copy of the getadblock.com landing page in HTML and CSS, rebuilt by eye from the live site within a one-hour timebox.",
     year: "Nov 2023",
     category: "frontend",
     techOriginal: ["HTML", "CSS"],
@@ -1344,6 +1378,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/RR-Music-Search",
     title: "Music Search",
     description: "iTunes search SPA — query, results grid, album detail.",
+    synopsis:
+      "iTunes search app in React and React Router — a search bar queries the iTunes API, results render as a grid, and clicking an item opens its detail view with artwork, genre and release date.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "React Router", "iTunes API", "CRA"],
@@ -1380,6 +1416,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/RR-Getting-Started-With-Bootstrap",
     title: "React + Bootstrap",
     description: "Bootstrap components composed into a React app.",
+    synopsis:
+      "React app composed from React-Bootstrap components — a navbar, buttons and a form with email, password, a checkbox and a dropdown, from the React Router series' Bootstrap chapter.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "Bootstrap", "CRA"],
@@ -1410,6 +1448,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/rr-react-rainbow",
     title: "React Rainbow",
     description: "Color components and prop-driven rendering.",
+    synopsis:
+      "React colour list — eight blocks from violet to red, plus a form that appends any valid CSS colour name as a new block and rejects the rest.",
     year: "Mar 2024",
     category: "exercises",
     techOriginal: ["React", "CRA"],
@@ -1424,6 +1464,8 @@ export const PROJECTS: Project[] = [
     repo: "moefingers/css-responsive-nav",
     title: "Responsive Navigation",
     description: "Pure CSS responsive navigation.",
+    synopsis:
+      "Responsive navigation bar in HTML, CSS and a little JavaScript — five section links that collapse into a hamburger on narrow screens and open into a side menu on hover.",
     year: "Jun 2024",
     category: "exercises",
     techOriginal: ["HTML", "CSS", "JavaScript"],
