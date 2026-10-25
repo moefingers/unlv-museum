@@ -549,6 +549,24 @@ export const recipes: Record<string, Recipe> = {
     ],
   },
 
+  // QuirkTruck: CRA 5 (react-scripts 5.0.1, React 18) truck catalog.
+  // museum-ready/original is the legacy `shepherd` tip plus pnpm normalize;
+  // no source-level hosting fixes were needed. PUBLIC_URL=. makes asset paths
+  // relative for the iframe. The branch's pnpm-workspace.yaml sets
+  // nodeLinker: hoisted. webpack names modules and chunks from their
+  // node_modules paths, so the flat npm-era layout reproduces the hosted build
+  // byte for byte (pnpm's isolated layout renames every JS file).
+  "quirk-truck": {
+    type: "cra-build",
+    cwd: ".sources/quirkTruck",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/quirk-truck",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

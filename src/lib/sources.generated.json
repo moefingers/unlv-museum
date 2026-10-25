@@ -233,6 +233,15 @@
     "ownerLastCommit": null,
     "forkedAt": "2023-12-29"
   },
+  "quirk-truck": {
+    "repo": "moefingers/quirkTruck",
+    "branch": "museum-ready/original",
+    "commit": "0ac183fcf84543408d7adefa62b7f80fed3555c0",
+    "lockHash": "sha256:8985dfe683a1113da0913f18243295279116c65f2940780a18aeb3a52540aa34",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-02-28"
+  },
   "music-search": {
     "repo": "moefingers/RR-Music-Search",
     "branch": "museum-ready/original",

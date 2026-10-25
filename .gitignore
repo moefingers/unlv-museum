@@ -70,6 +70,7 @@ next-env.d.ts
 !.sources/copycatactivity
 !.sources/UNLV-JS-Jacks-Paint
 !.sources/JS-Web-Game-Part-7
+!.sources/quirkTruck
 !.sources/RR-Music-Search
 !.sources/RR-Getting-Started-With-Bootstrap
 !.sources/RR-Stylesheets-React
