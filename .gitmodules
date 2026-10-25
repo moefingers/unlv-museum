@@ -117,3 +117,7 @@
 	path = .sources/RR-Stylesheets-React
 	url = https://github.com/moefingers/RR-Stylesheets-React.git
 	branch = museum-ready/original
+[submodule ".sources/rr-react-rainbow"]
+	path = .sources/rr-react-rainbow
+	url = https://github.com/moefingers/rr-react-rainbow.git
+	branch = museum-ready/original

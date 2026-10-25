@@ -302,6 +302,25 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/react-exercises/stylesheets",
   },
 
+  // React Rainbow: React Router series, the student's own repo (create-
+  // react-app plus ColorBlock/ColorForm with a CSS color validator).
+  // Legacy branch is `shepherd`. react-scripts 5.0.1 + React 18, so no
+  // `--openssl-legacy-provider`. museum-ready/original normalizes npm to
+  // pnpm. pnpm-workspace.yaml declines core-js banner scripts and sets
+  // nodeLinker: hoisted, so the rebuild matches the served bundle byte for
+  // byte. Verified on Node 24.14.1 / pnpm 12.10.1. PUBLIC_URL=. makes asset
+  // paths relative under /originals/react-exercises/rainbow/.
+  rainbow: {
+    type: "cra-build",
+    cwd: ".sources/rr-react-rainbow",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/react-exercises/rainbow",
+  },
+
   // My Values — static HTML/CSS artifact (no build step). Source-level
   // hosting fix on museum-ready/original: two responsive breakpoints
   // (900px wrap, 600px stack) so the four-column desktop layout doesn't
