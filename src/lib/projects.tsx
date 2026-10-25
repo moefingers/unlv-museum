@@ -1106,6 +1106,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "food-truck",
+    repo: "moefingers/foodTruckUNLV",
     title: "Food Truck",
     description: "Food truck website with menu and jQuery animations.",
     year: "Oct 2023",

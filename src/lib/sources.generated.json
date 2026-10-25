@@ -313,5 +313,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-04-09"
+  },
+  "food-truck": {
+    "repo": "moefingers/foodTruckUNLV",
+    "branch": "museum-ready/original",
+    "commit": "47bc30260ab9ce11989969b0d756d894de9823ce",
+    "lockHash": "sha256:08364d71b0bb0ac124e0580a6ac6725e16fee93b50d9e82bbd8c6f45cc01b6dc",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-10-11"
   }
 }

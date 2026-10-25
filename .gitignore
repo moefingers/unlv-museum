@@ -79,6 +79,7 @@ next-env.d.ts
 !.sources/UNLV-react-art-gallery
 !.sources/react-timer-stopwatch-v2
 !.sources/mp2-ecommerce
+!.sources/foodTruckUNLV
 
 dev.log
 .dev.log

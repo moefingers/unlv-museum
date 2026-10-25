@@ -141,3 +141,7 @@
 	path = .sources/mp2-ecommerce
 	url = https://github.com/moefingers/mp2-ecommerce.git
 	branch = museum-ready/original
+[submodule ".sources/foodTruckUNLV"]
+	path = .sources/foodTruckUNLV
+	url = https://github.com/moefingers/foodTruckUNLV.git
+	branch = museum-ready/original

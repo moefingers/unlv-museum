@@ -646,12 +646,18 @@ export const recipes: Record<string, Recipe> = {
     postPatch: ["scripts/patch-commerce-array.mjs"],
   },
 
-  // Conversions land here. See sources-conversions.md for the per-project
-  // specifications. Example shape (commented out until conversion runs):
-  //
-  // "food-truck": {
-  //   type: "static-copy",
-  //   from: ".sources/foodTruckUNLV",
-  //   to: "public/originals/food-truck",
-  // },
+  // Food Truck: HTML/CSS + jQuery 3.7.1 (vendored) food-truck site, no
+  // build. Hosting fix on museum-ready/original: the three menu photos and
+  // the Facebook / Instagram icons were embedded from Google Drive, which now
+  // answers browser image requests with 403 text/html that ORB blocks; the
+  // branch commits the five files, downloaded from the same Drive ids, under
+  // images/ and points the five src attributes at them. These replace the
+  // museum's earlier placeholder SVGs. The allowlist leaves LICENSE and the
+  // README out of the iframe copy.
+  "food-truck": {
+    type: "static-copy",
+    from: ".sources/foodTruckUNLV",
+    to: "public/originals/food-truck",
+    include: ["index.html", "assets", "images"],
+  },
 };
