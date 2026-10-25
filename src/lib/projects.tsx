@@ -1031,6 +1031,7 @@ export const PROJECTS: Project[] = [
   // FRONTEND & UI
   {
     slug: "art-gallery",
+    repo: "moefingers/UNLV-react-art-gallery",
     title: "React Art Gallery",
     description: "React-based art gallery.",
     year: "Mar 2024",

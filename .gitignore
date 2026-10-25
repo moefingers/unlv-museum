@@ -76,6 +76,7 @@ next-env.d.ts
 !.sources/RR-Stylesheets-React
 !.sources/rr-react-rainbow
 !.sources/gwhac-a-mole
+!.sources/UNLV-react-art-gallery
 
 dev.log
 .dev.log

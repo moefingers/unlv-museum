@@ -587,6 +587,24 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/gwhac-a-mole",
   },
 
+  // React Art Gallery: CRA 5 (react-scripts 5.0.1, React 18), browses the
+  // Met Museum collection API (collectionapi.metmuseum.org still answers).
+  // museum-ready/original is the legacy `shepherd` tip plus pnpm normalize;
+  // no source-level hosting fixes. PUBLIC_URL=. makes asset paths relative
+  // for the iframe; nodeLinker: hoisted (the branch's pnpm-workspace.yaml)
+  // keeps webpack's path-derived module and chunk ids equal to the npm-era
+  // build, so the output matches the hosted copy.
+  "art-gallery": {
+    type: "cra-build",
+    cwd: ".sources/UNLV-react-art-gallery",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/art-gallery",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

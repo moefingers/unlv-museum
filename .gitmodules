@@ -129,3 +129,7 @@
 	path = .sources/gwhac-a-mole
 	url = https://github.com/moefingers/gwhac-a-mole.git
 	branch = museum-ready/original
+[submodule ".sources/UNLV-react-art-gallery"]
+	path = .sources/UNLV-react-art-gallery
+	url = https://github.com/moefingers/UNLV-react-art-gallery.git
+	branch = museum-ready/original

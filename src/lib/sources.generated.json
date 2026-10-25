@@ -286,5 +286,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-03-05"
+  },
+  "art-gallery": {
+    "repo": "moefingers/UNLV-react-art-gallery",
+    "branch": "museum-ready/original",
+    "commit": "f0ca84bf65701eea907230f16e17add916d7f79d",
+    "lockHash": "sha256:c960cacdb113da330afa490dfbceeee736e25ca25abab858d26c2cac9c849a5c",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-03-05"
   }
 }
