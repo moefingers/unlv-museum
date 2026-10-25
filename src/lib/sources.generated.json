@@ -241,5 +241,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-03-09"
+  },
+  "bootstrap": {
+    "repo": "moefingers/RR-Getting-Started-With-Bootstrap",
+    "branch": "museum-ready/original",
+    "commit": "887640e1c97145e5644884a831d1afacbfcf9d35",
+    "lockHash": "sha256:70cde46c494d4531cd23325824018c0799e5331a035eb1da3aa6609bf007ef3a",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-03-12"
   }
 }

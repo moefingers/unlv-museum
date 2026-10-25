@@ -109,3 +109,7 @@
 	path = .sources/RR-Music-Search
 	url = https://github.com/moefingers/RR-Music-Search.git
 	branch = museum-ready/original
+[submodule ".sources/RR-Getting-Started-With-Bootstrap"]
+	path = .sources/RR-Getting-Started-With-Bootstrap
+	url = https://github.com/moefingers/RR-Getting-Started-With-Bootstrap.git
+	branch = museum-ready/original

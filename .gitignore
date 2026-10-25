@@ -71,6 +71,7 @@ next-env.d.ts
 !.sources/UNLV-JS-Jacks-Paint
 !.sources/JS-Web-Game-Part-7
 !.sources/RR-Music-Search
+!.sources/RR-Getting-Started-With-Bootstrap
 
 dev.log
 .dev.log
