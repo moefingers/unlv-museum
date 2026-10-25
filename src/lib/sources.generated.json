@@ -11,7 +11,7 @@
   "admin-portal": {
     "repo": "moefingers/JS-Building-an-Admin-Portal",
     "branch": "museum-ready/original",
-    "commit": "3c99e9e10c84a5dcf5b709277e0b6868bcbe9446",
+    "commit": "11cc687cdcb9b5eabbd361a4e8ab56fd95d26527",
     "lockHash": "sha256:662f6047643af67003d5108d1a5dffa28138b6737a39d2398f084465f261dd95",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -20,7 +20,7 @@
   "shared-counter": {
     "repo": "moefingers/JS-Building-a-Shared-Counter-Part-1",
     "branch": "museum-ready/original",
-    "commit": "1fa312ac978a65c7087bf398ae3dafe9cc0c4d73",
+    "commit": "dee7745c6ac0a00ca71729d68e08f1e975fb320e",
     "lockHash": "sha256:4e34cc43160b2a95e452f403b38ae8b9658f1f22b6f8d46560832d3e126ae5c4",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -38,8 +38,8 @@
   "music-tour-api": {
     "repo": "moefingers/SQL-Music-Tour-API",
     "branch": "museum-ready/original",
-    "commit": "ac11f0377e0a0e09331bdc1ea07a98acf623112d",
-    "lockHash": "sha256:37fccd6ffa928037bcdea111c83ae8bd84b350087a3a0fafcebba4f3431067b5",
+    "commit": "a716ba3ffa22360558849e658b815db8161080b2",
+    "lockHash": "sha256:b567eefd28cbb9285c0984696aa9c1bfa687a8810aa8c6bf0a69d92021cbdc75",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-04-02"
@@ -65,7 +65,7 @@
   "sql-injection-demo": {
     "repo": "moefingers/iam-2-sql-injection-demo",
     "branch": "museum-ready/original",
-    "commit": "35411de5eccf04aade68c400bb7b5c81c15a379e",
+    "commit": "9cd97754756f1bf8306c274448674a4fedcb369f",
     "lockHash": "sha256:4567d521d2f4640da4303a45f1c470b14c85d8ae834e0eff7660746fa086bc45",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
