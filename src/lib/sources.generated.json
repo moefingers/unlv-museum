@@ -236,16 +236,16 @@
   "quirk-truck": {
     "repo": "moefingers/quirkTruck",
     "branch": "museum-ready/original",
-    "commit": "0ac183fcf84543408d7adefa62b7f80fed3555c0",
+    "commit": "4dd4b2295ac2972cccb6ef44291cd089a3b2041e",
     "lockHash": "sha256:b9f2c6feeab62c5f75d89596fe803ec8eb051c63d6b058b5fa2cc5873803e2eb",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-02-27",
+    "ownerLastCommit": "2024-05-24",
     "forkedAt": "2024-02-28"
   },
   "music-search": {
     "repo": "moefingers/RR-Music-Search",
     "branch": "museum-ready/original",
-    "commit": "511219cf8f2799ad97350db340f0a494d86f8b35",
+    "commit": "f0d77455bd9f9818f946fa9a6faa76e6ada2d8a3",
     "lockHash": "sha256:ce7c6c6f3bc3b714c1f940a01833888b4c805bba5c76ee649a3dd43ef895f5b8",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -254,10 +254,10 @@
   "bootstrap": {
     "repo": "moefingers/RR-Getting-Started-With-Bootstrap",
     "branch": "museum-ready/original",
-    "commit": "887640e1c97145e5644884a831d1afacbfcf9d35",
+    "commit": "15bfbc53b2c69689ee1fbcb3e98047907652cf22",
     "lockHash": "sha256:213e38b994e8b7167015f12f1150dbfa480ad88aaee573c8073a901768444b99",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-03-11",
+    "ownerLastCommit": "2024-03-11",
     "forkedAt": "2024-03-12"
   },
   "stylesheets": {
@@ -272,55 +272,55 @@
   "rainbow": {
     "repo": "moefingers/rr-react-rainbow",
     "branch": "museum-ready/original",
-    "commit": "bcaf7791997e2cbc8399476836169f7e947ecedd",
+    "commit": "48dd262da261e15e738dc23746c44398f8e892ae",
     "lockHash": "sha256:d2c4569c36478d31078a3cec6cf7b00bf17effd920db8c8e5796c427ad31d1d0",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-03-02",
+    "ownerLastCommit": "2024-03-02",
     "forkedAt": "2024-03-03"
   },
   "gwhac-a-mole": {
     "repo": "moefingers/gwhac-a-mole",
     "branch": "museum-ready/original",
-    "commit": "cef1d4ef13937cc87d53519d2a9d183873e70090",
+    "commit": "468596da00276a84695e976f143915f942d78861",
     "lockHash": "sha256:7b9fc59299c21f1751f8055ae5866ea4b877467fcc4e0d9539788951ceb19c6d",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-03-04",
+    "ownerLastCommit": "2024-05-24",
     "forkedAt": "2024-03-05"
   },
   "art-gallery": {
     "repo": "moefingers/UNLV-react-art-gallery",
     "branch": "museum-ready/original",
-    "commit": "f0ca84bf65701eea907230f16e17add916d7f79d",
+    "commit": "d0b7ec1160e6059863ff8c9045174e3c5e2b64e8",
     "lockHash": "sha256:cdee277fb17ed831d7c098c334f893806b3e213e8742affd634d5d53cf1b2d87",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-03-04",
+    "ownerLastCommit": "2024-03-04",
     "forkedAt": "2024-03-05"
   },
   "timer-stopwatch": {
     "repo": "moefingers/react-timer-stopwatch-v2",
     "branch": "museum-ready/original",
-    "commit": "c0fc690b7ac74ecf05c81d298110e05a5b65f0fa",
+    "commit": "de0d2021f7e5c07a501bfd2c5b94e4c8f0023b04",
     "lockHash": "sha256:3d1773b4db275ead75b151420b63a949935fc7dd99608011c6b8eb5a9f2fa877",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-05-05",
+    "ownerLastCommit": "2024-05-24",
     "forkedAt": "2024-05-05"
   },
   "commerce-array": {
     "repo": "moefingers/mp2-ecommerce",
     "branch": "museum-ready/original",
-    "commit": "f36b04f12b63383d7705a67aae8f57394c8e5f2a",
+    "commit": "0aa351acfce15919d01891655ea20742d41ec57d",
     "lockHash": "sha256:55f0f6297fc2d318230dcc069af9b5e6071a85248b6f0666c63711b47f814240",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2024-04-08",
+    "ownerLastCommit": "2024-05-24",
     "forkedAt": "2024-04-09"
   },
   "food-truck": {
     "repo": "moefingers/foodTruckUNLV",
     "branch": "museum-ready/original",
-    "commit": "47bc30260ab9ce11989969b0d756d894de9823ce",
+    "commit": "907eb753055eced71ccc9da974fdf622878abe77",
     "lockHash": "sha256:3cf784c153d9391c49d959795342f1c3ff805b8a28abb82fe624bf1b2d6a37ac",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
+    "ownerFirstCommit": "2023-10-10",
+    "ownerLastCommit": "2023-10-10",
     "forkedAt": "2023-10-11"
   }
 }
