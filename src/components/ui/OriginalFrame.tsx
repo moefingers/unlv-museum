@@ -23,8 +23,24 @@ import styles from "./OriginalFrame.module.css";
  *
  * Cross-origin iframes throw on contentDocument access — guard with
  * a try/catch and fall back to the CSS `height: 100dvh`.
+ *
+ * Pages built for the browser window rather than for a page of content
+ * get the window instead: a frame that fills the leafBody's visible
+ * area under the chrome and notes overlays (`data-fit="viewport"` in
+ * OriginalFrame.module.css), scrolling inside if the page itself does.
+ * Two kinds:
+ *   - pages that hide overflow at the root (hidesOverflow). They never
+ *     scroll in a browser; they lay themselves out to fit whatever
+ *     window they get. Sized to their hidden overflow, they'd lay out
+ *     for a window far taller than the screen (timer-stopwatch picks
+ *     its portrait layout).
+ *   - pages whose height follows the frame's own height, content sized
+ *     in `vh` (followsFrameHeight). Sized to content they never settle:
+ *     a taller frame is a taller viewport, so the content grows again.
  */
-function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>) {
+function useAutoSizeIframe(
+  iframeRef: React.RefObject<HTMLIFrameElement | null>,
+) {
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -32,8 +48,18 @@ function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>)
     let ro: ResizeObserver | null = null;
     let mo: MutationObserver | null = null;
     let detachResize: (() => void) | null = null;
+    // Set once the current document turns out to be built for the
+    // window; cleared when the iframe loads a new document.
+    let fitsViewport = false;
+
+    const fitViewport = () => {
+      fitsViewport = true;
+      iframe.style.height = "";
+      iframe.dataset.fit = "viewport";
+    };
 
     const measure = () => {
+      if (fitsViewport) return;
       try {
         const doc = iframe.contentDocument;
         if (!doc) return;
@@ -42,7 +68,12 @@ function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>)
         // positioned content. body.scrollHeight sometimes misses
         // tall absolutely-positioned children.
         const h = doc.documentElement.scrollHeight;
-        if (h > 0) iframe.style.height = `${h}px`;
+        if (h <= 0) return;
+        if (h > iframe.clientHeight && followsFrameHeight(iframe, doc)) {
+          fitViewport();
+          return;
+        }
+        iframe.style.height = `${h}px`;
       } catch {
         // Cross-origin or detached document — leave CSS height alone.
       }
@@ -53,6 +84,9 @@ function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>)
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
         if (!doc || !win) return;
+        // Read once per document, at load: a modal that hides body
+        // overflow while it's open mustn't refit a content-sized page.
+        if (hidesOverflow(doc)) fitViewport();
         measure();
         // Same-origin: addEventListener / observers all work directly.
         const onResize = () => measure();
@@ -85,6 +119,12 @@ function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>)
       detachResize = null;
       mo = null;
       ro = null;
+      // Measure the new document from the CSS height, not the last
+      // one's: scrollHeight never reads below the frame's height, so a
+      // shorter page would otherwise inherit a taller page's frame.
+      fitsViewport = false;
+      iframe.style.height = "";
+      delete iframe.dataset.fit;
       wire();
     };
     iframe.addEventListener("load", onLoad);
@@ -96,6 +136,56 @@ function useAutoSizeIframe(iframeRef: React.RefObject<HTMLIFrameElement | null>)
       ro?.disconnect();
     };
   }, [iframeRef]);
+}
+
+/**
+ * Whether the page hides overflow at the root, so it never scrolls in a
+ * browser window. The window scrolls by the html element's overflow, or
+ * by the body's when the html element's is `visible` (CSS overflow
+ * propagation).
+ */
+function hidesOverflow(doc: Document): boolean {
+  const view = doc.defaultView;
+  if (!view) return false;
+  const root = view.getComputedStyle(doc.documentElement).overflowY;
+  const viewport =
+    root === "visible" && doc.body
+      ? view.getComputedStyle(doc.body).overflowY
+      : root;
+  return viewport === "hidden" || viewport === "clip";
+}
+
+/** How far followsFrameHeight stretches the frame to test a page. */
+const PROBE_STEP_PX = 200;
+
+/**
+ * Whether the page's height follows the frame's own height, as it does
+ * for content sized in `vh`: 100vh sections, `min-height: 100vh` plus a
+ * body margin, 20vh grid items. Called when the content overflows the
+ * frame; sets the frame to its current height and one step shorter and
+ * reads the content height at each. Same-origin layout runs
+ * synchronously on the read, so the page never paints at either height.
+ *
+ * The step goes down, not up: content that fits the frame reads as the
+ * frame's own height, so only growth while the content overflows at
+ * both heights counts, and a page that would settle just above the
+ * current height fits one step up (responsive-boxes' 100vh container
+ * grows 0.9 px per px of frame, creeping toward ~1,100 px). Growth of
+ * at least half the step means
+ * sizing to content never settles, or settles only once the frame is
+ * twice the page's fixed-size content.
+ */
+function followsFrameHeight(iframe: HTMLIFrameElement, doc: Document): boolean {
+  const high = iframe.clientHeight;
+  const low = high - PROBE_STEP_PX;
+  if (low <= 0) return false;
+  const restore = iframe.style.height;
+  iframe.style.height = `${low}px`;
+  const atLow = doc.documentElement.scrollHeight;
+  iframe.style.height = `${high}px`;
+  const atHigh = doc.documentElement.scrollHeight;
+  iframe.style.height = restore;
+  return atLow > low && atHigh > high && atHigh - atLow >= PROBE_STEP_PX / 2;
 }
 
 /**

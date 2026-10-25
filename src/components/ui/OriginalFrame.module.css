@@ -19,6 +19,14 @@
   border: 0;
 }
 
+/* Pages built for the browser window (useAutoSizeIframe sets
+   data-fit="viewport") get one: the leafBody's height less the
+   chromeSpacer above the frame, so the frame fills exactly the area left
+   visible under the chrome and notes overlays. */
+.frame[data-fit="viewport"] {
+  height: calc(100dvh - var(--chrome-h, 0px) - var(--notes-h, 0px));
+}
+
 /* Sandbox iframe for "Original" tier projects gets a white surface so the
    embedded site sees the same background it was designed against, even when
    the museum chrome is in dark mode. ExternalFrame omits this — external
