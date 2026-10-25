@@ -75,6 +75,7 @@ next-env.d.ts
 !.sources/RR-Getting-Started-With-Bootstrap
 !.sources/RR-Stylesheets-React
 !.sources/rr-react-rainbow
+!.sources/gwhac-a-mole
 
 dev.log
 .dev.log

@@ -630,6 +630,7 @@ export const PROJECTS: Project[] = [
   },
   {
     slug: "gwhac-a-mole",
+    repo: "moefingers/gwhac-a-mole",
     title: "Gwhac-A-Mole",
     description: "Guacamole-themed whack-a-mole React game.",
     year: "Mar 2024",

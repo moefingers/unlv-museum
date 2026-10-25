@@ -277,5 +277,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2024-03-03"
+  },
+  "gwhac-a-mole": {
+    "repo": "moefingers/gwhac-a-mole",
+    "branch": "museum-ready/original",
+    "commit": "cef1d4ef13937cc87d53519d2a9d183873e70090",
+    "lockHash": "sha256:a25ce44e7fdce54c9a7590c2138649fad422ed94642a4dca90ffe427fa539527",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2024-03-05"
   }
 }

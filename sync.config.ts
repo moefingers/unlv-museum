@@ -567,6 +567,26 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/quirk-truck",
   },
 
+  // Gwhac-A-Mole: CRA 5 (react-scripts 5.0.1, React 18) whack-a-mole game.
+  // museum-ready/original is the legacy `shepherd` tip plus pnpm normalize,
+  // plus one labeled non-hosting exception: the museum's 2026-05-13 title
+  // edit ("Gwhac-A-Mole" with a green "(Guacamole)" subtitle), carried so
+  // the rebuild reproduces what the museum serves. Revert that one commit to
+  // serve the title as submitted. PUBLIC_URL=. makes asset paths relative
+  // for the iframe; nodeLinker: hoisted (the branch's pnpm-workspace.yaml)
+  // keeps webpack's path-derived module and chunk ids equal to the npm-era
+  // build.
+  "gwhac-a-mole": {
+    type: "cra-build",
+    cwd: ".sources/gwhac-a-mole",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/gwhac-a-mole",
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //
