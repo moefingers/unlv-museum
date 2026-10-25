@@ -20,7 +20,7 @@
   "shared-counter": {
     "repo": "moefingers/JS-Building-a-Shared-Counter-Part-1",
     "branch": "museum-ready/original",
-    "commit": "dee7745c6ac0a00ca71729d68e08f1e975fb320e",
+    "commit": "5566dc804961c1c0c0d959c19fa93cd55ba23232",
     "lockHash": "sha256:4e34cc43160b2a95e452f403b38ae8b9658f1f22b6f8d46560832d3e126ae5c4",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -200,7 +200,7 @@
   "stock-charts": {
     "repo": "moefingers/JS-Stock-Charts",
     "branch": "museum-ready/original",
-    "commit": "0e34a8f11e538ed42f894502eae10f635e0f80c6",
+    "commit": "c8c41d78b878d0442913daba2d172a591eaf47cf",
     "lockHash": "sha256:5adb650d58080f837c7d3644e35c6067818c330f9ff3ec2e8b35d6f9476599b9",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
@@ -227,7 +227,7 @@
   "web-game": {
     "repo": "moefingers/JS-Web-Game-Part-7",
     "branch": "museum-ready/original",
-    "commit": "0ff4f27b780f6b0e93f08cc19999218661962c9b",
+    "commit": "cc4487d9f8bcb0962ac2f1cf4e26354a4cf08bad",
     "lockHash": "sha256:8f5ca9a8f369426c148104ae966ff515db74f9b43191170f0c9b6640149e7295",
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
