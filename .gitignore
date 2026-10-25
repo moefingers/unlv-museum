@@ -69,6 +69,7 @@ next-env.d.ts
 !.sources/JS-Stock-Charts
 !.sources/copycatactivity
 !.sources/UNLV-JS-Jacks-Paint
+!.sources/JS-Web-Game-Part-7
 
 dev.log
 .dev.log

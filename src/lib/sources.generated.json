@@ -223,5 +223,14 @@
     "ownerFirstCommit": null,
     "ownerLastCommit": null,
     "forkedAt": "2023-12-19"
+  },
+  "web-game": {
+    "repo": "moefingers/JS-Web-Game-Part-7",
+    "branch": "museum-ready/original",
+    "commit": "0ff4f27b780f6b0e93f08cc19999218661962c9b",
+    "lockHash": "sha256:8f5ca9a8f369426c148104ae966ff515db74f9b43191170f0c9b6640149e7295",
+    "ownerFirstCommit": null,
+    "ownerLastCommit": null,
+    "forkedAt": "2023-12-29"
   }
 }

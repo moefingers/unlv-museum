@@ -434,6 +434,43 @@ export const recipes: Record<string, Recipe> = {
     include: ["index.html", "assets"],
   },
 
+  // Web Game Series: the museum frames part 7, the latest of the three repos
+  // for this exercise (5.4.2), no build, no hosting fixes. The recipe owns
+  // only web-game/part-7/; the parts-1-3/ and part-4/ siblings stay
+  // unmanaged for now. The assets are listed one by one so the macOS
+  // assets/.DS_Store the repo commits stays out (gitignored museum-side,
+  // but hashDir would still count it in lockHash).
+  "web-game": {
+    type: "static-copy",
+    from: ".sources/JS-Web-Game-Part-7",
+    to: "public/originals/js-exercises/web-game/part-7",
+    include: [
+      "index.html",
+      "index.js",
+      "move.js",
+      "newImage.js",
+      "newInventory.js",
+      "newItem.js",
+      "newNonPlayableCharacter.js",
+      "newPlayableCharacter.js",
+      "assets/boulder.png",
+      "assets/crate.png",
+      "assets/grass.png",
+      "assets/green-character",
+      "assets/log.png",
+      "assets/pillar.png",
+      "assets/pine-tree.png",
+      "assets/red-character",
+      "assets/rock.png",
+      "assets/shield.png",
+      "assets/sky.png",
+      "assets/staff.png",
+      "assets/sword.png",
+      "assets/tree.png",
+      "assets/well.png",
+    ],
+  },
+
   // Conversions land here. See sources-conversions.md for the per-project
   // specifications. Example shape (commented out until conversion runs):
   //

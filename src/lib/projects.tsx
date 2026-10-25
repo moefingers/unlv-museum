@@ -864,6 +864,7 @@ export const PROJECTS: Project[] = [
   {
     slug: "web-game",
     container: "js-exercises",
+    repo: "moefingers/JS-Web-Game-Part-7",
     title: "Web Game Series",
     description: "Progressive game built across multiple assignments.",
     year: "Dec 2023 – Jan 2024",
