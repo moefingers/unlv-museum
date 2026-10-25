@@ -243,6 +243,26 @@ export const recipes: Record<string, Recipe> = {
     to: "public/originals/react-exercises/montys-mineral-spa",
   },
 
+  // Music Search: React Router series, an iTunes search SPA (the iframe
+  // already allows allow-forms). The source repo is a fork of the HackerUSA-CE
+  // lesson repo, and main carries the app as forked. react-scripts 5.0.1 +
+  // React 18, so no `--openssl-legacy-provider`. museum-ready/original
+  // normalizes npm to pnpm. pnpm-workspace.yaml keeps the npm lock's package
+  // set (autoInstallPeers: false), declines core-js banner scripts and sets
+  // nodeLinker: hoisted, so the rebuild matches the served bundle byte for
+  // byte. Verified on Node 24.14.1 / pnpm 12.10.1. PUBLIC_URL=. makes asset
+  // paths relative under /originals/react-exercises/music-search/.
+  "music-search": {
+    type: "cra-build",
+    cwd: ".sources/RR-Music-Search",
+    node: "24",
+    install: "pnpm install --frozen-lockfile",
+    build: "pnpm run build",
+    buildEnv: { PUBLIC_URL: "." },
+    buildOutput: "build",
+    to: "public/originals/react-exercises/music-search",
+  },
+
   // My Values — static HTML/CSS artifact (no build step). Source-level
   // hosting fix on museum-ready/original: two responsive breakpoints
   // (900px wrap, 600px stack) so the four-column desktop layout doesn't

@@ -8,5 +8,8 @@
     "main.13ba06e0.js.map": "./static/js/main.13ba06e0.js.map",
     "787.a00c0779.chunk.js.map": "./static/js/787.a00c0779.chunk.js.map"
   },
-  "entrypoints": ["static/css/main.e6c13ad2.css", "static/js/main.13ba06e0.js"]
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.13ba06e0.js"
+  ]
 }
