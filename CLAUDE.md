@@ -30,7 +30,7 @@ Read the CONTEXT docs for decisions already made:
 
 - **Package manager:** pnpm (never npm, yarn, or bun)
 - **Commands:** `pnpm dev`, `pnpm build`, `pnpm lint`
-- **Hooks:** Pre-commit runs lint-staged + verify-locks. Pre-push (a) runs `sync:source-meta` when `projects.tsx` is in the push (so source-repo banners auto-update when tier presence changes), (b) verifies every submodule's HEAD is pushed upstream, (c) runs `pnpm build`. If sync produces submodule pointer bumps, the hook blocks; commit the staged bumps and re-push.
+- **Hooks:** Pre-commit runs lint-staged + verify-locks. Pre-commit skips both when only docs/images are staged. Pre-push (a) verifies every submodule's HEAD is pushed upstream, (b) runs `sync:source-meta` when the push changes tier presence in `projects.tsx` (`enhanced` / `reimagined` / their `*External` fields / `COMING_SOON`), so source-repo banners update. It does not run `pnpm build` (Vercel builds every push; a build in the hook leaked node workers on Windows). If sync produces submodule pointer bumps, the hook blocks; commit the staged bumps and re-push.
 - **Domain:** `unlv-museum.recanon.com`
 - **DNS:** Explicit CNAME overrides recanon's wildcard. Comment in recanon's `src/proxy.ts` documents the carve-out.
 - **Database:** Neon project `quiet-cell-88302228`, connection via `DATABASE_URL`
