@@ -71,8 +71,8 @@ Mental model:
 
 ### What `museum-ready/original` is allowed to do
 
-- **Required floor**: build cleanly on a currently-supported Node LTS. The branch must build on the version pinned in its `.nvmrc`.
-- **Allowed**: bump Node, switch npm → pnpm, modernize build tooling (CRA 4 → 5 if needed, webpack 4 → 5 if needed), bump dev dependencies, add `.npmrc` for hoisted node-linker.
+- **Required floor**: build cleanly on a currently-supported Node LTS (Node 24 / pnpm 12 as of 2026-10). Add an `.nvmrc` only when the build genuinely needs a specific Node. None of the converted branches has one, and sync-source.ts runs every build on the machine's Node.
+- **Allowed**: bump Node, switch npm → pnpm, modernize build tooling (CRA 4 → 5 if needed, webpack 4 → 5 if needed), bump dev dependencies, set `nodeLinker: hoisted` in the branch's `pnpm-workspace.yaml` (pnpm ≥ 10 reads its settings there).
 - **Required, not just allowed**: pnpm. Every museum-ready/original branch normalizes to pnpm regardless of the source's original package manager. The reason is concrete: an `npm ci` against a CRA materializes a 200–500 MB `node_modules` per submodule, and the museum has many submodules and growing. pnpm's content-addressed global store + symlinked workspaces keeps each submodule's `node_modules` to kilobytes of symlinks instead of hundreds of megabytes. `pnpm import` reads any existing `package-lock.json` / `yarn.lock` and generates a faithful `pnpm-lock.yaml`; commit the lockfile, delete the npm/yarn lockfile, point the recipe's `install` at `pnpm install --frozen-lockfile`.
 - **Allowed** (hosting-compat): rewrite dead asset URLs, fix sandboxed iframe constraints (preventDefault, asset paths), add `PUBLIC_URL=.`, `HashRouter` if needed.
 - **Forbidden**: changing the user-facing application's structure, components, runtime behavior, or visible UI. Source code edits are scoped to hosting compatibility. If you find yourself rewriting the actual app, you're past museum-ready and into enhanced.
@@ -127,7 +127,7 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
    1.4  git checkout -b museum-ready/original
 
 2. Apply the floor
-   2.1  Decide Node version (current LTS, e.g. 20). Write to .nvmrc.
+   2.1  Build on the current Node LTS. Add .nvmrc only if the build needs a specific Node.
    2.2  Floor test: pnpm install && pnpm run build on that Node.
         Walk the escalation ladder. Apply the smallest change that works.
    2.3  Verify build produces correct visible output.
@@ -135,7 +135,8 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 3. Migrate to pnpm
    3.1  pnpm import (if package-lock.json exists) OR pnpm install.
    3.2  rm package-lock.json.
-   3.3  Add .npmrc with hoisted linker if CRA-era needs it.
+   3.3  Set nodeLinker: hoisted in pnpm-workspace.yaml when the output must match npm's
+        (react-scripts 5: webpack derives module ids from node_modules paths).
    3.4  Verify build still works.
 
 4. Bring forward existing hosting fixes
@@ -196,7 +197,7 @@ Q3: Floor test — does pnpm install && pnpm run build succeed on current Node L
 {
   type: "cra-build",
   cwd: ".sources/rest-rant-monorepo/frontend",
-  node: "20",                          // documented; .nvmrc in source repo authoritative
+  node: "20",                          // documentation only; sync-source.ts doesn't read it
   install: "pnpm install --frozen-lockfile",
   build: "pnpm run build",
   buildEnv: { PUBLIC_URL: ".", NODE_OPTIONS: "--openssl-legacy-provider" },
