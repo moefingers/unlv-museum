@@ -73,7 +73,6 @@ next-env.d.ts
 !.sources/quirkTruck
 !.sources/RR-Music-Search
 !.sources/RR-Getting-Started-With-Bootstrap
-!.sources/RR-Stylesheets-React
 !.sources/rr-react-rainbow
 !.sources/gwhac-a-mole
 !.sources/UNLV-react-art-gallery

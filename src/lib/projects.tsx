@@ -1428,21 +1428,6 @@ export const PROJECTS: Project[] = [
     reimagined: COMING_SOON,
   },
   {
-    slug: "stylesheets",
-    container: "react-exercises",
-    repo: "moefingers/RR-Stylesheets-React",
-    title: "Stylesheets in React",
-    description: "CSS modules vs global stylesheets vs inline styles.",
-    year: "Mar 2024",
-    category: "exercises",
-    techOriginal: ["React", "CSS Modules", "CRA"],
-    original: (
-      <OriginalFrame src="/originals/react-exercises/stylesheets/index.html" />
-    ),
-    enhanced: COMING_SOON,
-    reimagined: COMING_SOON,
-  },
-  {
     slug: "rainbow",
     container: "react-exercises",
     repo: "moefingers/rr-react-rainbow",

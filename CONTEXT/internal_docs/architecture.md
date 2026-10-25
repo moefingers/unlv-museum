@@ -73,7 +73,7 @@ Each has a `PROJECTS` entry whose slug matches the URL segment 1:1. The slug is 
 
 A URL prefix groups several sibling projects, each of which has its own sub-route and its own tiers. The container has an optional landing page; the leaves are real project routes underneath it.
 
-Examples (planned, not yet implemented): `/react-exercises/music-search`, `/react-exercises/montys-mineral-spa`, `/react-exercises/bootstrap`, `/react-exercises/stylesheets`. The `/react-exercises` segment surfaces sibling discoverability via a side-nav (matching api-client's left rail pattern); each leaf is its own museum entry with its own original/enhanced/reimagined.
+Examples: `/react-exercises/music-search`, `/react-exercises/montys-mineral-spa`, `/react-exercises/bootstrap`, `/react-exercises/rainbow`. The `/react-exercises` segment surfaces sibling discoverability via a side-nav (matching api-client's left rail pattern); each leaf is its own museum entry with its own original/enhanced/reimagined.
 
 Container routes exist when several projects share genuine lineage — a series of labs working through the same library, multiple parts of one game progression — and visitors benefit from seeing the siblings as siblings rather than scattered across the landing page. They are **not** rollups. Each leaf has its own `PROJECTS` entry, its own slug, its own tier work; the container is purely a navigation surface.
 

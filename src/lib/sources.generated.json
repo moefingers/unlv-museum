@@ -260,15 +260,6 @@
     "ownerLastCommit": "2024-03-11",
     "forkedAt": "2024-03-12"
   },
-  "stylesheets": {
-    "repo": "moefingers/RR-Stylesheets-React",
-    "branch": "museum-ready/original",
-    "commit": "e674e8dfa047c9f8e546ac1786da13b88a7d0a69",
-    "lockHash": "sha256:18b4c1976a9846fe60bf3aa42a50dc692f7b99edda1ab646cdda28bf7abf48fb",
-    "ownerFirstCommit": null,
-    "ownerLastCommit": null,
-    "forkedAt": "2024-03-12"
-  },
   "rainbow": {
     "repo": "moefingers/rr-react-rainbow",
     "branch": "museum-ready/original",
