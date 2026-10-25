@@ -1084,7 +1084,7 @@ export const PROJECTS: Project[] = [
     description:
       "Dynamic truck catalog. Evolved into EnterPrize, then Hierarchical Data.",
     synopsis:
-      "Dynamic truck catalog built in React on Create React App — the seed of a multi-generation chain. The Enhanced tier (EnterPrize, June–July 2024) generalized the catalog into an enterprise asset-management dashboard built on Next.js 15 canary + Prisma + Vercel Postgres/Blob/KV + NextAuth v5. The Reimagined tier (Hierarchical Data, late-2025) rebuilt that idea from scratch on stable Next.js 16 + Drizzle + Neon, generalizing the catalog pattern into a configurable hierarchy.",
+      "Truck catalog in React on Create React App — the seed that grew into EnterPrize (Enhanced, 2024) and Hierarchical Data (Reimagined, 2025).",
     year: "Feb 2024",
     category: "frontend",
     techOriginal: ["React", "Create React App", "CSS"],
