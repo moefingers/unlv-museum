@@ -136,13 +136,11 @@ export const auth = betterAuth({
       "/sign-in/social": { window: 60, max: 20 },
       "/callback/github": { window: 60, max: 20 },
       "/pat/session": { window: 60, max: 10 },
-      "/claim/session": { window: 60, max: 10 },
     },
   },
 
   // patAuth: exposes /api/auth/pat/session (token → cookie session) for
-  // Chrome MCP / automated tests, and /api/auth/claim/session for the
-  // OAuth relay. See auth.md §PAT and §OAuth Relay.
+  // Chrome MCP, automated tests and sign-in off production. See auth.md §PAT.
   plugins: [patAuth()],
 
   databaseHooks: {

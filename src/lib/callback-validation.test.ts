@@ -1,9 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  isTrustedCallbackUrl,
-  isTrustedRelayCallback,
-} from "./callback-validation";
+import { isTrustedCallbackUrl } from "./callback-validation";
 
 const env = (e: Record<string, string>) => e as NodeJS.ProcessEnv;
 const DEV = env({ NODE_ENV: "development" });
@@ -60,74 +57,29 @@ test("redirect: refuses plain http, other hosts and look-alikes", () => {
   }
 });
 
+const PRIVATE = [
+  "http://localhost:3000/x",
+  "https://localhost/",
+  "http://127.0.0.1:3000/",
+  "http://192.168.1.20:3000/",
+  "http://10.0.0.5/",
+  "http://172.16.0.1/",
+  "http://172.31.255.254/",
+];
+
 test("redirect: private network only in local development", () => {
   for (const e of LOCAL) {
-    assert.equal(isTrustedCallbackUrl("http://localhost:3000/x", e), true);
-    assert.equal(isTrustedCallbackUrl("http://192.168.1.20:3000/", e), true);
+    for (const url of PRIVATE) {
+      assert.equal(isTrustedCallbackUrl(url, e), true, url);
+    }
+    // Just outside 172.16/12, and a public name that starts like 10.x.
+    assert.equal(isTrustedCallbackUrl("http://172.15.0.1/", e), false);
     assert.equal(isTrustedCallbackUrl("http://172.32.0.1/", e), false);
     assert.equal(isTrustedCallbackUrl("http://10.evil.com/", e), false);
   }
   for (const e of BUILDS) {
-    assert.equal(isTrustedCallbackUrl("http://localhost:3000/x", e), false);
-    assert.equal(isTrustedCallbackUrl("http://127.0.0.1:3000/", e), false);
-    assert.equal(isTrustedCallbackUrl("http://192.168.1.20/", e), false);
-    assert.equal(isTrustedCallbackUrl("http://10.0.0.5/", e), false);
-  }
-});
-
-// ── where a claim may be delivered (/auth/relay, /auth/relay/complete) ──
-
-test("relay: delivers to a local dev server's /auth/claim, exactly", () => {
-  for (const e of LOCAL) {
-    assert.equal(
-      isTrustedRelayCallback("http://localhost:3000/auth/claim", e),
-      true,
-    );
-    assert.equal(
-      isTrustedRelayCallback("http://192.168.1.20:3000/auth/claim", e),
-      true,
-    );
-  }
-});
-
-test("relay: refuses any other path, any query or hash", () => {
-  for (const e of LOCAL) {
-    for (const bad of [
-      "http://localhost:3000/",
-      "http://localhost:3000/auth/claim/",
-      "http://localhost:3000/auth/claimx",
-      "http://localhost:3000/auth/claim?callbackURL=javascript:alert(1)",
-      "http://localhost:3000/auth/claim?x=1",
-      "http://localhost:3000/auth/claim#x",
-    ]) {
-      assert.equal(isTrustedRelayCallback(bad, e), false, bad);
-    }
-  }
-});
-
-test("relay: never delivers to the production host or anything public", () => {
-  for (const e of EVERYWHERE) {
-    for (const bad of [
-      "https://unlv-museum.recanon.com/auth/claim",
-      "https://unlv-museum.recanon.com/auth/claim?callbackURL=javascript:alert(1)",
-      "https://www.recanon.com/auth/claim",
-      "https://evil.vercel.app/auth/claim",
-      "javascript:alert(1)",
-      "",
-    ]) {
-      assert.equal(isTrustedRelayCallback(bad, e), false, bad);
-    }
-  }
-});
-
-test("relay: a production build delivers no claim at all", () => {
-  for (const e of BUILDS) {
-    for (const url of [
-      "http://localhost:3000/auth/claim",
-      "http://127.0.0.1:3000/auth/claim",
-      "http://192.168.1.20:3000/auth/claim",
-    ]) {
-      assert.equal(isTrustedRelayCallback(url, e), false, url);
+    for (const url of PRIVATE) {
+      assert.equal(isTrustedCallbackUrl(url, e), false, url);
     }
   }
 });

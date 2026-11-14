@@ -18,30 +18,23 @@ import styles from "./SignInChip.module.css";
 const PRODUCTION_HOST = "unlv-museum.recanon.com";
 
 /**
- * Decide between direct GitHub OAuth and the relay-through-production flow.
+ * GitHub sign-in runs on production only. The museum's GitHub OAuth App
+ * registers production's callback, and the relay that used to carry a
+ * sign-in from production to other origins is gone (2026-11-14): it handed
+ * out bearer claims. See auth.md §Sign-in off production.
  *
- * GitHub's OAuth App stores exactly one callback URL — so we register only
- * production. Every other origin (localhost, LAN IPs, preview deployments)
- * relays through production via /auth/relay → /auth/claim.
+ * Off production (previews, LAN, localhost) the chip sends the browser to the
+ * same page on production, where it can sign in. To be signed in on the
+ * other origin itself (Chrome MCP, automated tests, local work), use a PAT:
+ * auth.md §PAT.
  *
- * Zcanon/OutlastSite use Google, which allows multiple callbacks AND has a
- * special localhost-port-agnostic mode, so they can exempt localhost from
- * the relay. GitHub has neither, so the museum's relay gate is simpler:
- * if you're not on production, you relay.
- *
- * For automated tests / Chrome MCP / network-free local dev, use PAT
- * instead — see auth.md §PAT.
- *
- * Returns:
- *  - null for direct flow (call authClient.signIn.social) — production only
- *  - a production URL to redirect to (`<prod>/auth/relay?callback=...`)
- *    for relay flow — everywhere else
+ * Returns the same page on production, or null when already there.
  */
-function relayOriginIfNeeded(): string | null {
+function productionPageIfElsewhere(): string | null {
   if (typeof window === "undefined") return null;
-  const host = window.location.hostname;
-  if (host === PRODUCTION_HOST) return null;
-  return `https://${PRODUCTION_HOST}`;
+  const { hostname, pathname, search, hash } = window.location;
+  if (hostname === PRODUCTION_HOST) return null;
+  return `https://${PRODUCTION_HOST}${pathname}${search}${hash}`;
 }
 
 // The Better Auth `User` type doesn't include our custom `verified` field
@@ -109,19 +102,12 @@ export function SignInChip() {
         disabled={signingIn}
         onClick={async () => {
           setSigningIn(true);
-          const relayOrigin = relayOriginIfNeeded();
-          if (relayOrigin) {
-            // Non-canonical origin (preview / LAN) — relay through prod.
-            // /auth/claim on this origin reads ?callbackURL to return the
-            // user to where they were after claiming.
-            const claimReturn = new URL("/auth/claim", window.location.origin);
-            claimReturn.searchParams.set("callbackURL", window.location.href);
-            const relayUrl = new URL("/auth/relay", relayOrigin);
-            relayUrl.searchParams.set("callback", claimReturn.toString());
-            window.location.assign(relayUrl.toString());
+          const productionPage = productionPageIfElsewhere();
+          if (productionPage) {
+            window.location.assign(productionPage);
             return;
           }
-          // Localhost or production — direct OAuth.
+          // Production: direct OAuth.
           await authClient.signIn.social({
             provider: "github",
             callbackURL: window.location.href,
