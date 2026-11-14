@@ -67,7 +67,7 @@ See `src/lib/auth.ts`. Critical knobs:
 - `socialProviders.github`: `clientId` + `clientSecret` from env
 - `rateLimit.storage: "database"` — required for serverless (default `"memory"` resets on cold start)
 - `cookieOptions.domain`: unset (defaults to request host) — no parent-domain games
-- `trustedOrigins`: localhost + the production domain. No `*.vercel.app` wildcard — preview deployments are intentionally unauthenticated until the relay pattern is ported (museum doesn't need it yet)
+- `trustedOrigins`: the production domain, plus any localhost or private-network `Origin`, plus `https://*-<VERCEL_SCOPE>.vercel.app` when `VERCEL_SCOPE` is set. Both extras apply on production too, which is too wide: [#11](https://github.com/moefingers/unlv-museum/issues/11) narrows them
 
 ## Sign-In Surface
 
@@ -80,15 +80,15 @@ Both routes call `authClient.signIn.social({ provider: "github", callbackURL: <c
 
 ## Authentication by Environment
 
-| Feature               | localhost      | LAN IP         | Vercel preview | Production | Chrome MCP         |
-| --------------------- | -------------- | -------------- | -------------- | ---------- | ------------------ |
-| GitHub OAuth (direct) | No — via relay | No — via relay | No — via relay | Yes        | No (bot detection) |
-| PAT (POST → cookie)   | Yes            | Yes            | Yes            | Yes        | Yes (primary)      |
-| WAF rate limiting     | No-op          | No-op          | Active         | Active     | Same as env        |
+| Feature               | localhost    | LAN IP       | Vercel preview | Production | Chrome MCP         |
+| --------------------- | ------------ | ------------ | -------------- | ---------- | ------------------ |
+| GitHub OAuth (direct) | No — on prod | No — on prod | No — on prod   | Yes        | No (bot detection) |
+| PAT (POST → cookie)   | Yes          | Yes          | Yes            | Yes        | Yes (primary)      |
+| WAF rate limiting     | No-op        | No-op        | Active         | Active     | Same as env        |
 
-**One callback URL registered on the GitHub OAuth App: production only.** GitHub's "Authorization callback URL" field is literally singular — no comma-separated list (despite the docs implying otherwise). So localhost, LAN IPs, preview deployments, and anything that isn't production all **relay through production** — see §OAuth Relay.
+**GitHub sign-in runs on production only.** Elsewhere the sign-in chip sends the browser to the same page on production; to be signed in on the other origin itself, use a PAT. See §Sign-in off production.
 
-This diverges from zcanon/OutlastSite, which use Google. Google allows multiple callbacks AND has a localhost-port-agnostic exemption, so their gate is "localhost direct, others relay." GitHub's restrictions collapse that to "production direct, everything else relay."
+This diverges from zcanon/OutlastSite, which use Google. Google allows multiple callbacks and has a localhost-port-agnostic exemption, so their gate is "localhost direct, others relay."
 
 Chrome MCP and other automated browsers use **PAT** because OAuth flows trip bot detection — see §PAT. PAT is also the only way to sign in locally without internet connectivity to production.
 
@@ -182,41 +182,21 @@ The endpoint is the `patAuth` plugin's `/pat/session`. On success it creates a r
 
 Tokens are hashed (`sha256(token)` stored in `auth.personal_access_token.token_hash`). The raw token never lives in the database. Revocation is `UPDATE auth.personal_access_token SET revoked_at = now() WHERE id = '<id>'`. There is no token-management UI yet — solo operator, manual revocation works.
 
-## OAuth Relay (Preview / LAN auth)
+## Sign-in off production
 
-Non-canonical origins (Vercel preview URLs, LAN IPs, anywhere not in the GitHub OAuth App's registered callback list) can't run GitHub OAuth directly. The relay routes them through production:
+GitHub sign-in runs on production only. Elsewhere (Vercel previews, LAN IPs, localhost) the sign-in chip sends the browser to the same page on `https://unlv-museum.recanon.com`, where it can sign in. To be signed in on the other origin itself, use a PAT (§PAT): Chrome MCP, automated tests and local work all do.
 
-1. User on `https://unlv-museum-abc123-team.vercel.app/api-client` clicks Sign in
-2. The chip calls `https://unlv-museum.recanon.com/auth/relay?callback=https://unlv-museum-abc123-team.vercel.app/auth/claim`
-3. `/auth/relay` validates the callback against `isTrustedCallbackUrl`, drops a short-lived `relay-callback` cookie, redirects to `/auth/relay/start`
-4. `/auth/relay/start` fires Better Auth's GitHub OAuth flow with `callbackURL=/auth/relay/complete`
-5. User authorizes UNLV Museum on GitHub → GitHub redirects to `https://unlv-museum.recanon.com/api/auth/callback/github` → Better Auth creates session on production
-6. `/auth/relay/complete` reads the `relay-callback` cookie, generates an HMAC-signed claim token (1-minute TTL), redirects to `<preview>/auth/claim?claim=<token>`
-7. `/auth/claim` (on the preview origin) POSTs the token to `/api/auth/claim/session` → patAuth plugin's claim endpoint verifies signature, looks up the user, mints a session cookie on the preview origin
-8. User lands wherever the original callback pointed (or `/`), signed in
+**There is no OAuth relay (removed 2026-11-14).** The museum used to relay sign-in through production: `/auth/relay` → GitHub → `/auth/relay/complete`, which minted an HMAC-signed "claim" and redirected it to `/auth/claim` on the other origin, which exchanged it at `/api/auth/claim/session` for a session. All of it is gone, the claim endpoint included, because a claim was a bearer sign-in:
 
-The user sees: sign-in button → GitHub consent → back on their environment, authenticated. No intermediate pages.
+- **Wherever the relay delivered it, a claim could be stolen.** The callback check once trusted any `*.vercel.app`, `*.vercel.dev` or `*.vercel.sh` host, where anyone can make a free host. A developer's own `next dev` relay delivered to any machine on their network over plain http. And the claim page followed any `callbackURL`, `javascript:` included. Each way, one link could hand a stranger the session of whoever followed it.
+- **Anyone holding the signing secret could mint one** for any user, the admin included, without signing in at all.
+- **It was reusable:** no audience, no nonce, no single use, for its whole minute.
 
-**Security:**
+GitHub sign-in off production returns only with an attested relay (OutlastSite's or zcanon's design: the callback host proven by a Vercel OIDC token, the claim a single-use database row bound to the browser that started it). [#13](https://github.com/moefingers/unlv-museum/issues/13) lists what it must do.
 
-- Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL. Without a secret no claim is issued or accepted (no fixed fallback).
-- **Where a claim may go** (`isTrustedRelayCallback`, `src/lib/callback-validation.ts`): only a local development server's `/auth/claim` (localhost or the private network, `next dev`, not on a Vercel deployment), exactly that path with no query. **On production the relay delivers no claim at all (2026-11-14)**: production needs none for itself, and anything else could receive a sign-in. Previews, LAN and localhost no longer sign in through production's relay, since the sign-in chip sends every non-production origin there. GitHub sign-in off production returns with an attested relay (OutlastSite's or zcanon's: the callback host proven by a Vercel OIDC token, the claim a single-use database row). Until then, sign in locally with a PAT (above).
-- **Where a browser may go after sign-in** (`isTrustedCallbackUrl`, `/auth/redirect`): `unlv-museum.recanon.com` over https, and localhost or the private network in local development only. The claim page follows only a same-origin path (`src/lib/safe-internal-path.ts`), never a `javascript:` URL or another origin, and takes the claim out of the address bar first.
-- **Why:** the callback check used to trust any `*.vercel.app`, `*.vercel.dev` or `*.vercel.sh` host, where anyone can make a free host, and the claim page followed any `callbackURL`, `javascript:` included. Either way a link could hand a stranger the session of whoever followed it.
-- The `BETTER_AUTH_SECRET` must match across production and the local `.env.local` for signatures to verify — same constraint as zcanon
+**Where a browser may go after sign-in** (`isTrustedCallbackUrl` in `src/lib/callback-validation.ts`, used by `/auth/redirect`): `unlv-museum.recanon.com` over https, and localhost or the private network in local development only (`next dev`, not on a Vercel deployment).
 
-**Files:**
-
-| File                                            | Purpose                                               |
-| ----------------------------------------------- | ----------------------------------------------------- |
-| `src/lib/claim-token.ts`                        | HMAC sign + verify, 1-minute TTL                      |
-| `src/lib/callback-validation.ts`                | Trusted-origin checker                                |
-| `src/lib/pat-plugin.ts`                         | Better Auth plugin: `/pat/session` + `/claim/session` |
-| `src/app/(museum)/auth/relay/route.ts`          | Validates callback, stashes cookie, forwards          |
-| `src/app/(museum)/auth/relay/start/page.tsx`    | Client-fires Better Auth's GitHub flow                |
-| `src/app/(museum)/auth/relay/complete/route.ts` | Generates claim token, redirects                      |
-| `src/app/(museum)/auth/claim/page.tsx`          | POSTs claim to `/api/auth/claim/session`              |
-| `src/app/(museum)/auth/redirect/page.tsx`       | Generic post-auth landing                             |
+**Secrets.** Production's `BETTER_AUTH_SECRET` is production's alone: it signs Better Auth's session cookie cache, so whoever holds it can sign in to production as anyone. Preview has its own value on Vercel. Development has none there: put your own random value in `.env.local` (`openssl rand -base64 32`), and if yours is production's (the old setup asked for that), replace it. `pnpm vercel:env push` never pushes this key (`BUILTIN_SKIP_KEYS` in `scripts/vercel-env.ts`), and it leaves alone any key with more than one entry on Vercel, so a laptop's value can't reach production that way.
 
 ## Audit Log
 
@@ -289,24 +269,19 @@ If you see this, audit sibling projects for parent-domain cookies (`domain=.reca
 
 ## Files
 
-| File                                            | Purpose                                                                    |
-| ----------------------------------------------- | -------------------------------------------------------------------------- |
-| `src/lib/auth.ts`                               | Better Auth instance, GitHub provider, rate-limit config, `patAuth` plugin |
-| `src/lib/auth-client.ts`                        | Browser-side Better Auth client (sign in / sign out / useSession)          |
-| `src/lib/user-audit.ts`                         | `emitUserAudit()` event emitter                                            |
-| `src/lib/schema/auth.ts`                        | Drizzle schema for `auth.*` tables                                         |
-| `src/lib/pat-plugin.ts`                         | Better Auth plugin: `/pat/session` + `/claim/session`                      |
-| `src/lib/claim-token.ts`                        | HMAC sign + verify for relay claim tokens                                  |
-| `src/lib/callback-validation.ts`                | Trusted-origin check for relay callbacks                                   |
-| `src/app/(museum)/api/auth/[...all]/route.ts`   | Better Auth's catch-all route handler                                      |
-| `src/app/(museum)/auth/relay/route.ts`          | OAuth relay entry                                                          |
-| `src/app/(museum)/auth/relay/start/page.tsx`    | Fires the GitHub OAuth flow on production                                  |
-| `src/app/(museum)/auth/relay/complete/route.ts` | Generates claim token, redirects to origin                                 |
-| `src/app/(museum)/auth/claim/page.tsx`          | Claims session on non-canonical origin                                     |
-| `src/app/(museum)/auth/redirect/page.tsx`       | Generic post-auth landing                                                  |
-| `src/app/(museum)/api/whoami/route.ts`          | Auth smoke-test endpoint                                                   |
-| `src/components/auth/SignInChip.tsx`            | Header chip — sign in / avatar + verified badge                            |
-| `scripts/generate-pat.ts`                       | `pnpm pat:generate` PAT minter                                             |
+| File                                          | Purpose                                                                    |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/auth.ts`                             | Better Auth instance, GitHub provider, rate-limit config, `patAuth` plugin |
+| `src/lib/auth-client.ts`                      | Browser-side Better Auth client (sign in / sign out / useSession)          |
+| `src/lib/user-audit.ts`                       | `emitUserAudit()` event emitter                                            |
+| `src/lib/schema/auth.ts`                      | Drizzle schema for `auth.*` tables                                         |
+| `src/lib/pat-plugin.ts`                       | Better Auth plugin: `/pat/session`                                         |
+| `src/lib/callback-validation.ts`              | Where `/auth/redirect` may send a signed-in browser                        |
+| `src/app/(museum)/api/auth/[...all]/route.ts` | Better Auth's catch-all route handler                                      |
+| `src/app/(museum)/auth/redirect/page.tsx`     | Generic post-auth landing                                                  |
+| `src/app/(museum)/api/whoami/route.ts`        | Auth smoke-test endpoint                                                   |
+| `src/components/auth/SignInChip.tsx`          | Header chip — sign in / avatar + verified badge                            |
+| `scripts/generate-pat.ts`                     | `pnpm pat:generate` PAT minter                                             |
 
 ## What we explicitly skip from zcanon
 

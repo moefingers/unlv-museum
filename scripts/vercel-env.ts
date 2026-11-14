@@ -82,6 +82,10 @@ type LocalEntry = {
  */
 const BUILTIN_SKIP_KEYS = new Set([
   "PAT_TOKEN",
+  // Each environment has its own, set on Vercel directly: production's is
+  // production's alone, and a laptop's is local. Pushing one would put a
+  // laptop's secret on production (auth.md §Sign-in off production).
+  "BETTER_AUTH_SECRET",
   "VERCEL_OIDC_TOKEN",
   "VERCEL_GIT_PREVIOUS_SHA",
   "TURBO_TOKEN",
@@ -98,6 +102,11 @@ const BUILTIN_SKIP_KEYS = new Set([
   "VERCEL_PROJECT_ID",
   "VERCEL_SKEW_PROTECTION_ENABLED",
   "VERCEL_AUTOMATION_BYPASS_SECRET",
+  "VERCEL_HASH_SALT",
+  "CI",
+  // Set by Next and by Vercel's runtime. A pushed NODE_ENV="development"
+  // would open the local-development branch of callback-validation.ts.
+  "NODE_ENV",
 ]);
 
 /* ───────────── token + project linkage ───────────── */
@@ -377,13 +386,15 @@ function planChanges(
   //    values → merge into one with combined target.
   for (const [key, entries] of byKey.entries()) {
     if (entries.length <= 1) continue;
-    // Only consolidate when values can be compared (non-sensitive) or
-    // when explicitly opted in for sensitive (then assume "same value").
-    const sensitive = entries.every((e) => e.type === "sensitive");
-    if (sensitive && !opts.includeSensitive) {
+    if (BUILTIN_SKIP_KEYS.has(key)) continue;
+    // Only consolidate when every value can be compared. Vercel never
+    // returns a sensitive value, so sensitive entries are never merged:
+    // "assume the same value" would delete per-environment secrets and
+    // recreate them from a placeholder.
+    if (entries.some((e) => e.type === "sensitive")) {
       plan.skipped.push({
         key,
-        reason: `${entries.length} sensitive entries — re-run with --include-sensitive to consolidate`,
+        reason: `${entries.length} entries, some sensitive — values can't be compared, never merged`,
       });
       continue;
     }
@@ -448,7 +459,17 @@ function planChanges(
       continue;
     }
 
-    // Existing key — update value(s) where they differ. Preserve target set.
+    // Several entries: the key has a value per environment on purpose. One
+    // local value can't be right for all of them, so push leaves it alone.
+    if (remoteEntries.length > 1) {
+      plan.skipped.push({
+        key,
+        reason: `${remoteEntries.length} per-environment entries — set them on Vercel directly`,
+      });
+      continue;
+    }
+
+    // Existing key — update its value if it differs. Preserve target set.
     for (const r of remoteEntries) {
       const undiffable =
         r.type === "sensitive" ||

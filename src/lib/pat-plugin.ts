@@ -1,14 +1,16 @@
 /**
- * Better Auth plugin exposing two non-OAuth session-creation endpoints:
+ * Better Auth plugin exposing one non-OAuth session-creation endpoint:
  *
  *   POST /api/auth/pat/session    { token }     — exchange a PAT for a session
- *   POST /api/auth/claim/session  { token }     — exchange a relay claim for a session
  *
- * Both create a real Better Auth session and set the session cookie via the
+ * It creates a real Better Auth session and sets the session cookie via the
  * canonical setSessionCookie helper, so downstream `auth.api.getSession`
  * calls see the user just like a regular OAuth sign-in.
  *
- * See CONTEXT/internal_docs/auth.md §PAT and §OAuth Relay.
+ * There used to be a second, `/claim/session`, which exchanged an OAuth
+ * relay's HMAC claim for a session. It went with the relay (2026-11-14): a
+ * claim was a bearer sign-in that anyone holding the signing secret could
+ * mint. See CONTEXT/internal_docs/auth.md §PAT and §Sign-in off production.
  */
 
 import { createAuthEndpoint } from "better-auth/api";
@@ -19,7 +21,6 @@ import crypto from "crypto";
 
 import { db } from "./db";
 import { personalAccessToken, user } from "./schema/auth";
-import { verifyClaimToken } from "./claim-token";
 
 function hashPAT(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -72,34 +73,6 @@ export const patAuth = () => {
 
           const session = await ctx.context.internalAdapter.createSession(
             pat.userId,
-            false,
-          );
-          if (!session) throw new Error("Failed to create session");
-
-          await setSessionCookie(ctx, { session, user: users[0]! });
-          return { success: true };
-        },
-      ),
-
-      claimSession: createAuthEndpoint(
-        "/claim/session",
-        { method: "POST" },
-        async (ctx) => {
-          const token = ctx.body?.token as string | undefined;
-          if (!token) throw new Error("Token required");
-
-          const payload = verifyClaimToken(token);
-          if (!payload) throw new Error("Invalid or expired claim token");
-
-          const users = await db
-            .select()
-            .from(user)
-            .where(eq(user.id, payload.userId))
-            .limit(1);
-          if (users.length === 0) throw new Error("User not found");
-
-          const session = await ctx.context.internalAdapter.createSession(
-            payload.userId,
             false,
           );
           if (!session) throw new Error("Failed to create session");
