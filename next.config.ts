@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
-  experimental: { viewTransition: true },
+  // View transitions need no flag since next 16.4: React's <ViewTransition>
+  // works in the App Router as it ships (the experimental option is gone).
   // Permit LAN access during dev so phones/tablets on the same
   // network can hit `http://<dev-machine-ip>:3000`. Next blocks
   // non-localhost origins by default to prevent cross-origin dev
