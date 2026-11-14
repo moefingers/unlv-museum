@@ -1,104 +1,133 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isTrustedCallbackUrl } from "./callback-validation";
+import {
+  isTrustedCallbackUrl,
+  isTrustedRelayCallback,
+} from "./callback-validation";
 
-const LOCAL = {} as NodeJS.ProcessEnv;
-const LAPTOP = { VERCEL_ENV: "development" } as NodeJS.ProcessEnv;
-const PREVIEW = { VERCEL_ENV: "preview" } as NodeJS.ProcessEnv;
-const PRODUCTION = { VERCEL_ENV: "production" } as NodeJS.ProcessEnv;
-const EVERYWHERE = [LOCAL, LAPTOP, PREVIEW, PRODUCTION];
+const env = (e: Record<string, string>) => e as NodeJS.ProcessEnv;
+const DEV = env({ NODE_ENV: "development" });
+const LAPTOP = env({ NODE_ENV: "development", VERCEL_ENV: "development" });
+const PREVIEW = env({ NODE_ENV: "production", VERCEL_ENV: "preview" });
+const PRODUCTION = env({ NODE_ENV: "production", VERCEL_ENV: "production" });
+// A production build with VERCEL_ENV missing (system variables off, a
+// self-hosted `next start`) or a copied value: NODE_ENV alone keeps it shut.
+const PROD_NO_VERCEL_ENV = env({ NODE_ENV: "production" });
+const PROD_COPIED_VERCEL_ENV = env({
+  NODE_ENV: "production",
+  VERCEL_ENV: "development",
+});
+const LOCAL = [DEV, LAPTOP];
+const BUILDS = [
+  PREVIEW,
+  PRODUCTION,
+  PROD_NO_VERCEL_ENV,
+  PROD_COPIED_VERCEL_ENV,
+];
+const EVERYWHERE = [...LOCAL, ...BUILDS];
 
-test("trusts the production host over https, everywhere", () => {
-  for (const env of EVERYWHERE) {
+// ── where a browser may go after sign-in (/auth/redirect) ──
+
+test("redirect: trusts the production host over https, everywhere", () => {
+  for (const e of EVERYWHERE) {
     assert.equal(
-      isTrustedCallbackUrl("https://unlv-museum.recanon.com/auth/claim", env),
+      isTrustedCallbackUrl("https://unlv-museum.recanon.com/api-client", e),
       true,
     );
   }
 });
 
-test("refuses the production host over plain http", () => {
-  for (const env of EVERYWHERE) {
-    assert.equal(
-      isTrustedCallbackUrl("http://unlv-museum.recanon.com/auth/claim", env),
-      false,
-    );
+test("redirect: refuses plain http, other hosts and look-alikes", () => {
+  for (const e of EVERYWHERE) {
+    for (const bad of [
+      "http://unlv-museum.recanon.com/",
+      "https://www.recanon.com/",
+      "https://x.unlv-museum.recanon.com/",
+      "https://unlv-museum.recanon.com.evil.com/",
+      "https://unlv-museum.recanon.com@evil.com/",
+      "https://u:p@unlv-museum.recanon.com/",
+      "https://evil.vercel.app/",
+      "https://unlv-museum-git-x-team.vercel.app/",
+      "https://evil.vercel.dev/",
+      "https://evil.vercel.sh/",
+      "javascript:alert(1)",
+      "ftp://unlv-museum.recanon.com/",
+      "not a url",
+      "",
+    ]) {
+      assert.equal(isTrustedCallbackUrl(bad, e), false, bad);
+    }
   }
 });
 
-test("refuses shared hosting namespaces anyone can claim a host in", () => {
-  for (const env of EVERYWHERE) {
-    assert.equal(
-      isTrustedCallbackUrl("https://evil.vercel.app/auth/claim", env),
-      false,
-    );
-    assert.equal(
-      isTrustedCallbackUrl("https://unlv-museum-git-x-team.vercel.app/", env),
-      false,
-    );
-    assert.equal(isTrustedCallbackUrl("https://evil.vercel.dev/", env), false);
-    assert.equal(isTrustedCallbackUrl("https://evil.vercel.sh/", env), false);
+test("redirect: private network only in local development", () => {
+  for (const e of LOCAL) {
+    assert.equal(isTrustedCallbackUrl("http://localhost:3000/x", e), true);
+    assert.equal(isTrustedCallbackUrl("http://192.168.1.20:3000/", e), true);
+    assert.equal(isTrustedCallbackUrl("http://172.32.0.1/", e), false);
+    assert.equal(isTrustedCallbackUrl("http://10.evil.com/", e), false);
+  }
+  for (const e of BUILDS) {
+    assert.equal(isTrustedCallbackUrl("http://localhost:3000/x", e), false);
+    assert.equal(isTrustedCallbackUrl("http://127.0.0.1:3000/", e), false);
+    assert.equal(isTrustedCallbackUrl("http://192.168.1.20/", e), false);
+    assert.equal(isTrustedCallbackUrl("http://10.0.0.5/", e), false);
   }
 });
 
-test("refuses other recanon.com hosts and look-alikes", () => {
-  for (const env of EVERYWHERE) {
-    assert.equal(isTrustedCallbackUrl("https://www.recanon.com/", env), false);
-    assert.equal(
-      isTrustedCallbackUrl("https://x.unlv-museum.recanon.com/", env),
-      false,
-    );
-    assert.equal(
-      isTrustedCallbackUrl("https://unlv-museum.recanon.com.evil.com/", env),
-      false,
-    );
-    assert.equal(
-      isTrustedCallbackUrl("https://unlv-museum.recanon.com@evil.com/", env),
-      false,
-    );
-    assert.equal(
-      isTrustedCallbackUrl("https://u:p@unlv-museum.recanon.com/", env),
-      false,
-    );
-  }
-});
+// ── where a claim may be delivered (/auth/relay, /auth/relay/complete) ──
 
-test("trusts this machine and the private network only in local development", () => {
-  for (const env of [LOCAL, LAPTOP]) {
+test("relay: delivers to a local dev server's /auth/claim, exactly", () => {
+  for (const e of LOCAL) {
     assert.equal(
-      isTrustedCallbackUrl("http://localhost:3000/auth/claim", env),
+      isTrustedRelayCallback("http://localhost:3000/auth/claim", e),
       true,
     );
-    assert.equal(isTrustedCallbackUrl("http://127.0.0.1:3000/", env), true);
-    assert.equal(isTrustedCallbackUrl("http://192.168.1.20:3000/", env), true);
-    assert.equal(isTrustedCallbackUrl("http://10.0.0.5/", env), true);
-    assert.equal(isTrustedCallbackUrl("http://172.16.0.1/", env), true);
-    assert.equal(isTrustedCallbackUrl("http://172.32.0.1/", env), false);
-    assert.equal(isTrustedCallbackUrl("http://10.evil.com/", env), false);
+    assert.equal(
+      isTrustedRelayCallback("http://192.168.1.20:3000/auth/claim", e),
+      true,
+    );
   }
 });
 
-test("refuses this machine and the private network on any deployment", () => {
-  for (const env of [PREVIEW, PRODUCTION]) {
-    assert.equal(
-      isTrustedCallbackUrl("http://localhost:3000/auth/claim", env),
-      false,
-    );
-    assert.equal(isTrustedCallbackUrl("https://localhost/", env), false);
-    assert.equal(isTrustedCallbackUrl("http://127.0.0.1:3000/", env), false);
-    assert.equal(isTrustedCallbackUrl("http://192.168.1.20/", env), false);
-    assert.equal(isTrustedCallbackUrl("http://10.0.0.5/", env), false);
+test("relay: refuses any other path, any query or hash", () => {
+  for (const e of LOCAL) {
+    for (const bad of [
+      "http://localhost:3000/",
+      "http://localhost:3000/auth/claim/",
+      "http://localhost:3000/auth/claimx",
+      "http://localhost:3000/auth/claim?callbackURL=javascript:alert(1)",
+      "http://localhost:3000/auth/claim?x=1",
+      "http://localhost:3000/auth/claim#x",
+    ]) {
+      assert.equal(isTrustedRelayCallback(bad, e), false, bad);
+    }
   }
 });
 
-test("refuses other schemes and junk", () => {
-  for (const env of EVERYWHERE) {
-    assert.equal(isTrustedCallbackUrl("javascript:alert(1)", env), false);
-    assert.equal(
-      isTrustedCallbackUrl("ftp://unlv-museum.recanon.com/", env),
-      false,
-    );
-    assert.equal(isTrustedCallbackUrl("not a url", env), false);
-    assert.equal(isTrustedCallbackUrl("", env), false);
+test("relay: never delivers to the production host or anything public", () => {
+  for (const e of EVERYWHERE) {
+    for (const bad of [
+      "https://unlv-museum.recanon.com/auth/claim",
+      "https://unlv-museum.recanon.com/auth/claim?callbackURL=javascript:alert(1)",
+      "https://www.recanon.com/auth/claim",
+      "https://evil.vercel.app/auth/claim",
+      "javascript:alert(1)",
+      "",
+    ]) {
+      assert.equal(isTrustedRelayCallback(bad, e), false, bad);
+    }
+  }
+});
+
+test("relay: a production build delivers no claim at all", () => {
+  for (const e of BUILDS) {
+    for (const url of [
+      "http://localhost:3000/auth/claim",
+      "http://127.0.0.1:3000/auth/claim",
+      "http://192.168.1.20:3000/auth/claim",
+    ]) {
+      assert.equal(isTrustedRelayCallback(url, e), false, url);
+    }
   }
 });
