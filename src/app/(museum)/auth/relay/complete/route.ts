@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
   }
 
   const token = generateClaimToken(session.user.id, session.user.email);
+  if (!token) {
+    // No signing secret configured: no claim is issued. Same safe default as
+    // an untrusted callback.
+    const response = NextResponse.redirect(new URL("/", request.url));
+    response.cookies.delete("relay-callback");
+    return response;
+  }
   const target = new URL(callback);
   target.searchParams.set("claim", token);
 

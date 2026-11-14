@@ -199,8 +199,9 @@ The user sees: sign-in button → GitHub consent → back on their environment, 
 
 **Security:**
 
-- Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL
-- Callback URLs are validated by `isTrustedCallbackUrl` against the trust ladder in `src/lib/callback-validation.ts` (localhost, RFC 1918 IPs, `unlv-museum.recanon.com`, `*.vercel.app|dev|sh`)
+- Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL. Without a secret no claim is issued or accepted (no fixed fallback).
+- Callback URLs are validated by `isTrustedCallbackUrl` (`src/lib/callback-validation.ts`): `unlv-museum.recanon.com` over https, and localhost or the private network (RFC 1918, 127.x) in local development only (`VERCEL_ENV` unset or `development`).
+- **Vercel preview URLs no longer receive claims (2026-11-14).** The callback check used to trust any `*.vercel.app`, `*.vercel.dev` or `*.vercel.sh` host. Anyone can create a free host there, so a link to `/auth/relay?callback=https://<anyone>.vercel.app/…` handed a stranger the session of whoever followed it. A preview signs in again only once an attested relay is ported (OutlastSite's or zcanon's: the callback host proven by a Vercel OIDC token, the claim a single-use database row). Steps 1–2 above describe that future preview flow; LAN development still works.
 - The `BETTER_AUTH_SECRET` must match across production and the local `.env.local` for signatures to verify — same constraint as zcanon
 
 **Files:**
