@@ -85,6 +85,19 @@ const BUILTIN_SKIP_KEYS = new Set([
   "VERCEL_OIDC_TOKEN",
   "VERCEL_GIT_PREVIOUS_SHA",
   "TURBO_TOKEN",
+  // Vercel system variables: Vercel sets them on every deployment. Pushing a
+  // pulled value (VERCEL_ENV="development") would shadow the real one.
+  "VERCEL",
+  "VERCEL_ENV",
+  "VERCEL_TARGET_ENV",
+  "VERCEL_URL",
+  "VERCEL_BRANCH_URL",
+  "VERCEL_PROJECT_PRODUCTION_URL",
+  "VERCEL_REGION",
+  "VERCEL_DEPLOYMENT_ID",
+  "VERCEL_PROJECT_ID",
+  "VERCEL_SKEW_PROTECTION_ENABLED",
+  "VERCEL_AUTOMATION_BYPASS_SECRET",
 ]);
 
 /* ───────────── token + project linkage ───────────── */
@@ -256,7 +269,9 @@ function parseLocalEnv(cwd: string): Map<string, LocalEntry> {
       value,
       type: pendingAnnotation?.type,
       target: pendingAnnotation?.target,
-      skip: pendingAnnotation?.skip ?? BUILTIN_SKIP_KEYS.has(key),
+      skip:
+        pendingAnnotation?.skip ??
+        (BUILTIN_SKIP_KEYS.has(key) || key.startsWith("VERCEL_GIT_")),
     });
     pendingAnnotation = null;
   }

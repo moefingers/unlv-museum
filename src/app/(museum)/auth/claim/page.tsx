@@ -7,13 +7,14 @@
  * sets a Better Auth session cookie on THIS origin. The user is now signed
  * in here, with a session bound to the same user as production.
  *
- * On success: redirect to the original callbackURL if provided, else `/`.
+ * On success: go to callbackURL if it is a same-origin path, else `/`.
  * On failure: show a recoverable error.
  */
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/safe-internal-path";
 
 export default function AuthClaim() {
   return (
@@ -29,6 +30,16 @@ function AuthClaimInner() {
 
   useEffect(() => {
     const claim = searchParams.get("claim");
+    // Where to go afterwards: a same-origin path only. Never a scheme such
+    // as javascript:, never another origin (2026-11-14).
+    const next =
+      safeInternalPath(
+        searchParams.get("callbackURL"),
+        window.location.origin,
+      ) ?? "/";
+    // Take the claim out of the address bar before anything else runs, so
+    // nothing on the page (or in history) can read it.
+    window.history.replaceState(null, "", window.location.pathname);
     if (!claim) {
       window.location.assign("/");
       return;
@@ -40,8 +51,7 @@ function AuthClaimInner() {
       body: JSON.stringify({ token: claim }),
     }).then((res) => {
       if (res.ok) {
-        const callbackURL = searchParams.get("callbackURL");
-        window.location.assign(callbackURL ?? "/");
+        window.location.assign(next);
       } else {
         setError(
           "Invalid or expired claim. Try signing in again from this page.",

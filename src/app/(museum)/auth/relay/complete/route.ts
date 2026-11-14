@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { generateClaimToken } from "@/lib/claim-token";
-import { isTrustedCallbackUrl } from "@/lib/callback-validation";
+import { isTrustedRelayCallback } from "@/lib/callback-validation";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   const callback = request.cookies.get("relay-callback")?.value;
-  if (!callback || !isTrustedCallbackUrl(callback)) {
+  if (!callback || !isTrustedRelayCallback(callback)) {
     // No valid callback (cookie expired, tampered, untrusted host) — drop the
     // user on production's home, signed in, callback discarded.
     const response = NextResponse.redirect(new URL("/", request.url));
@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
   }
 
   const token = generateClaimToken(session.user.id, session.user.email);
+  if (!token) {
+    // No signing secret configured: no claim is issued. Same safe default as
+    // an untrusted callback.
+    const response = NextResponse.redirect(new URL("/", request.url));
+    response.cookies.delete("relay-callback");
+    return response;
+  }
   const target = new URL(callback);
   target.searchParams.set("claim", token);
 

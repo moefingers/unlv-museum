@@ -199,8 +199,10 @@ The user sees: sign-in button → GitHub consent → back on their environment, 
 
 **Security:**
 
-- Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL
-- Callback URLs are validated by `isTrustedCallbackUrl` against the trust ladder in `src/lib/callback-validation.ts` (localhost, RFC 1918 IPs, `unlv-museum.recanon.com`, `*.vercel.app|dev|sh`)
+- Claim tokens are HMAC-SHA256 signed with `BETTER_AUTH_SECRET` and have a 1-minute TTL. Without a secret no claim is issued or accepted (no fixed fallback).
+- **Where a claim may go** (`isTrustedRelayCallback`, `src/lib/callback-validation.ts`): only a local development server's `/auth/claim` (localhost or the private network, `next dev`, not on a Vercel deployment), exactly that path with no query. **On production the relay delivers no claim at all (2026-11-14)**: production needs none for itself, and anything else could receive a sign-in. Previews, LAN and localhost no longer sign in through production's relay, since the sign-in chip sends every non-production origin there. GitHub sign-in off production returns with an attested relay (OutlastSite's or zcanon's: the callback host proven by a Vercel OIDC token, the claim a single-use database row). Until then, sign in locally with a PAT (above).
+- **Where a browser may go after sign-in** (`isTrustedCallbackUrl`, `/auth/redirect`): `unlv-museum.recanon.com` over https, and localhost or the private network in local development only. The claim page follows only a same-origin path (`src/lib/safe-internal-path.ts`), never a `javascript:` URL or another origin, and takes the claim out of the address bar first.
+- **Why:** the callback check used to trust any `*.vercel.app`, `*.vercel.dev` or `*.vercel.sh` host, where anyone can make a free host, and the claim page followed any `callbackURL`, `javascript:` included. Either way a link could hand a stranger the session of whoever followed it.
 - The `BETTER_AUTH_SECRET` must match across production and the local `.env.local` for signatures to verify — same constraint as zcanon
 
 **Files:**

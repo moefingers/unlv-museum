@@ -15,12 +15,12 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isTrustedCallbackUrl } from "@/lib/callback-validation";
+import { isTrustedRelayCallback } from "@/lib/callback-validation";
 
 export async function GET(request: NextRequest) {
   const callback = request.nextUrl.searchParams.get("callback");
 
-  if (!callback || !isTrustedCallbackUrl(callback)) {
+  if (!callback || !isTrustedRelayCallback(callback)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
