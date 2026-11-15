@@ -52,6 +52,12 @@
  * exactly once the halves are split.
  *
  * Usage: pnpm build:readme-card
+ *        pnpm build:readme-card --cover 1128x191 [--out <dir>]
+ *
+ * --cover WxH frames the same scene as a profile-cover banner: W×H,
+ * full-bleed (no rounded frame), the open card and its cone placed in
+ * the right two thirds, and the lattice faded down over the left third,
+ * where a profile page's avatar sits. Writes museum-cover-WxH-<theme>.svg.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -83,7 +89,20 @@ import { PRESET_DEFINITIONS } from "../src/hooks/use-graphics";
 import { PROJECTS, type Category } from "../src/lib/projects";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const OUT_DIR = resolve(projectRoot, ".github/readme");
+
+function argValue(flag: string): string | null {
+  const i = process.argv.indexOf(flag);
+  return i >= 0 ? (process.argv[i + 1] ?? null) : null;
+}
+/** `--cover WxH`: the profile-cover framing (see the usage note above). */
+const COVER = (() => {
+  const raw = argValue("--cover");
+  if (raw == null) return null;
+  const m = /^(\d+)x(\d+)$/.exec(raw);
+  if (!m) throw new Error(`--cover expects WxH, got "${raw}"`);
+  return { w: Number(m[1]), h: Number(m[2]) };
+})();
+const OUT_DIR = resolve(argValue("--out") ?? resolve(projectRoot, ".github/readme"));
 
 // ═══ Reading tuning out of the component sources ═══════════════════
 
@@ -390,9 +409,9 @@ const CARD_ENTRY: {
  *     the crop doesn't show, so the lattice is anchored at the card's
  *     top-left as if the crop were the whole viewport.
  */
-const CARD_W = 1200;
+const CARD_W = COVER?.w ?? 1200;
 /** The recanon banner's shape (900×320); see "README framing" below. */
-const CARD_H = (CARD_W * 320) / 900;
+const CARD_H = COVER?.h ?? (CARD_W * 320) / 900;
 /**
  * Rounded frame, matching the dynimage banners this card sits under on
  * the moefingers profile README (dynimage src/lib/cards/svg-helpers.ts
@@ -404,8 +423,9 @@ const CARD_H = (CARD_W * 320) / 900;
  * outer half along the sides but not around the corners, so the
  * corners would read heavier.
  */
-const FRAME_RADIUS = (20 * CARD_W) / 900;
-const FRAME_STROKE = CARD_W / 900;
+// A cover is full-bleed: the profile page rounds and crops it.
+const FRAME_RADIUS = COVER ? 0 : (20 * CARD_W) / 900;
+const FRAME_STROKE = COVER ? 0 : CARD_W / 900;
 const FRAME_STROKE_COLOR: Record<Theme, string> = {
   dark: "#27272a",
   light: "#e4e4e7",
@@ -431,8 +451,32 @@ const VIEWPORT_TO_CARD = OG_DEVICE_PIXEL_RATIO;
  * sits 40px below the top so the unfolding hex's tip, which overshoots
  * the open card's top edge mid-cascade, still clears the frame.
  */
-const README_ZOOM = 0.72;
-const README_FOCUS = { x: CARD_W / 2, y: 40 };
+/**
+ * Cover framing. The open card's center in the OG frame (OG_CARD_CENTER)
+ * lands at COVER_CARD_AT, a point of the cover given as fractions of its
+ * width and height, and the zoom is set by the cover's height: the
+ * fraction of it the open card's height (OG_CARD_HEIGHT) takes, with the
+ * cone and the top of the globe below it.
+ */
+const OG_CARD_CENTER = { x: 457, y: 191 };
+const OG_CARD_HEIGHT = 336;
+const COVER_CARD_AT = { x: 0.64, y: 0.4 };
+const COVER_CARD_FILL = 0.7;
+const README_ZOOM = COVER
+  ? (COVER.h * COVER_CARD_FILL) / OG_CARD_HEIGHT
+  : 0.72;
+const README_FOCUS = COVER
+  ? // The fixed point F of card = F + (og - F) * zoom that puts
+    // OG_CARD_CENTER at COVER_CARD_AT.
+    {
+      x:
+        (COVER.w * COVER_CARD_AT.x - OG_CARD_CENTER.x * README_ZOOM) /
+        (1 - README_ZOOM),
+      y:
+        (COVER.h * COVER_CARD_AT.y - OG_CARD_CENTER.y * README_ZOOM) /
+        (1 - README_ZOOM),
+    }
+  : { x: CARD_W / 2, y: 40 };
 const STAGE_SCALE = OG_STAGE_SCALE * README_ZOOM;
 const STAGE_OFFSET = {
   x: README_FOCUS.x + (OG_STAGE_OFFSET.x - README_FOCUS.x) * README_ZOOM,
@@ -1960,12 +2004,16 @@ function renderMesh(pal: Palette): string {
   const p = VIEWPORT_TO_CARD;
   const vw = CARD_W / p;
   const vh = CARD_H / p;
+  const zoom = USER_ZOOM;
+  // The lattice contracts toward the stage by `zoom`; a cover zooms out
+  // further than the README card, so its lattice is built wider to still
+  // reach the frame's edges.
   const { dots, edges } = buildLattice(
     vw,
     vh,
-    Math.max(vw, vh) * MESH_LATTICE_MARGIN,
+    Math.max(vw, vh) *
+      (COVER ? Math.max(MESH_LATTICE_MARGIN, 1 / zoom) : MESH_LATTICE_MARGIN),
   );
-  const zoom = USER_ZOOM;
   // Cutout: the globe stage's box (stageSize square, scaled) in viewport px.
   const cx = toCardX(STAGE_CENTER) / p;
   const cy = toCardY(STAGE_CENTER) / p;
@@ -2241,21 +2289,35 @@ async function main() {
       card.defs,
       `<g id="glyphs">${bank.renderDefs()}</g>`,
       `<clipPath id="card-frame"><rect width="${CARD_W}" height="${num(CARD_H, 2)}" rx="${num(FRAME_RADIUS, 2)}" ry="${num(FRAME_RADIUS, 2)}"/></clipPath>`,
+      COVER
+        ? `<linearGradient id="cover-left" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${pal.background.hex}" stop-opacity=".88"/><stop offset=".22" stop-color="${pal.background.hex}" stop-opacity=".7"/><stop offset=".42" stop-color="${pal.background.hex}" stop-opacity="0"/></linearGradient>`
+        : "",
       `</defs>`,
       `<g clip-path="url(#card-frame)">`,
       `<rect width="${CARD_W}" height="${num(CARD_H, 2)}" fill="${pal.background.hex}"/>`,
       mesh,
+      // Cover: quiet the lattice where the avatar sits.
+      COVER
+        ? `<rect width="${CARD_W}" height="${num(CARD_H, 2)}" fill="url(#cover-left)"/>`
+        : "",
       `<g transform="matrix(${num(STAGE_SCALE, 5)} 0 0 ${num(STAGE_SCALE, 5)} ${num(STAGE_OFFSET.x, 3)} ${num(STAGE_OFFSET.y, 3)})">`,
       g.body,
       cone.body,
       card.body,
       `</g>`,
       `</g>`,
-      `<rect x="${num(FRAME_STROKE / 2, 3)}" y="${num(FRAME_STROKE / 2, 3)}" width="${num(CARD_W - FRAME_STROKE, 3)}" height="${num(CARD_H - FRAME_STROKE, 3)}" rx="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" ry="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" fill="none" stroke="${FRAME_STROKE_COLOR[theme]}" stroke-width="${num(FRAME_STROKE, 3)}"/>`,
+      FRAME_STROKE === 0
+        ? ""
+        : `<rect x="${num(FRAME_STROKE / 2, 3)}" y="${num(FRAME_STROKE / 2, 3)}" width="${num(CARD_W - FRAME_STROKE, 3)}" height="${num(CARD_H - FRAME_STROKE, 3)}" rx="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" ry="${num(FRAME_RADIUS - FRAME_STROKE / 2, 3)}" fill="none" stroke="${FRAME_STROKE_COLOR[theme]}" stroke-width="${num(FRAME_STROKE, 3)}"/>`,
       `</svg>`,
       "",
     ].join("\n");
-    const out = resolve(OUT_DIR, `museum-card-${theme}.svg`);
+    const out = resolve(
+      OUT_DIR,
+      COVER
+        ? `museum-cover-${COVER.w}x${COVER.h}-${theme}.svg`
+        : `museum-card-${theme}.svg`,
+    );
     writeFileSync(out, svg);
     console.log(
       `wrote ${relative(projectRoot, out)} (${(Buffer.byteLength(svg) / 1024).toFixed(1)} KB)`,
