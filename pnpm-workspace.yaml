@@ -6,3 +6,13 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Security floors (2026-11-14): each replaces only the vulnerable versions of a
+# package next 16.4.5 or better-auth pulls in, with the newest fixed release at least three
+# days old. Drop an entry once next's own range resolves to a fixed version.
+overrides:
+  "browserslist@<4.28.7": "4.29.5"
+  "baseline-browser-mapping@<2.11.0": "2.11.36"
+  "source-map-js@<1.2.2": "1.2.2"
+  "@babel/core@<7.29.6": "7.29.13"
+  "zod@<4.6.6": "4.6.7"
